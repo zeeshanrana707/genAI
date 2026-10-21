@@ -325,5 +325,7 @@ async def serve_ui():
 
 
 if __name__ == "__main__":
-    print("[*] Starting Perplexity Deep Research & Enterprise UI on http://127.0.0.1:8000")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    host = os.environ.get("HOST", "0.0.0.0")
+    print(f"[*] Starting Perplexity Deep Research UI on http://{host}:{port}")
+    uvicorn.run("app:app", host=host, port=port)
