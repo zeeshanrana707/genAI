@@ -1,0 +1,10 @@
+crewai>=0.80.0
+langchain-google-genai
+python-dotenv
+duckduckgo-search
+ddgs
+beautifulsoup4
+pydantic
+requests
+fastapi
+uvicorn

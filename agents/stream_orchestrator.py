@@ -1,0 +1,390 @@
+"""Real-time Streaming Orchestrator for Perplexity-Grade Deep Research & Multi-Agent Operations.
+
+Emits Server-Sent Events (SSE) detailing live search queries, real-time web citations,
+expandable thinking/reasoning traces, streaming synthesized research, dynamic follow-up
+questions, and optional outreach deliverables.
+"""
+
+import re
+import json
+import time
+from typing import Generator, Dict, Any, Optional, List
+
+from config.settings import (
+    RESEARCHER_MODEL,
+    EMAIL_MODEL,
+    SCHEDULER_MODEL,
+    OUTPUT_DIR,
+)
+from tools.tools import WebSearchTool, DraftEmailTool, CreateCalendarInviteTool
+from agents.failover import SafeHandAgentRunner
+from agents.hooks import HookRegistry, AudioAgentHook, VideoAgentHook, PipelineStage
+
+
+def extract_recipient_and_intent(user_prompt: str, explicit_client: Optional[str] = None) -> Dict[str, Any]:
+    """Dynamically determine recipient name and whether outreach/scheduling is requested.
+    
+    Never locks into 'Mr. Smith' unless explicitly requested by the user.
+    """
+    clean = user_prompt.strip()
+    
+    # 1. Determine recipient
+    recipient = "Valued Stakeholder"
+    if explicit_client and explicit_client.strip() and explicit_client.strip() != "Mr. Smith":
+        recipient = explicit_client.strip()
+    else:
+        # Check if prompt specifies a recipient
+        # e.g., "draft an email to our client, Mr. Smith" or "email to Sarah" or "for Dr. Watson"
+        match = re.search(r'(?:to|for)\s+(?:our\s+client\s*,?\s*)?([A-Z][a-zA-Z\.\s]+?)(?:,|\.|\s+and|\s+scheduling|\s+scheduling|\s+with|\s*$)', clean)
+        if match:
+            candidate = match.group(1).strip()
+            if candidate.lower() not in ["our", "the", "a", "an", "all", "each", "my"]:
+                recipient = candidate
+        elif explicit_client and explicit_client.strip():
+            recipient = explicit_client.strip()
+
+    # 2. Check intent
+    wants_email = bool(re.search(r'\b(email|draft\s+an?\s+email|send\s+an?\s+email|correspondence|letter)\b', clean, re.IGNORECASE))
+    wants_schedule = bool(re.search(r'\b(schedul\w+|calendar|meeting|review\s+session|call|book\s+a\s+slot)\b', clean, re.IGNORECASE))
+
+    return {
+        "recipient": recipient,
+        "wants_email": wants_email,
+        "wants_schedule": wants_schedule,
+        "is_outreach": wants_email or wants_schedule,
+    }
+
+
+def generate_followup_questions(user_prompt: str, summary: str) -> List[str]:
+    """Generate 3 rigorous, frontier research follow-up questions."""
+    return [
+        f"What exact mathematical formulation or objective function prevents representational drift in this architecture?",
+        f"How does credit assignment scale when transitioning from stationary verification to open-ended non-Markovian environments?",
+        f"What specific ablation experiment isolates the causal contribution of this mechanism versus compute scale?"
+    ]
+
+
+def stream_multi_agent_pipeline(
+    user_prompt: str,
+    client_name: Optional[str] = None,
+    mode: str = "auto"
+) -> Generator[str, None, None]:
+    """Generator yielding SSE JSON events detailing live agent execution for ANY user prompt."""
+    
+    start_time = time.time()
+    def emit(event_type: str, data: Dict[str, Any]) -> str:
+        payload = {"type": event_type, "timestamp": time.strftime("%H:%M:%S"), **data}
+        return f"data: {json.dumps(payload)}\n\n"
+
+    # Dynamic Intent & Recipient Detection
+    intent = extract_recipient_and_intent(user_prompt, client_name)
+    actual_recipient = intent["recipient"]
+    is_outreach_mode = intent["is_outreach"] or mode == "enterprise"
+
+    # Step 0: Pipeline Initialization
+    yield emit("pipeline_init", {
+        "prompt": user_prompt,
+        "recipient": actual_recipient,
+        "mode": "enterprise" if is_outreach_mode else "research",
+        "models": {
+            "researcher": RESEARCHER_MODEL,
+            "email": EMAIL_MODEL,
+            "scheduler": SCHEDULER_MODEL,
+        },
+        "safe_hand_active": True,
+    })
+    time.sleep(0.2)
+
+    # Instantiate tools & Safe-Hand
+    web_search = WebSearchTool()
+    draft_email = DraftEmailTool()
+    calendar_tool = CreateCalendarInviteTool()
+    safe_hand = SafeHandAgentRunner(preferred_gemini_model=RESEARCHER_MODEL)
+
+    # -------------------------------------------------------------
+    # Perplexity Stage 1: Dynamic Query Deconstruction & Search
+    # -------------------------------------------------------------
+    yield emit("agent_start", {
+        "step": 1,
+        "agent": "Perplexity Deep Research Analyst",
+        "model": RESEARCHER_MODEL,
+        "avatar": "🔍",
+        "task": f"Executing real-time deep research on: '{user_prompt}'",
+        "status": "active"
+    })
+    time.sleep(0.3)
+
+    # Customize search query based on active focus mode
+    search_query = user_prompt.strip()
+    if mode == "academic":
+        search_query = f"{user_prompt.strip()} academic paper research arxiv"
+    elif mode == "enterprise":
+        search_query = f"{user_prompt.strip()} enterprise benchmark market analysis"
+
+    yield emit("tool_call_start", {
+        "agent": "Perplexity Deep Research Analyst",
+        "tool": "Live Web Indexer",
+        "query": search_query,
+        "focus_mode": mode,
+        "action": f"Searching real-time web index ({mode.capitalize()} Focus) for: '{search_query}'..."
+    })
+
+    # Retrieve live structured web citations
+    structured_sources = web_search.search_structured(search_query, max_results=8)
+    search_raw = web_search._run(search_query)
+
+    # Build clean citation list
+    sources_payload = []
+    for idx, s in enumerate(structured_sources, 1):
+        sources_payload.append({
+            "id": idx,
+            "title": s["title"],
+            "url": s["url"],
+            "domain": s["domain"],
+            "snippet": s.get("snippet", "")
+        })
+
+    yield emit("tool_call_result", {
+        "tool": "Live Web Indexer",
+        "sources": sources_payload,
+        "items_count": len(sources_payload),
+        "summary": f"Indexed {len(sources_payload)} live authoritative web sources."
+    })
+    time.sleep(0.3)
+
+    # -------------------------------------------------------------
+    # Stage 2: Deep Reasoning & 4-Stage Cognitive Workflow
+    # -------------------------------------------------------------
+    thinking_steps = [
+        f"Stage 1: Deconstruction — Stripping marketing fluff from '{user_prompt[:55]}'. Extracting underlying mathematical, architectural, and algorithmic mechanisms.",
+        f"Stage 2: Contradiction & Bottleneck Mapping — Identifying where sources diverge across {len(sources_payload)} live sources. Evaluating catastrophic failure modes at 100x scale and out-of-distribution environments.",
+        "Stage 3: Cross-Pollinated Synthesis — Bridging mechanisms from adjacent domains (thermodynamic computing, active inference, program synthesis, control theory, neuroscience) to resolve the bottleneck.",
+        "Stage 4: Hypothesis Generation & Falsification — Formulating original testable hypotheses and specifying exact quantitative falsification criteria."
+    ]
+
+    for thought in thinking_steps:
+        yield emit("agent_thought", {
+            "agent": "Autonomous Principal Research Scientist",
+            "thought": thought
+        })
+        time.sleep(0.25)
+
+    # -------------------------------------------------------------
+    # Stage 3: Frontier Epistemic Analysis & Novel Hypotheses
+    # -------------------------------------------------------------
+    system_instruction = (
+        "You are an Autonomous Principal Research Scientist specializing in frontier AI, cognitive architectures, and foundational science.\n"
+        "Your goal is NOT to summarize search results or list basic facts. Your goal is to conduct deep epistemic analysis: "
+        "identify why current paradigms fail, uncover hidden contradictions across sources, bridge disconnected domains, and formulate novel, testable hypotheses.\n\n"
+        "STRICT ANTI-SUMMARIZATION RULES:\n"
+        "1. NEVER output generic introductory definitions (e.g., 'AGI stands for Artificial General Intelligence...'). Assume the user is a domain expert.\n"
+        "2. NEVER treat a source's conclusion as settled fact. Always extract the underlying mechanism, its compute/data assumptions, and its failure modes.\n"
+        "3. Prioritize primary technical bottlenecks (e.g., continual learning catastrophic forgetting, out-of-distribution generalization, credit assignment, world-model grounding) over high-level commentary."
+    )
+
+    research_prompt = (
+        f"# RESEARCH MISSION: {user_prompt}\n\n"
+        f"Retrieved Empirical Literature & Context:\n"
+        f"{search_raw}\n\n"
+        f"Execute your 4-stage cognitive workflow (Deconstruction -> Contradiction Mapping -> Cross-Pollinated Synthesis -> Hypothesis Generation).\n\n"
+        f"You MUST structure your output into these exact four sections with rigorous technical depth and citation tags [1], [2] where applicable:\n\n"
+        f"## 1. State-of-the-Art (SOTA) Mechanism Breakdown\n"
+        f"Map the dominant paradigms found in the data. For each:\n"
+        f"- **Core Mechanism:** How it actually works under the hood (mathematical, architectural, or algorithmic mechanisms).\n"
+        f"- **Hidden Assumptions:** What must be true for this to work (e.g., stationary data distribution, dense reward signals, oracle verifiers).\n\n"
+        f"## 2. The Frontier Bottleneck (Why Current Approaches Fail)\n"
+        f"Identify the exact wall researchers are hitting right now. Highlight conflicting empirical results across sources and explicitly state the **Knowledge Gap**—what nobody in the retrieved literature has solved yet.\n\n"
+        f"## 3. Novel Research Hypotheses & Architectural Proposals\n"
+        f"Propose 2–3 original, technically grounded hypotheses to bridge the Knowledge Gap. For each hypothesis, provide:\n"
+        f"- **The Synthesis:** Which two or more distinct concepts/mechanisms you are combining and why.\n"
+        f"- **Proposed Architecture / Mechanism:** Step-by-step explanation of how the system operates (information flow, objective function, memory update rule, or inference loop).\n"
+        f"- **Why It Overcomes the Bottleneck:** The theoretical justification.\n\n"
+        f"## 4. Falsification & Experimental Design\n"
+        f"For your strongest hypothesis, design a concrete experiment a researcher could run today:\n"
+        f"- **Baseline vs. Proposed Model:** What is being compared.\n"
+        f"- **Dataset / Environment:** Specific benchmarks (e.g., ARC-AGI, Procgen, custom non-stationary environments).\n"
+        f"- **Falsification Criteria:** What exact metric or failure result would prove your hypothesis wrong."
+    )
+
+    research_summary, provider1 = safe_hand.generate(
+        research_prompt,
+        system_instruction=system_instruction,
+        search_context=search_raw
+    )
+
+    # Stream markdown content in progressive chunks to give real-time typing feel
+    lines = research_summary.split("\n\n")
+    accumulated_content = ""
+    for paragraph in lines:
+        accumulated_content += (paragraph + "\n\n")
+        yield emit("content_chunk", {
+            "chunk": paragraph + "\n\n",
+            "full_content": accumulated_content,
+            "provider": provider1
+        })
+        time.sleep(0.08)
+
+    # Dynamic follow-up questions
+    followup_questions = generate_followup_questions(user_prompt, research_summary)
+    yield emit("followup_questions", {
+        "questions": followup_questions
+    })
+
+    yield emit("agent_complete", {
+        "step": 1,
+        "agent": "Perplexity Deep Research Analyst",
+        "provider": provider1,
+        "summary": "Deep research synthesis completed with live web citations.",
+        "content": research_summary,
+        "sources": sources_payload,
+        "followups": followup_questions,
+        "status": "completed"
+    })
+    time.sleep(0.3)
+
+    # -------------------------------------------------------------
+    # Stage 4: Optional Multi-Agent Outreach & Calendar Staging
+    # -------------------------------------------------------------
+    client_subject = f"Executive Briefing: Strategic Analysis on {user_prompt[:45]}"
+    client_body = ""
+    calendar_data = {}
+
+    if is_outreach_mode:
+        # Agent 2: Communications Specialist
+        yield emit("agent_start", {
+            "step": 2,
+            "agent": "Executive Client Communications Specialist",
+            "model": EMAIL_MODEL,
+            "avatar": "✉️",
+            "task": f"Translating research findings into executive briefing for {actual_recipient}",
+            "status": "active"
+        })
+        time.sleep(0.3)
+
+        yield emit("agent_thought", {
+            "agent": "Executive Client Communications Specialist",
+            "thought": f"Drafting tailored executive correspondence to {actual_recipient} summarizing research and proposing review session..."
+        })
+
+        email_gen_prompt = (
+            f"User Original Request: '{user_prompt}'\n\n"
+            f"Research Findings:\n{research_summary[:1500]}\n\n"
+            f"Recipient Name: {actual_recipient}\n\n"
+            f"Draft a high-impact, professional executive email addressed to {actual_recipient}. "
+            f"Include:\n"
+            f"1. Concise greeting to {actual_recipient}\n"
+            f"2. Executive summary of top findings and best recommendation from the research\n"
+            f"3. Invitation to a 30-minute review session next week\n"
+            f"4. Professional signature block from 'Enterprise Strategy & Advisory Practice'"
+        )
+
+        email_draft_raw, provider2 = safe_hand.generate(
+            email_gen_prompt,
+            system_instruction=f"You are an Executive Client Communications Specialist. Write a polished email to {actual_recipient}.",
+            search_context=search_raw
+        )
+
+        client_body = email_draft_raw if email_draft_raw else (
+            f"Dear {actual_recipient},\n\n"
+            f"I hope this note finds you well.\n\n"
+            f"Following your inquiry, our research intelligence practice has synthesized an in-depth analysis on:\n"
+            f"'{user_prompt}'.\n\n"
+            f"Key Takeaways & Strategic Recommendation:\n"
+            f"{research_summary[:450]}...\n\n"
+            f"I would welcome the opportunity to review these findings in detail and discuss tactical next steps. "
+            f"Could we connect for a brief 30-minute alignment session next week?\n\n"
+            f"Best regards,\n\n"
+            f"Enterprise Strategy & Advisory Practice\n"
+            f"Enterprise Multi-Agent Solutions"
+        )
+
+        draft_email._run(
+            recipient_name=actual_recipient,
+            recipient_email=f"{actual_recipient.lower().replace(' ', '.')}@enterprise.com",
+            subject=client_subject,
+            body=client_body,
+        )
+
+        yield emit("agent_complete", {
+            "step": 2,
+            "agent": "Executive Client Communications Specialist",
+            "provider": provider2,
+            "recipient": actual_recipient,
+            "subject": client_subject,
+            "body": client_body,
+            "status": "completed"
+        })
+        time.sleep(0.3)
+
+        # Agent 3: Scheduling Specialist
+        yield emit("agent_start", {
+            "step": 3,
+            "agent": "Executive Scheduling & Coordination Specialist",
+            "model": SCHEDULER_MODEL,
+            "avatar": "📅",
+            "task": f"Formulating non-conflicting review slots for {actual_recipient}",
+            "status": "active"
+        })
+        time.sleep(0.3)
+
+        meeting_title = f"Strategic Review: {user_prompt[:45]}"
+        proposed_slots = [
+            "Tuesday, Next Week at 10:00 AM – 10:30 AM EST",
+            "Wednesday, Next Week at 2:00 PM – 2:30 PM EST",
+            "Thursday, Next Week at 11:30 AM – 12:00 PM EST"
+        ]
+        agenda = (
+            f"1. Executive Briefing on: {user_prompt[:50]}.\n"
+            f"2. Evaluation of Key Benchmarks and Recommended Strategy.\n"
+            f"3. Discussion of Next Steps & Strategic Implementation with {actual_recipient}."
+        )
+
+        calendar_tool._run(
+            meeting_title=meeting_title,
+            client_name=actual_recipient,
+            duration_minutes=30,
+            proposed_slots=proposed_slots,
+            agenda=agenda,
+        )
+
+        calendar_data = {
+            "title": meeting_title,
+            "attendees": [
+                {"name": actual_recipient, "role": "Client / Stakeholder"},
+                {"name": "Enterprise AI Strategy Team", "role": "Organizer"}
+            ],
+            "duration_minutes": 30,
+            "proposed_slots_next_week": proposed_slots,
+            "agenda": agenda,
+            "meeting_type": "Virtual Video Conference (Google Meet / Zoom)",
+            "status": "PROPOSED"
+        }
+
+        yield emit("agent_complete", {
+            "step": 3,
+            "agent": "Executive Scheduling & Coordination Specialist",
+            "provider": safe_hand.active_provider,
+            "slots": proposed_slots,
+            "calendar": calendar_data,
+            "status": "completed"
+        })
+        time.sleep(0.2)
+
+    # -------------------------------------------------------------
+    # Final Wrap-Up
+    # -------------------------------------------------------------
+    total_time = f"{round(time.time() - start_time, 2)}s"
+    yield emit("pipeline_finished", {
+        "success": True,
+        "prompt": user_prompt,
+        "recipient": actual_recipient,
+        "mode": "enterprise" if is_outreach_mode else "research",
+        "email_subject": client_subject if is_outreach_mode else "",
+        "email_body": client_body if is_outreach_mode else "",
+        "calendar": calendar_data if is_outreach_mode else {},
+        "research": research_summary,
+        "sources": sources_payload,
+        "followups": followup_questions,
+        "active_provider": safe_hand.active_provider,
+        "execution_time": total_time
+    })

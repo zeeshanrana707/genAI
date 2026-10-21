@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perplexity Deep Research // Frontier Multi-Agent Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            pplx: {
+              bg: '#0c0e12',
+              sidebar: '#11141a',
+              card: '#161922',
+              cardHover: '#1c202c',
+              border: '#232836',
+              accent: '#20b8cd',
+              accentHover: '#1ca1b4',
+              accentGlow: 'rgba(32, 184, 205, 0.25)',
+              muted: '#8b949e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0c0e12;
+      color: #e6edf3;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0e1117;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #232836;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #333a4d;
+    }
+    .glass-search {
+      background: rgba(22, 25, 34, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid #232836;
+    }
+    .glass-search:focus-within {
+      border-color: #20b8cd;
+      box-shadow: 0 0 25px -5px rgba(32, 184, 205, 0.35);
+    }
+    .citation-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(32, 184, 205, 0.15);
+      color: #20b8cd;
+      border: 1px solid rgba(32, 184, 205, 0.3);
+      cursor: pointer;
+      margin: 0 2px;
+      vertical-align: baseline;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .citation-badge:hover {
+      background: #20b8cd;
+      color: #0c0e12;
+      transform: translateY(-1px);
+    }
+    .source-card-highlight {
+      border-color: #20b8cd !important;
+      box-shadow: 0 0 20px rgba(32, 184, 205, 0.4) !important;
+      transform: translateY(-2px);
+    }
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.3; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .pulsing-ring {
+      animation: pulse-ring 2s infinite ease-in-out;
+    }
+    /* Markdown Prose Styling */
+    .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+      color: #f0f6fc;
+      font-weight: 700;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+    .markdown-content h1 { font-size: 1.45rem; border-bottom: 1px solid #232836; padding-bottom: 0.5rem; }
+    .markdown-content h2 { font-size: 1.25rem; color: #20b8cd; }
+    .markdown-content h3 { font-size: 1.05rem; }
+    .markdown-content p {
+      margin-bottom: 1rem;
+      line-height: 1.7;
+      color: #d1d7e0;
+    }
+    .markdown-content ul, .markdown-content ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+      color: #d1d7e0;
+    }
+    .markdown-content li {
+      margin-bottom: 0.35rem;
+      line-height: 1.6;
+    }
+    .markdown-content table {
+      width: 100%;
+      margin: 1.25rem 0;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .markdown-content th {
+      background: #1c202c;
+      color: #f0f6fc;
+      padding: 8px 12px;
+      text-align: left;
+      border: 1px solid #232836;
+      font-weight: 600;
+    }
+    .markdown-content td {
+      padding: 8px 12px;
+      border: 1px solid #232836;
+      background: #141720;
+    }
+    .markdown-content tr:nth-child(even) td {
+      background: #11141c;
+    }
+    .markdown-content code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      background: #1c202c;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #20b8cd;
+    }
+    .markdown-content pre code {
+      display: block;
+      padding: 12px;
+      background: #08090d;
+      border: 1px solid #232836;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .markdown-content blockquote {
+      border-left: 3px solid #20b8cd;
+      padding-left: 1rem;
+      margin: 1rem 0;
+      color: #94a3b8;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex bg-pplx-bg text-slate-100 antialiased selection:bg-pplx-accent selection:text-black">
+
+  <!-- Left Sidebar (Perplexity Pro Style) -->
+  <aside class="w-64 border-r border-pplx-border bg-pplx-sidebar hidden md:flex flex-col justify-between p-4 flex-shrink-0">
+    <div class="space-y-6">
+      
+      <!-- Logo & Status -->
+      <div class="flex items-center space-x-3 px-2">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-500 to-blue-600 flex items-center justify-center font-black text-black text-lg shadow-lg shadow-cyan-500/20">
+          ✦
+        </div>
+        <div>
+          <div class="font-bold tracking-tight text-white text-base flex items-center space-x-1.5">
+            <span>Perplexity</span>
+            <span class="text-[10px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-semibold">PRO</span>
+          </div>
+          <p class="text-[11px] text-pplx-muted">Deep Research Engine</p>
+        </div>
+      </div>
+
+      <!-- Action Button: New Research -->
+      <button onclick="resetToNewSearch()" class="w-full py-2.5 px-3.5 rounded-xl bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-xs font-semibold text-white flex items-center justify-between transition-all group">
+        <span class="flex items-center space-x-2">
+          <span class="text-pplx-accent font-bold text-sm">+</span>
+          <span>New Thread</span>
+        </span>
+        <span class="text-[10px] font-mono text-pplx-muted group-hover:text-white transition-colors">Ctrl+K</span>
+      </button>
+
+      <!-- Focus Mode Selector -->
+      <div class="space-y-1.5">
+        <span class="text-[11px] font-mono uppercase tracking-wider text-pplx-muted px-2">Search Focus</span>
+        <div class="space-y-1">
+          <button onclick="setFocusMode('all')" id="focusBtnAll" class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium bg-pplx-accent/15 text-pplx-accent border border-pplx-accent/30 transition-colors">
+            <span>🌐</span>
+            <span>All Web (Deep Search)</span>
+          </button>
+          <button onclick="setFocusMode('academic')" id="focusBtnAcademic" class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card transition-colors">
+            <span>📑</span>
+            <span>Academic & Papers</span>
+          </button>
+          <button onclick="setFocusMode('enterprise')" id="focusBtnEnterprise" class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card transition-colors">
+            <span>💼</span>
+            <span>Enterprise & Outreach</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Research History -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between px-2">
+          <span class="text-[11px] font-mono uppercase tracking-wider text-pplx-muted">Recent Threads</span>
+          <button onclick="clearHistory()" class="text-[10px] text-pplx-muted hover:text-red-400 transition-colors">Clear</button>
+        </div>
+        <div id="recentHistoryList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Telemetry & Status -->
+    <div class="pt-4 border-t border-pplx-border space-y-2">
+      <div class="flex items-center justify-between text-xs px-2">
+        <span class="text-pplx-muted font-mono">Engine:</span>
+        <span class="text-cyan-400 font-mono font-medium flex items-center space-x-1.5">
+          <span class="h-2 w-2 rounded-full bg-emerald-400 pulsing-ring inline-block"></span>
+          <span id="activeModelTag">Gemini 3.1 & Safe-Hand</span>
+        </span>
+      </div>
+      <div class="p-2.5 rounded-xl bg-pplx-card border border-pplx-border text-[11px] text-slate-400 space-y-1">
+        <div class="flex justify-between">
+          <span>Failover Tier:</span>
+          <span class="text-emerald-400 font-mono font-medium">Armed (0-Downtime)</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Search Index:</span>
+          <span class="text-slate-300 font-mono">Live DuckDuckGo</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Canvas -->
+  <div class="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar">
+
+    <!-- Top Mobile/Tablet Header -->
+    <header class="border-b border-pplx-border bg-pplx-bg/90 sticky top-0 z-40 backdrop-blur-xl px-6 h-14 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="md:hidden flex items-center space-x-2">
+          <div class="h-7 w-7 rounded-lg bg-cyan-500 flex items-center justify-center font-bold text-black text-sm">✦</div>
+          <span class="font-bold text-white text-sm">Perplexity</span>
+        </div>
+        <div class="hidden sm:flex items-center space-x-2 text-xs text-pplx-muted">
+          <span>Thread:</span>
+          <span id="activeThreadTitle" class="text-slate-200 font-medium truncate max-w-md">New Deep Research Session</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-2">
+        <button onclick="scrollToBriefSection()" class="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-semibold text-cyan-400 flex items-center space-x-1.5 transition-all">
+          <span>📧</span>
+          <span class="hidden sm:inline">Send Brief</span>
+        </button>
+        <button onclick="openOutreachDrawer()" id="outreachDrawerBtn" class="px-3 py-1.5 rounded-xl bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-xs font-semibold text-slate-300 hover:text-white flex items-center space-x-1.5 transition-all">
+          <span>💼</span>
+          <span class="hidden sm:inline">Outreach Hub</span>
+          <span id="outreachBadgeCount" class="hidden text-[10px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-400 font-mono">1</span>
+        </button>
+        <button onclick="exportMarkdownReport()" class="px-3 py-1.5 rounded-xl bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-xs font-semibold text-slate-300 hover:text-white flex items-center space-x-1.5 transition-all">
+          <span>⬇️</span>
+          <span>Export .md</span>
+        </button>
+        <button onclick="copyFullReport()" class="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-semibold text-cyan-400 flex items-center space-x-1.5 transition-all">
+          <span id="copyReportIcon">📋</span>
+          <span id="copyReportText">Copy</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-4xl w-full mx-auto px-4 sm:px-6 py-8 flex-1 flex flex-col space-y-8">
+
+      <!-- Hero Welcome & Omni-Search (visible on start / can be collapsed) -->
+      <div id="searchHeroSection" class="transition-all duration-300 space-y-6 pt-4">
+        
+        <div class="text-center space-y-2">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-mono text-cyan-400 mb-2">
+            <span>✦ FRONTIER EPISTEMIC ANALYSIS & NOVEL HYPOTHESES</span>
+          </div>
+          <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            Autonomous Scientific Intelligence
+          </h1>
+          <p class="text-sm text-pplx-muted max-w-2xl mx-auto">
+            Deep epistemic deconstruction of SOTA mechanisms, empirical bottleneck mapping, cross-domain synthesis, and falsifiable architectural hypotheses.
+          </p>
+        </div>
+
+        <!-- Perplexity Glowing Search Input Bar -->
+        <div class="glass-search rounded-2xl p-3 sm:p-4 shadow-2xl transition-all">
+          <textarea
+            id="promptInput"
+            rows="2"
+            placeholder="Ask anything or enter a research topic (e.g. quantum breakthroughs, AI video tools, competitor benchmarking, biotech trends)..."
+            class="w-full bg-transparent border-0 text-sm sm:text-base text-slate-100 placeholder-slate-500 focus:outline-none resize-none leading-relaxed font-sans"
+          ></textarea>
+
+          <div class="pt-2 border-t border-pplx-border/60 flex items-center justify-between flex-wrap gap-2">
+            
+            <!-- Focus & Mode Indicators -->
+            <div class="flex items-center space-x-2">
+              <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-pplx-card border border-pplx-border text-xs text-slate-300 font-mono">
+                <span>🎯</span>
+                <span id="selectedFocusLabel">Web Deep Research</span>
+              </div>
+
+              <!-- Recipient Override (if user wants to email someone) -->
+              <div class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-pplx-card border border-pplx-border text-xs text-slate-300">
+                <span class="text-slate-500 font-mono">Stakeholder:</span>
+                <input
+                  id="recipientInput"
+                  type="text"
+                  placeholder="Auto-detected (or specify)"
+                  class="bg-transparent text-xs text-slate-200 placeholder-slate-600 focus:outline-none w-36"
+                />
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex items-center space-x-2">
+              <span class="hidden sm:inline text-[11px] font-mono text-pplx-muted">⌘+Enter</span>
+              <button
+                id="searchBtn"
+                onclick="triggerDeepResearch()"
+                class="py-2 px-4 rounded-xl font-semibold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-cyan-400/20"
+              >
+                <span id="searchBtnIcon">✦</span>
+                <span id="searchBtnText">Search</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Quick Inspiration Topics -->
+        <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+          <span class="text-xs text-pplx-muted">Explore:</span>
+          <button onclick="applyPreset('Why do autoregressive Transformers with MCTS and PRMs fail at out-of-distribution generalization and continuous world-model grounding?')" class="text-xs px-3 py-1.5 rounded-full bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-300 hover:text-white transition-all">
+            🧠 MCTS & World-Model Grounding
+          </button>
+          <button onclick="applyPreset('Evaluate non-equilibrium thermodynamic computing and continuous attractor dynamics as alternatives to discrete tokenized autoregression.')" class="text-xs px-3 py-1.5 rounded-full bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-300 hover:text-white transition-all">
+            ⚛️ Thermodynamic Attractors
+          </button>
+          <button onclick="applyPreset('Identify the exact failure modes of continual learning architectures under non-stationary task shifts and propose invariant memory mechanisms.')" class="text-xs px-3 py-1.5 rounded-full bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-300 hover:text-white transition-all">
+            🧬 Continual Learning & Invariance
+          </button>
+          <button onclick="applyPreset('Analyze ARC-AGI program synthesis versus neural latent representations and propose a hybrid causal AST execution architecture.')" class="text-xs px-3 py-1.5 rounded-full bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-300 hover:text-white transition-all">
+            🤖 ARC-AGI & Causal ASTs
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Live Research Stream Container (Perplexity Result View) -->
+      <div id="researchResultsContainer" class="hidden space-y-6">
+
+        <!-- Question Header & Telemetry -->
+        <div class="flex items-start justify-between pb-4 border-b border-pplx-border">
+          <div>
+            <h2 id="activeQueryHeading" class="text-xl sm:text-2xl font-bold text-white tracking-tight"></h2>
+            <div class="flex items-center space-x-3 mt-2 text-xs font-mono text-pplx-muted">
+              <span id="statusTimerBadge" class="flex items-center space-x-1.5">
+                <span class="h-2 w-2 rounded-full bg-cyan-400 pulsing-ring inline-block"></span>
+                <span>Searching live web...</span>
+              </span>
+              <span>·</span>
+              <span id="providerBadge">Google Gemini & Safe-Hand</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1. Sources Carousel / Grid (The Perplexity Signature) -->
+        <div id="sourcesSection" class="space-y-2.5">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
+            <div class="flex items-center space-x-2">
+              <span>🌐</span>
+              <span class="uppercase tracking-wider font-mono text-[11px] text-pplx-muted">Sources</span>
+              <span id="sourcesCountPill" class="px-2 py-0.2 rounded-full bg-pplx-card border border-pplx-border text-[10px] font-mono text-cyan-400">0 Sources</span>
+            </div>
+          </div>
+
+          <!-- Cards Row -->
+          <div id="sourcesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <!-- Source cards injected dynamically here -->
+          </div>
+        </div>
+
+        <!-- 2. Expandable "Thinking / Steps" Accordion -->
+        <div class="rounded-xl border border-pplx-border bg-pplx-card/80 overflow-hidden">
+          <button onclick="toggleThinking()" class="w-full px-4 py-2.5 flex items-center justify-between text-xs font-medium text-slate-300 hover:bg-pplx-cardHover transition-colors">
+            <div class="flex items-center space-x-2">
+              <span id="thinkingSpinner" class="inline-block animate-spin text-cyan-400">✦</span>
+              <span id="thinkingStatusText">Cognitive Workflow: Deconstruction · Bottleneck Mapping · Synthesis · Falsification</span>
+            </div>
+            <span id="thinkingToggleIcon" class="text-pplx-muted text-xs">▼</span>
+          </button>
+          
+          <div id="thinkingContent" class="px-4 pb-3 pt-1 border-t border-pplx-border/60 space-y-1.5 text-xs font-mono text-slate-400">
+            <!-- Dynamic thoughts stream here -->
+          </div>
+        </div>
+
+        <!-- 3. Synthesized Research Answer (Markdown with In-Text Citations) -->
+        <div class="rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
+            <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
+              <span>✦ Epistemic Analysis & Novel Hypotheses</span>
+            </div>
+            <div class="flex items-center space-x-2 text-xs text-pplx-muted">
+              <span>Required Architecture: SOTA Mechanisms · Frontier Bottlenecks · Novel Hypotheses · Experimental Falsification</span>
+            </div>
+          </div>
+
+          <!-- Streaming / Formatted Markdown Output -->
+          <div id="researchMarkdownBody" class="markdown-content text-sm sm:text-base leading-relaxed select-text">
+            <div class="flex items-center space-x-2 text-slate-400 py-6">
+              <span class="animate-spin text-cyan-400">✦</span>
+              <span>Synthesizing live web intelligence across sources...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Dispatch Executive Research Brief to Receiver (Requested Feature) -->
+        <div id="dispatchBriefSection" class="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-pplx-card to-[#121622] p-6 space-y-4 shadow-xl relative overflow-hidden transition-all">
+          <div class="flex items-center justify-between pb-3 border-b border-pplx-border/70">
+            <div class="flex items-center space-x-2.5">
+              <div class="h-9 w-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-base shadow-inner">
+                ✉️
+              </div>
+              <div>
+                <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                  <span>Send Research Brief to Receiver</span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold">Short & Descriptive Theme</span>
+                </h3>
+                <p class="text-xs text-pplx-muted">Synthesize the core theme & top insights of this research and dispatch directly to any email.</p>
+              </div>
+            </div>
+            <span class="text-[11px] font-mono text-cyan-400/90 bg-cyan-950/40 border border-cyan-500/20 px-2.5 py-1 rounded-lg hidden sm:inline-block">AI Executive Digest</span>
+          </div>
+
+          <!-- Input Fields Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+            <div class="sm:col-span-5 space-y-1">
+              <label class="text-[11px] font-mono text-slate-300 uppercase tracking-wider block font-medium">Receiver's Email <span class="text-cyan-400">*</span></label>
+              <input
+                id="briefReceiverEmail"
+                type="email"
+                placeholder="e.g. colleague@company.com or client@domain.com"
+                class="w-full bg-[#080a0f] border border-pplx-border rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors shadow-inner"
+              />
+            </div>
+
+            <div class="sm:col-span-4 space-y-1">
+              <label class="text-[11px] font-mono text-slate-400 uppercase tracking-wider block">Receiver's Name / Role (Optional)</label>
+              <input
+                id="briefReceiverName"
+                type="text"
+                placeholder="e.g. Sarah / VP of Strategy"
+                class="w-full bg-[#080a0f] border border-pplx-border rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors shadow-inner"
+              />
+            </div>
+
+            <div class="sm:col-span-3 flex items-end">
+              <button
+                id="sendBriefBtn"
+                onclick="dispatchExecutiveBrief()"
+                class="w-full py-2.5 px-3 rounded-xl font-bold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center space-x-1.5 shadow-lg shadow-cyan-400/25"
+              >
+                <span id="sendBriefIcon">🚀</span>
+                <span id="sendBriefBtnText">Send Brief</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Optional Context Note -->
+          <div class="pt-0.5">
+            <input
+              id="briefCustomNote"
+              type="text"
+              placeholder="Add an optional personal note (e.g. 'Key points for tomorrow's alignment session')"
+              class="w-full bg-[#080a0f]/80 border border-pplx-border/70 rounded-lg px-3 py-1.5 text-[11px] text-slate-300 placeholder-slate-600 focus:outline-none focus:border-cyan-400/70 transition-colors"
+            />
+          </div>
+
+          <!-- Live Delivery Confirmation & Preview Card -->
+          <div id="briefDeliveryCard" class="hidden mt-3 p-4 rounded-xl bg-[#080a0f] border border-emerald-500/40 space-y-3 transition-all">
+            <div class="flex items-center justify-between pb-2 border-b border-pplx-border">
+              <div class="flex items-center space-x-2">
+                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs font-bold text-emerald-400 font-mono" id="briefDeliveryStatusText">✓ Executive Brief Dispatched</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <button onclick="copyGeneratedBrief()" class="text-xs px-2.5 py-1 rounded-lg bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-300 hover:text-white transition-colors flex items-center space-x-1">
+                  <span>📋</span>
+                  <span id="copyBriefBtnText">Copy Email</span>
+                </button>
+                <a id="briefMailtoLink" href="#" target="_blank" class="text-xs px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-medium transition-colors flex items-center space-x-1">
+                  <span>✉️</span>
+                  <span>Open in Mail App</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Subject & Recipient Preview -->
+            <div class="text-xs space-y-1.5 font-mono">
+              <div class="flex items-start space-x-2 text-slate-400">
+                <span class="font-bold text-slate-500">SUBJECT:</span>
+                <span id="briefSubjectPreview" class="text-slate-100 font-semibold"></span>
+              </div>
+              <div class="flex items-start space-x-2 text-slate-400">
+                <span class="font-bold text-slate-500">RECIPIENT:</span>
+                <span id="briefRecipientPreview" class="text-cyan-400"></span>
+              </div>
+            </div>
+
+            <!-- Descriptive Body Preview -->
+            <div class="p-3.5 rounded-lg bg-[#0e111a] border border-pplx-border text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-wrap select-text max-h-64 overflow-y-auto custom-scrollbar" id="briefBodyPreview">
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Perplexity Follow-Up / Related Questions -->
+        <div id="followupsSection" class="hidden space-y-3 pt-2">
+          <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-pplx-muted font-mono">
+            <span>✦ Related Questions</span>
+          </div>
+          <div id="followupsList" class="space-y-2">
+            <!-- Follow-up question pills injected here -->
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- Enterprise Outreach & Deliverables Slide-over Drawer -->
+  <div id="outreachDrawer" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity" onclick="closeOutreachDrawer()"></div>
+
+    <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+      <div class="pointer-events-auto w-screen max-w-xl border-l border-pplx-border bg-pplx-sidebar p-6 shadow-2xl flex flex-col space-y-6 overflow-y-auto custom-scrollbar">
+        
+        <!-- Drawer Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-pplx-border">
+          <div class="flex items-center space-x-2.5">
+            <span class="text-xl">💼</span>
+            <div>
+              <h3 class="text-base font-bold text-white">Enterprise Outreach Hub</h3>
+              <p class="text-xs text-pplx-muted">Dynamic client communications & calendar invites</p>
+            </div>
+          </div>
+          <button onclick="closeOutreachDrawer()" class="h-8 w-8 rounded-lg bg-pplx-card hover:bg-pplx-cardHover flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+            ✕
+          </button>
+        </div>
+
+        <!-- Staged Email Section -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono uppercase tracking-wider text-cyan-400 font-bold">1. Staged Client Email</span>
+            <button onclick="copyDrawerEmail()" class="text-xs px-2.5 py-1 rounded-lg bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-300 hover:text-white transition-colors">
+              📋 Copy Email
+            </button>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-pplx-bg border border-pplx-border space-y-2 text-xs font-mono">
+            <div class="flex items-center space-x-2">
+              <span class="text-slate-500">TO:</span>
+              <span id="drawerEmailTo" class="text-slate-200">client@enterprise.com</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <span class="text-slate-500">SUBJECT:</span>
+              <span id="drawerEmailSubject" class="text-slate-200 font-semibold truncate">Executive Briefing & Strategic Review</span>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border max-h-56 overflow-y-auto custom-scrollbar">
+            <pre id="drawerEmailBody" class="font-sans text-xs text-slate-300 whitespace-pre-wrap leading-relaxed select-text">Execute research to generate a tailored client email.</pre>
+          </div>
+        </div>
+
+        <!-- Staged Calendar Slots Section -->
+        <div class="space-y-3 pt-3 border-t border-pplx-border">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold">2. Calendar Logistics (.ICS)</span>
+            <a href="/api/download/ics" id="drawerDownloadIcs" class="text-xs px-3 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-400 font-mono flex items-center space-x-1 transition-colors">
+              <span>📅 Download .ICS</span>
+            </a>
+          </div>
+
+          <div id="drawerSlotsList" class="space-y-2 text-xs">
+            <!-- Slots injected dynamically -->
+            <div class="p-3 rounded-xl bg-pplx-bg border border-pplx-border flex items-center justify-between">
+              <div>
+                <div class="font-semibold text-slate-200">Tuesday, Next Week · 10:00 AM – 10:30 AM EST</div>
+                <div class="text-[11px] text-pplx-muted">Virtual Conference (Google Meet / Zoom)</div>
+              </div>
+              <span class="text-[11px] font-mono text-emerald-400">Ready</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let activePrompt = '';
+    let currentSources = [];
+    let currentMarkdown = '';
+    let isThinkingExpanded = true;
+    let activeFocusMode = 'all';
+
+    // Elements
+    const promptInput = document.getElementById('promptInput');
+    const recipientInput = document.getElementById('recipientInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const searchBtnText = document.getElementById('searchBtnText');
+    const searchBtnIcon = document.getElementById('searchBtnIcon');
+    const searchHeroSection = document.getElementById('searchHeroSection');
+    const researchResultsContainer = document.getElementById('researchResultsContainer');
+    const activeQueryHeading = document.getElementById('activeQueryHeading');
+    const statusTimerBadge = document.getElementById('statusTimerBadge');
+    const providerBadge = document.getElementById('providerBadge');
+    const sourcesGrid = document.getElementById('sourcesGrid');
+    const sourcesCountPill = document.getElementById('sourcesCountPill');
+    const thinkingContent = document.getElementById('thinkingContent');
+    const thinkingStatusText = document.getElementById('thinkingStatusText');
+    const thinkingSpinner = document.getElementById('thinkingSpinner');
+    const researchMarkdownBody = document.getElementById('researchMarkdownBody');
+    const followupsSection = document.getElementById('followupsSection');
+    const followupsList = document.getElementById('followupsList');
+
+    // Auto-focus input on load
+    window.addEventListener('DOMContentLoaded', () => {
+      promptInput.focus();
+      loadRecentHistory();
+      checkBackendHealth();
+    });
+
+    // Keyboard Shortcuts (Enter or Ctrl/Cmd + Enter)
+    promptInput.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        triggerDeepResearch();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        resetToNewSearch();
+      }
+    });
+
+    function setFocusMode(mode) {
+      activeFocusMode = mode;
+      ['all', 'academic', 'enterprise'].forEach(m => {
+        const btn = document.getElementById('focusBtn' + m.charAt(0).toUpperCase() + m.slice(1));
+        if (m === mode) {
+          btn.className = 'w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium bg-pplx-accent/15 text-pplx-accent border border-pplx-accent/30 transition-colors';
+        } else {
+          btn.className = 'w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card transition-colors';
+        }
+      });
+
+      const labelMap = {
+        all: 'Web Deep Research',
+        academic: 'Academic & Papers',
+        enterprise: 'Enterprise & Outreach'
+      };
+      document.getElementById('selectedFocusLabel').innerText = labelMap[mode] || 'Web Deep Research';
+    }
+
+    function applyPreset(text) {
+      promptInput.value = text;
+      triggerDeepResearch();
+    }
+
+    function resetToNewSearch() {
+      promptInput.value = '';
+      researchResultsContainer.classList.add('hidden');
+      searchHeroSection.classList.remove('hidden');
+      promptInput.focus();
+    }
+
+    function toggleThinking() {
+      isThinkingExpanded = !isThinkingExpanded;
+      thinkingContent.classList.toggle('hidden', !isThinkingExpanded);
+      document.getElementById('thinkingToggleIcon').innerText = isThinkingExpanded ? '▼' : '▲';
+    }
+
+    function triggerDeepResearch() {
+      const prompt = promptInput.value.trim();
+      const recipient = recipientInput.value.trim();
+      if (!prompt) return;
+
+      activePrompt = prompt;
+      currentSources = [];
+      currentMarkdown = '';
+
+      // Update UI state
+      document.getElementById('activeThreadTitle').innerText = prompt.length > 55 ? prompt.substring(0, 52) + '...' : prompt;
+      activeQueryHeading.innerText = prompt;
+      statusTimerBadge.innerHTML = '<span class="h-2 w-2 rounded-full bg-cyan-400 pulsing-ring inline-block"></span> <span>Searching live web...</span>';
+      sourcesGrid.innerHTML = '';
+      sourcesCountPill.innerText = '0 Sources';
+      thinkingContent.innerHTML = '';
+      thinkingStatusText.innerText = 'Analyzing topic & constructing search vectors...';
+      thinkingSpinner.classList.remove('hidden');
+      researchMarkdownBody.innerHTML = '<div class="flex items-center space-x-2 text-slate-400 py-6"><span class="animate-spin text-cyan-400">✦</span><span>Synthesizing live web intelligence across sources...</span></div>';
+      followupsSection.classList.add('hidden');
+      followupsList.innerHTML = '';
+
+      // Reveal results section
+      researchResultsContainer.classList.remove('hidden');
+      // Scroll smoothly to results
+      researchResultsContainer.scrollIntoView({ behavior: 'smooth' });
+
+      // Save to history
+      saveToHistory(prompt);
+
+      // Lock button
+      searchBtn.disabled = true;
+      searchBtn.classList.add('opacity-75');
+      searchBtnText.innerText = 'Researching...';
+
+      // Start SSE Streaming
+      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&client=${encodeURIComponent(recipient)}&mode=${encodeURIComponent(activeFocusMode)}`;
+      const es = new EventSource(url);
+
+      es.onmessage = function(e) {
+        try {
+          const ev = JSON.parse(e.data);
+
+          if (ev.type === 'tool_call_start') {
+            appendThought(`🔍 ${ev.action || 'Querying web index...'}`);
+          }
+
+          if (ev.type === 'tool_call_result' && ev.sources) {
+            currentSources = ev.sources;
+            renderSourceCards(ev.sources);
+            sourcesCountPill.innerText = `${ev.sources.length} Sources Found`;
+            appendThought(`🌐 Indexed ${ev.sources.length} authoritative sources from web.`);
+          }
+
+          if (ev.type === 'agent_thought') {
+            appendThought(`💡 ${ev.thought}`);
+          }
+
+          if (ev.type === 'content_chunk') {
+            currentMarkdown = ev.full_content;
+            renderMarkdown(currentMarkdown);
+            if (ev.provider) providerBadge.innerText = ev.provider;
+          }
+
+          if (ev.type === 'followup_questions' && ev.questions) {
+            renderFollowups(ev.questions);
+          }
+
+          if (ev.type === 'agent_complete') {
+            if (ev.step === 1 && ev.content) {
+              currentMarkdown = ev.content;
+              renderMarkdown(currentMarkdown);
+            }
+            if (ev.step === 2) {
+              if (ev.body) document.getElementById('drawerEmailBody').innerText = ev.body;
+              if (ev.subject) document.getElementById('drawerEmailSubject').innerText = ev.subject;
+              if (ev.recipient) document.getElementById('drawerEmailTo').innerText = `${ev.recipient} <client@enterprise.com>`;
+              document.getElementById('outreachBadgeCount').classList.remove('hidden');
+            }
+            if (ev.step === 3 && ev.slots) {
+              renderDrawerSlots(ev.slots);
+            }
+          }
+
+          if (ev.type === 'pipeline_finished') {
+            statusTimerBadge.innerHTML = `✓ Completed in ${ev.execution_time}`;
+            thinkingStatusText.innerText = `Synthesized in ${ev.execution_time} across ${currentSources.length} sources`;
+            thinkingSpinner.classList.add('hidden');
+            if (ev.active_provider) providerBadge.innerText = ev.active_provider;
+            
+            // Clean up stream
+            es.close();
+            unlockSearchBtn();
+          }
+
+        } catch (err) {
+          console.error('SSE JSON error:', err);
+        }
+      };
+
+      es.onerror = function(err) {
+        es.close();
+        unlockSearchBtn();
+        statusTimerBadge.innerHTML = 'Research completed.';
+        thinkingSpinner.classList.add('hidden');
+      };
+    }
+
+    function unlockSearchBtn() {
+      searchBtn.disabled = false;
+      searchBtn.classList.remove('opacity-75');
+      searchBtnText.innerText = 'Search';
+    }
+
+    function appendThought(text) {
+      const p = document.createElement('div');
+      p.className = 'flex items-start space-x-2 text-slate-300';
+      p.innerHTML = `<span class="text-cyan-400">›</span><span>${escapeHtml(text)}</span>`;
+      thinkingContent.appendChild(p);
+    }
+
+    function renderSourceCards(sources) {
+      sourcesGrid.innerHTML = '';
+      sources.forEach((src, idx) => {
+        const id = src.id || (idx + 1);
+        const domain = src.domain || 'web';
+        const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+        
+        const card = document.createElement('a');
+        card.href = src.url;
+        card.target = '_blank';
+        card.id = `source-card-${id}`;
+        card.className = 'p-3 rounded-xl bg-pplx-card border border-pplx-border hover:border-cyan-400/60 hover:bg-pplx-cardHover transition-all flex flex-col justify-between space-y-2 group text-left';
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <img src="${faviconUrl}" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'16\\' height=\\'16\\' fill=\\'none\\' stroke=\\'%2320b8cd\\'><circle cx=\\'8\\' cy=\\'8\\' r=\\'7\\'/></svg>'" class="h-4 w-4 rounded-sm flex-shrink-0" />
+              <span class="text-[11px] font-mono text-pplx-muted group-hover:text-cyan-400 truncate max-w-[100px]">${escapeHtml(domain)}</span>
+            </div>
+            <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-400">[${id}]</span>
+          </div>
+          <div class="text-xs font-semibold text-slate-200 group-hover:text-white line-clamp-2 leading-snug">
+            ${escapeHtml(src.title)}
+          </div>
+        `;
+        sourcesGrid.appendChild(card);
+      });
+    }
+
+    function renderMarkdown(rawMd) {
+      if (!rawMd) return;
+      
+      // Convert in-text citation markers like [1], [2] into interactive badges
+      let processed = rawMd.replace(/\[(\d+)\]/g, (match, p1) => {
+        return `<span class="citation-badge" onmouseenter="highlightSource(${p1})" onmouseleave="unhighlightSource(${p1})" onclick="openSource(${p1})">${p1}</span>`;
+      });
+
+      if (window.marked) {
+        researchMarkdownBody.innerHTML = marked.parse(processed);
+      } else {
+        // Fallback
+        researchMarkdownBody.innerText = rawMd;
+      }
+    }
+
+    function highlightSource(id) {
+      const card = document.getElementById(`source-card-${id}`);
+      if (card) {
+        card.classList.add('source-card-highlight');
+      }
+    }
+
+    function unhighlightSource(id) {
+      const card = document.getElementById(`source-card-${id}`);
+      if (card) {
+        card.classList.remove('source-card-highlight');
+      }
+    }
+
+    function openSource(id) {
+      const src = currentSources.find(s => (s.id == id));
+      if (src && src.url) {
+        window.open(src.url, '_blank');
+      }
+    }
+
+    function renderFollowups(questions) {
+      if (!questions || !questions.length) return;
+      followupsList.innerHTML = '';
+      questions.forEach(q => {
+        const btn = document.createElement('button');
+        btn.onclick = () => {
+          promptInput.value = q;
+          triggerDeepResearch();
+        };
+        btn.className = 'w-full text-left p-3 rounded-xl bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border hover:border-cyan-400/50 text-xs sm:text-sm text-slate-200 hover:text-white flex items-center justify-between transition-all group';
+        btn.innerHTML = `
+          <span class="flex items-center space-x-2">
+            <span class="text-cyan-400 font-bold">›</span>
+            <span>${escapeHtml(q)}</span>
+          </span>
+          <span class="text-xs text-pplx-muted group-hover:text-cyan-400 transition-colors">+</span>
+        `;
+        followupsList.appendChild(btn);
+      });
+      followupsSection.classList.remove('hidden');
+    }
+
+    function renderDrawerSlots(slots) {
+      const list = document.getElementById('drawerSlotsList');
+      list.innerHTML = '';
+      slots.forEach((slot, idx) => {
+        const item = document.createElement('div');
+        item.className = 'p-3 rounded-xl bg-pplx-bg border border-pplx-border flex items-center justify-between hover:border-emerald-500/40 transition-colors';
+        item.innerHTML = `
+          <div>
+            <div class="font-semibold text-slate-200">${escapeHtml(slot)}</div>
+            <div class="text-[11px] text-pplx-muted">Virtual Conference (Google Meet / Zoom)</div>
+          </div>
+          <span class="text-[11px] font-mono text-emerald-400">Slot ${idx + 1}</span>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    // Outreach Drawer Controls
+    function openOutreachDrawer() {
+      document.getElementById('outreachDrawer').classList.remove('hidden');
+    }
+
+    function closeOutreachDrawer() {
+      document.getElementById('outreachDrawer').classList.add('hidden');
+    }
+
+    function copyDrawerEmail() {
+      const body = document.getElementById('drawerEmailBody').innerText;
+      navigator.clipboard.writeText(body);
+      alert('Email content copied to clipboard!');
+    }
+
+    function copyFullReport() {
+      if (!currentMarkdown) return;
+      navigator.clipboard.writeText(currentMarkdown);
+      const text = document.getElementById('copyReportText');
+      text.innerText = 'Copied!';
+      setTimeout(() => text.innerText = 'Copy', 2000);
+    }
+
+    function exportMarkdownReport() {
+      if (!currentMarkdown) return;
+      fetch('/api/export/markdown', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: activePrompt || 'research_report',
+          content: currentMarkdown
+        })
+      })
+      .then(r => r.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${(activePrompt || 'research_report').substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.md`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch(e => console.error('Export error:', e));
+    }
+
+    function scrollToBriefSection() {
+      const section = document.getElementById('dispatchBriefSection');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+        const emailInput = document.getElementById('briefReceiverEmail');
+        if (emailInput) emailInput.focus();
+      }
+    }
+
+    async function dispatchExecutiveBrief() {
+      const emailInput = document.getElementById('briefReceiverEmail');
+      const nameInput = document.getElementById('briefReceiverName');
+      const noteInput = document.getElementById('briefCustomNote');
+      const btn = document.getElementById('sendBriefBtn');
+      const btnText = document.getElementById('sendBriefBtnText');
+      const icon = document.getElementById('sendBriefIcon');
+
+      const email = emailInput ? emailInput.value.trim() : '';
+      const name = nameInput ? nameInput.value.trim() : '';
+      const note = noteInput ? noteInput.value.trim() : '';
+
+      if (!email || !email.includes('@')) {
+        alert('Please enter a valid receiver email address.');
+        if (emailInput) emailInput.focus();
+        return;
+      }
+
+      if (!currentMarkdown) {
+        alert('Please run a research search first so we can summarize the findings.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.classList.add('opacity-75');
+      btnText.innerText = 'Synthesizing & Sending...';
+      icon.innerText = '✦';
+
+      try {
+        const res = await fetch('/api/send-brief', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient_email: email,
+            recipient_name: name || 'Colleague',
+            topic: activePrompt || 'Research Intelligence Brief',
+            research_content: currentMarkdown,
+            custom_note: note
+          })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          // Display result preview
+          document.getElementById('briefDeliveryCard').classList.remove('hidden');
+          document.getElementById('briefDeliveryStatusText').innerText = `✓ Dispatched to ${data.recipient_email} (${data.timestamp})`;
+          document.getElementById('briefSubjectPreview').innerText = data.subject;
+          document.getElementById('briefRecipientPreview').innerText = `${data.recipient_name} <${data.recipient_email}>`;
+          document.getElementById('briefBodyPreview').innerText = data.brief;
+          document.getElementById('briefMailtoLink').href = data.mailto_url;
+
+          // Update Outreach drawer as well
+          document.getElementById('drawerEmailBody').innerText = data.brief;
+          document.getElementById('drawerEmailSubject').innerText = data.subject;
+          document.getElementById('drawerEmailTo').innerText = `${data.recipient_name} <${data.recipient_email}>`;
+          document.getElementById('outreachBadgeCount').classList.remove('hidden');
+
+          // Smooth scroll to preview
+          document.getElementById('briefDeliveryCard').scrollIntoView({ behavior: 'smooth' });
+        } else {
+          alert('Notice: ' + (data.error || 'Failed to dispatch brief.'));
+        }
+      } catch (err) {
+        console.error('Send brief error:', err);
+        alert('Failed to send brief: ' + err);
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75');
+        btnText.innerText = 'Send Brief';
+        icon.innerText = '🚀';
+      }
+    }
+
+    function copyGeneratedBrief() {
+      const text = document.getElementById('briefBodyPreview').innerText;
+      if (!text) return;
+      navigator.clipboard.writeText(text);
+      const btn = document.getElementById('copyBriefBtnText');
+      btn.innerText = 'Copied!';
+      setTimeout(() => btn.innerText = 'Copy Email', 2000);
+    }
+
+    // History Storage
+    function saveToHistory(prompt) {
+      let history = JSON.parse(localStorage.getItem('pplx_history') || '[]');
+      history = history.filter(item => item !== prompt);
+      history.unshift(prompt);
+      if (history.length > 10) history.pop();
+      localStorage.setItem('pplx_history', JSON.stringify(history));
+      loadRecentHistory();
+    }
+
+    function loadRecentHistory() {
+      const history = JSON.parse(localStorage.getItem('pplx_history') || '[]');
+      const container = document.getElementById('recentHistoryList');
+      container.innerHTML = '';
+      if (!history.length) {
+        container.innerHTML = '<span class="text-pplx-muted text-[11px] px-2 italic">No past threads</span>';
+        return;
+      }
+      history.forEach(item => {
+        const btn = document.createElement('button');
+        btn.onclick = () => {
+          promptInput.value = item;
+          triggerDeepResearch();
+        };
+        btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-pplx-card truncate transition-colors';
+        btn.innerText = item;
+        container.appendChild(btn);
+      });
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('pplx_history');
+      loadRecentHistory();
+    }
+
+    function checkBackendHealth() {
+      fetch('/api/status').then(r => r.json()).then(data => {
+        if (data.models && data.models.researcher) {
+          document.getElementById('activeModelTag').innerText = `${data.models.researcher} & Safe-Hand`;
+        }
+      }).catch(e => console.log('Status check notice:', e));
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+      })[m]);
+    }
+  </script>
+</body>
+</html>
