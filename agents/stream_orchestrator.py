@@ -129,9 +129,9 @@ def stream_multi_agent_pipeline(
         "action": f"Searching real-time web index ({mode.capitalize()} Focus) for: '{search_query}'..."
     })
 
-    # Retrieve live structured web citations
-    structured_sources = web_search.search_structured(search_query, max_results=8)
-    search_raw = web_search._run(search_query)
+    # Retrieve live structured web citations & academic papers with deep page extraction
+    structured_sources = web_search.search_structured(search_query, max_results=8, mode=mode)
+    search_raw = web_search._run(search_query, mode=mode)
 
     # Build clean citation list
     sources_payload = []
@@ -141,7 +141,8 @@ def stream_multi_agent_pipeline(
             "title": s["title"],
             "url": s["url"],
             "domain": s["domain"],
-            "snippet": s.get("snippet", "")
+            "snippet": s.get("snippet", ""),
+            "deep_content": s.get("deep_content", "")
         })
 
     yield emit("tool_call_result", {

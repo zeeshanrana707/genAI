@@ -1,16 +1,28 @@
 """Custom tools for CrewAI Multi-Agent Enterprise System.
 
 Includes:
-- WebSearchTool: Live DuckDuckGo search with structured source extraction.
+- WebSearchTool: Live DuckDuckGo search + arXiv API + deep page content scraping.
 - DraftEmailTool: Formats and stages client correspondence in output/draft_email.txt.
 - CreateCalendarInviteTool: Generates and stages calendar invites in output/calendar_invite.json.
 """
 
 import json
+import urllib.parse
+import xml.etree.ElementTree as ET
+import requests
+import urllib3
 from pathlib import Path
 from urllib.parse import urlparse
 from typing import Type, Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+
+# Disable insecure request warnings when handling system clock certificate discrepancies
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
 
 try:
     from crewai.tools import BaseTool
@@ -34,6 +46,66 @@ except ImportError:
 from config.settings import OUTPUT_DIR
 
 
+def scrape_page_body(url: str, max_chars: int = 750) -> str:
+    """Fetch and extract clean paragraph text from a web article.
+    
+    Provides deep grounded context beyond surface-level snippets.
+    """
+    if not url or not url.startswith("http") or BeautifulSoup is None:
+        return ""
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        resp = requests.get(url, headers=headers, timeout=3.5, verify=False)
+        if resp.status_code == 200 and resp.text:
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for element in soup(["script", "style", "nav", "footer", "header", "aside", "form"]):
+                element.decompose()
+            clean_text = " ".join(soup.stripped_strings)
+            if len(clean_text) > max_chars:
+                return clean_text[:max_chars] + "..."
+            return clean_text
+    except Exception:
+        pass
+    return ""
+
+
+def search_arxiv(query: str, max_results: int = 4) -> List[Dict[str, str]]:
+    """Retrieve peer-reviewed preprints and research abstracts directly from arXiv API."""
+    arxiv_items = []
+    clean_q = query.replace("arxiv", "").replace("scholarly", "").replace("paper", "").strip()
+    encoded = urllib.parse.quote(clean_q)
+    url = f"https://export.arxiv.org/api/query?search_query=all:{encoded}&start=0&max_results={max_results}"
+    
+    try:
+        resp = requests.get(url, timeout=6, verify=False)
+        if resp.status_code == 200 and resp.text:
+            root = ET.fromstring(resp.text)
+            ns = {"atom": "http://www.w3.org/2005/Atom"}
+            entries = root.findall("atom:entry", ns)
+            for entry in entries:
+                title_elem = entry.find("atom:title", ns)
+                summary_elem = entry.find("atom:summary", ns)
+                id_elem = entry.find("atom:id", ns)
+                
+                title = title_elem.text.strip().replace("\n", " ") if title_elem is not None else "arXiv Preprint"
+                summary = summary_elem.text.strip().replace("\n", " ") if summary_elem is not None else ""
+                paper_url = id_elem.text.strip() if id_elem is not None else "https://arxiv.org"
+                
+                arxiv_items.append({
+                    "title": f"[arXiv] {title}",
+                    "snippet": summary[:320] + ("..." if len(summary) > 320 else ""),
+                    "deep_content": summary[:800],
+                    "url": paper_url,
+                    "domain": "arxiv.org"
+                })
+    except Exception as e:
+        print(f"[Tool: ArXiv] Notice: {e}")
+
+    return arxiv_items
+
+
 # -------------------------------------------------------------------------
 # Tool 1: WebSearchTool
 # -------------------------------------------------------------------------
@@ -44,16 +116,24 @@ class WebSearchInput(BaseModel):
 
 class WebSearchTool(BaseTool):
     name: str = "Web Search Tool"
-    description: str = "Searches the web for competitor analysis, product data, YouTube tutorials, market reports, and current facts."
+    description: str = "Searches the web and arXiv with deep content scraping for grounded research."
     args_schema: Type[BaseModel] = WebSearchInput
 
-    def search_structured(self, query: str, max_results: int = 10) -> List[Dict[str, str]]:
-        """Retrieve structured web results with clean titles, URLs, and domains."""
-        items = []
-        if DDGS is not None:
+    def search_structured(self, query: str, max_results: int = 8, mode: str = "all") -> List[Dict[str, str]]:
+        """Retrieve structured web results with clean titles, URLs, domains, and deep content."""
+        items: List[Dict[str, str]] = []
+
+        # 1. If in Academic Mode, prioritize arXiv API papers
+        if mode == "academic" or "arxiv" in query.lower() or "paper" in query.lower():
+            arxiv_results = search_arxiv(query, max_results=4)
+            items.extend(arxiv_results)
+
+        # 2. Query DuckDuckGo for live web intelligence
+        ddg_needed = max_results - len(items)
+        if ddg_needed > 0 and DDGS is not None:
             try:
                 with DDGS() as ddgs:
-                    raw = list(ddgs.text(query, max_results=max_results))
+                    raw = list(ddgs.text(query, max_results=ddg_needed + 2))
                     for r in raw:
                         href = r.get("href", "")
                         domain = urlparse(href).netloc.replace("www.", "") if href else "web"
@@ -66,7 +146,7 @@ class WebSearchTool(BaseTool):
             except Exception as e:
                 print(f"[Tool: WebSearch] Search notice: {e}")
 
-        # If live search returned empty, construct query-specific structured items
+        # 3. Fallback if empty
         if not items:
             clean_q = query.strip()
             items = [
@@ -81,31 +161,34 @@ class WebSearchTool(BaseTool):
                     "snippet": f"Comprehensive architectural overview, comparative data points, and technical documentation regarding {clean_q}.",
                     "url": "https://en.wikipedia.org/wiki/Special:Search?search=" + clean_q.replace(' ', '+'),
                     "domain": "wikipedia.org"
-                },
-                {
-                    "title": f"Industry Analysis & Comparative Report: {clean_q}",
-                    "snippet": f"Cross-industry perspectives, performance metrics, and evaluation criteria for {clean_q}.",
-                    "url": f"https://news.google.com/search?q={clean_q.replace(' ', '+')}",
-                    "domain": "news.google.com"
                 }
             ]
 
-        return items
+        # 4. Deep Page Content Extraction for Top 3 Web Sources
+        for idx, item in enumerate(items[:3]):
+            if "deep_content" not in item and item.get("url"):
+                deep_text = scrape_page_body(item["url"], max_chars=700)
+                if deep_text:
+                    item["deep_content"] = deep_text
 
-    def _run(self, query: str) -> str:
-        """Execute web search and return formatted text string."""
-        print(f"\n[Tool: WebSearch] Querying: '{query}'")
-        items = self.search_structured(query, max_results=8)
+        return items[:max_results]
+
+    def _run(self, query: str, mode: str = "all") -> str:
+        """Execute web search and return formatted text string with deep article snippets."""
+        print(f"\n[Tool: WebSearch] Querying ({mode}): '{query}'")
+        items = self.search_structured(query, max_results=8, mode=mode)
         
         formatted = []
         for idx, item in enumerate(items, 1):
+            body_text = item.get("deep_content") or item.get("snippet", "")
             formatted.append(
                 f"{idx}. Title: {item['title']}\n"
                 f"   Summary: {item['snippet']}\n"
+                f"   Deep Excerpt: {body_text[:500]}\n"
                 f"   Source: {item['url']} ({item['domain']})"
             )
             
-        print(f"[Tool: WebSearch] Retrieved {len(items)} relevant sources.")
+        print(f"[Tool: WebSearch] Retrieved {len(items)} enriched sources.")
         return "\n\n".join(formatted)
 
 
