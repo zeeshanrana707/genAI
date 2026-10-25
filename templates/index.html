@@ -443,17 +443,20 @@
             </div>
           </div>
 
-          <!-- 2. Expandable "Thinking / Steps" Accordion -->
-          <div class="rounded-xl border border-pplx-border bg-pplx-card/80 overflow-hidden">
-            <button onclick="toggleThinking()" class="w-full px-4 py-2.5 flex items-center justify-between text-xs font-medium text-slate-300 hover:bg-pplx-cardHover transition-colors">
+          <!-- 2. Expandable "Thinking / Steps" Accordion (Auto-collapsed when completed) -->
+          <div class="rounded-xl border border-pplx-border/70 bg-pplx-card/60 overflow-hidden transition-all">
+            <button onclick="toggleThinking()" class="w-full px-3.5 py-2 flex items-center justify-between text-xs font-medium text-slate-300 hover:bg-pplx-cardHover transition-colors">
               <div class="flex items-center space-x-2">
-                <span id="thinkingSpinner" class="inline-block animate-spin text-cyan-400">✦</span>
-                <span id="thinkingStatusText">Thinking & Cross-Referencing...</span>
+                <span id="thinkingSpinner" class="inline-block animate-spin text-cyan-400 text-xs">✦</span>
+                <span id="thinkingStatusText" class="text-xs text-slate-300 font-mono">Thinking & Cross-Referencing...</span>
               </div>
-              <span id="thinkingToggleIcon" class="text-pplx-muted text-xs">▼</span>
+              <div class="flex items-center space-x-1.5 text-pplx-muted hover:text-slate-200">
+                <span id="thinkingToggleLabel" class="text-[10px] font-mono">Hide Thoughts</span>
+                <span id="thinkingToggleIcon" class="text-[10px] font-mono">▲</span>
+              </div>
             </button>
             
-            <div id="thinkingContent" class="px-4 pb-3 pt-1 border-t border-pplx-border/60 space-y-1.5 text-xs font-mono text-slate-400">
+            <div id="thinkingContent" class="px-4 pb-3 pt-1 border-t border-pplx-border/40 space-y-1.5 text-xs font-mono text-slate-400 bg-[#080a0f]/60 max-h-60 overflow-y-auto custom-scrollbar">
               <!-- Dynamic thoughts stream here -->
             </div>
           </div>
@@ -619,7 +622,10 @@
     function toggleThinking() {
       isThinkingExpanded = !isThinkingExpanded;
       thinkingContent.classList.toggle('hidden', !isThinkingExpanded);
-      document.getElementById('thinkingToggleIcon').innerText = isThinkingExpanded ? '▼' : '▲';
+      const icon = document.getElementById('thinkingToggleIcon');
+      const label = document.getElementById('thinkingToggleLabel');
+      if (icon) icon.innerText = isThinkingExpanded ? '▲' : '▼';
+      if (label) label.innerText = isThinkingExpanded ? 'Hide Thoughts' : 'Show Thoughts';
     }
 
     function triggerDeepResearch() {
@@ -641,6 +647,13 @@
       sourcesGrid.innerHTML = '';
       sourcesCountPill.innerText = '0 Sources';
       thinkingContent.innerHTML = '';
+      isThinkingExpanded = true;
+      thinkingContent.classList.remove('hidden');
+      const startIcon = document.getElementById('thinkingToggleIcon');
+      const startLabel = document.getElementById('thinkingToggleLabel');
+      if (startIcon) startIcon.innerText = '▲';
+      if (startLabel) startLabel.innerText = 'Hide Thoughts';
+
       thinkingStatusText.innerText = 'Analyzing topic & constructing search vectors...';
       thinkingSpinner.classList.remove('hidden');
       researchMarkdownBody.innerHTML = '<div class="flex items-center space-x-2 text-slate-400 py-6"><span class="animate-spin text-cyan-400">✦</span><span>Synthesizing live web and arXiv intelligence...</span></div>';
@@ -686,6 +699,15 @@
           }
 
           if (ev.type === 'content_chunk') {
+            // Auto-collapse thinking accordion once the synthesized answer starts streaming
+            if (isThinkingExpanded) {
+              isThinkingExpanded = false;
+              thinkingContent.classList.add('hidden');
+              const icon = document.getElementById('thinkingToggleIcon');
+              const label = document.getElementById('thinkingToggleLabel');
+              if (icon) icon.innerText = '▼';
+              if (label) label.innerText = 'Show Thoughts';
+            }
             currentMarkdown = ev.full_content;
             renderMarkdown(currentMarkdown);
             if (ev.provider) providerBadge.innerText = ev.provider;
@@ -703,12 +725,20 @@
           }
 
           if (ev.type === 'pipeline_finished') {
+            // Ensure collapsed state on finish
+            isThinkingExpanded = false;
+            thinkingContent.classList.add('hidden');
+            const icon = document.getElementById('thinkingToggleIcon');
+            const label = document.getElementById('thinkingToggleLabel');
+            if (icon) icon.innerText = '▼';
+            if (label) label.innerText = 'Show Thoughts';
+
             if (statusTimerBadge) statusTimerBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.execution_time}</span>`;
             if (telemetryPill) {
               telemetryPill.innerText = `✓ ${ev.execution_time}`;
               telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium';
             }
-            thinkingStatusText.innerText = `Synthesized in ${ev.execution_time} across ${currentSources.length} sources`;
+            thinkingStatusText.innerText = `Thought for ${ev.execution_time} across ${currentSources.length} sources`;
             thinkingSpinner.classList.add('hidden');
             if (ev.active_provider) providerBadge.innerText = ev.active_provider;
             
