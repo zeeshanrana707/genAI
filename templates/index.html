@@ -347,6 +347,16 @@
             <span>Retrieval:</span>
             <span class="text-slate-300">Live Web & arXiv</span>
           </div>
+          <!-- Live Agent Thoughts in Sidebar -->
+          <div class="pt-2 border-t border-pplx-border/40">
+            <div class="text-[10px] uppercase font-bold text-pplx-muted tracking-wider mb-1 flex items-center justify-between">
+              <span>Agent Thoughts</span>
+              <span id="thinkingSpinner" class="hidden animate-spin text-cyan-400 text-[10px]">✦</span>
+            </div>
+            <div id="thinkingContent" class="space-y-1 text-[10px] text-slate-400 max-h-36 overflow-y-auto custom-scrollbar font-mono">
+              <span class="italic text-slate-500">Ready</span>
+            </div>
+          </div>
         </div>
       </details>
     </div>
@@ -443,25 +453,7 @@
             </div>
           </div>
 
-          <!-- 2. Expandable "Thinking / Steps" Accordion (Auto-collapsed when completed) -->
-          <div class="rounded-xl border border-pplx-border/70 bg-pplx-card/60 overflow-hidden transition-all">
-            <button onclick="toggleThinking()" class="w-full px-3.5 py-2 flex items-center justify-between text-xs font-medium text-slate-300 hover:bg-pplx-cardHover transition-colors">
-              <div class="flex items-center space-x-2">
-                <span id="thinkingSpinner" class="inline-block animate-spin text-cyan-400 text-xs">✦</span>
-                <span id="thinkingStatusText" class="text-xs text-slate-300 font-mono">Thinking & Cross-Referencing...</span>
-              </div>
-              <div class="flex items-center space-x-1.5 text-pplx-muted hover:text-slate-200">
-                <span id="thinkingToggleLabel" class="text-[10px] font-mono">Hide Thoughts</span>
-                <span id="thinkingToggleIcon" class="text-[10px] font-mono">▲</span>
-              </div>
-            </button>
-            
-            <div id="thinkingContent" class="px-4 pb-3 pt-1 border-t border-pplx-border/40 space-y-1.5 text-xs font-mono text-slate-400 bg-[#080a0f]/60 max-h-60 overflow-y-auto custom-scrollbar">
-              <!-- Dynamic thoughts stream here -->
-            </div>
-          </div>
-
-          <!-- 3. Synthesized Research Answer (Clean, Pristine Output Box) -->
+          <!-- 2. Synthesized Research Answer (Clean, Pristine Output Box - 100% Focused on Output) -->
           <div class="rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4 shadow-xl">
             <!-- Clean Header: No prompt scaffolding or internal clutter! -->
             <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
@@ -619,15 +611,6 @@
       promptInput.focus();
     }
 
-    function toggleThinking() {
-      isThinkingExpanded = !isThinkingExpanded;
-      thinkingContent.classList.toggle('hidden', !isThinkingExpanded);
-      const icon = document.getElementById('thinkingToggleIcon');
-      const label = document.getElementById('thinkingToggleLabel');
-      if (icon) icon.innerText = isThinkingExpanded ? '▲' : '▼';
-      if (label) label.innerText = isThinkingExpanded ? 'Hide Thoughts' : 'Show Thoughts';
-    }
-
     function triggerDeepResearch() {
       const prompt = promptInput.value.trim();
       if (!prompt) return;
@@ -646,16 +629,9 @@
       }
       sourcesGrid.innerHTML = '';
       sourcesCountPill.innerText = '0 Sources';
-      thinkingContent.innerHTML = '';
-      isThinkingExpanded = true;
-      thinkingContent.classList.remove('hidden');
-      const startIcon = document.getElementById('thinkingToggleIcon');
-      const startLabel = document.getElementById('thinkingToggleLabel');
-      if (startIcon) startIcon.innerText = '▲';
-      if (startLabel) startLabel.innerText = 'Hide Thoughts';
+      if (thinkingContent) thinkingContent.innerHTML = '';
+      if (thinkingSpinner) thinkingSpinner.classList.remove('hidden');
 
-      thinkingStatusText.innerText = 'Analyzing topic & constructing search vectors...';
-      thinkingSpinner.classList.remove('hidden');
       researchMarkdownBody.innerHTML = '<div class="flex items-center space-x-2 text-slate-400 py-6"><span class="animate-spin text-cyan-400">✦</span><span>Synthesizing live web and arXiv intelligence...</span></div>';
       followupsSection.classList.add('hidden');
       followupsList.innerHTML = '';
@@ -699,15 +675,6 @@
           }
 
           if (ev.type === 'content_chunk') {
-            // Auto-collapse thinking accordion once the synthesized answer starts streaming
-            if (isThinkingExpanded) {
-              isThinkingExpanded = false;
-              thinkingContent.classList.add('hidden');
-              const icon = document.getElementById('thinkingToggleIcon');
-              const label = document.getElementById('thinkingToggleLabel');
-              if (icon) icon.innerText = '▼';
-              if (label) label.innerText = 'Show Thoughts';
-            }
             currentMarkdown = ev.full_content;
             renderMarkdown(currentMarkdown);
             if (ev.provider) providerBadge.innerText = ev.provider;
@@ -725,21 +692,12 @@
           }
 
           if (ev.type === 'pipeline_finished') {
-            // Ensure collapsed state on finish
-            isThinkingExpanded = false;
-            thinkingContent.classList.add('hidden');
-            const icon = document.getElementById('thinkingToggleIcon');
-            const label = document.getElementById('thinkingToggleLabel');
-            if (icon) icon.innerText = '▼';
-            if (label) label.innerText = 'Show Thoughts';
-
             if (statusTimerBadge) statusTimerBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.execution_time}</span>`;
             if (telemetryPill) {
               telemetryPill.innerText = `✓ ${ev.execution_time}`;
               telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium';
             }
-            thinkingStatusText.innerText = `Thought for ${ev.execution_time} across ${currentSources.length} sources`;
-            thinkingSpinner.classList.add('hidden');
+            if (thinkingSpinner) thinkingSpinner.classList.add('hidden');
             if (ev.active_provider) providerBadge.innerText = ev.active_provider;
             
             es.close();

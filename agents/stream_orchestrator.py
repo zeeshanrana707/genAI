@@ -154,57 +154,41 @@ def stream_multi_agent_pipeline(
     time.sleep(0.3)
 
     # -------------------------------------------------------------
-    # Stage 2: Deep Reasoning & 4-Stage Cognitive Workflow
+    # Stage 2: Deep Reasoning & Analytical Progress
     # -------------------------------------------------------------
     thinking_steps = [
-        f"Stage 1: Deconstruction — Stripping marketing fluff from '{user_prompt[:55]}'. Extracting underlying mathematical, architectural, and algorithmic mechanisms.",
-        f"Stage 2: Contradiction & Bottleneck Mapping — Identifying where sources diverge across {len(sources_payload)} live sources. Evaluating catastrophic failure modes at 100x scale and out-of-distribution environments.",
-        "Stage 3: Cross-Pollinated Synthesis — Bridging mechanisms from adjacent domains (thermodynamic computing, active inference, program synthesis, control theory, neuroscience) to resolve the bottleneck.",
-        "Stage 4: Hypothesis Generation & Falsification — Formulating original testable hypotheses and specifying exact quantitative falsification criteria."
+        f"Analyzing empirical sources and verifying citations for '{user_prompt[:55]}'.",
+        f"Synthesizing key findings and cross-referencing {len(sources_payload)} live sources.",
+        "Formulating structured analysis with technical depth and citations."
     ]
 
     for thought in thinking_steps:
         yield emit("agent_thought", {
-            "agent": "Autonomous Principal Research Scientist",
+            "agent": "Perplexity Research Engine",
             "thought": thought
         })
-        time.sleep(0.25)
+        time.sleep(0.2)
 
     # -------------------------------------------------------------
-    # Stage 3: Frontier Epistemic Analysis & Novel Hypotheses
+    # Stage 3: Deep Research Synthesis & Comprehensive Report
     # -------------------------------------------------------------
     system_instruction = (
-        "You are an Autonomous Principal Research Scientist specializing in frontier AI, cognitive architectures, and foundational science.\n"
-        "Your goal is NOT to summarize search results or list basic facts. Your goal is to conduct deep epistemic analysis: "
-        "identify why current paradigms fail, uncover hidden contradictions across sources, bridge disconnected domains, and formulate novel, testable hypotheses.\n\n"
-        "STRICT ANTI-SUMMARIZATION RULES:\n"
-        "1. NEVER output generic introductory definitions (e.g., 'AGI stands for Artificial General Intelligence...'). Assume the user is a domain expert.\n"
-        "2. NEVER treat a source's conclusion as settled fact. Always extract the underlying mechanism, its compute/data assumptions, and its failure modes.\n"
-        "3. Prioritize primary technical bottlenecks (e.g., continual learning catastrophic forgetting, out-of-distribution generalization, credit assignment, world-model grounding) over high-level commentary."
+        "You are an Elite Principal Research Analyst specializing in frontier science, technology, economics, and analytical synthesis.\n"
+        "Your goal is to provide a comprehensive, rigorous, and exhaustive research report directly answering the user's inquiry.\n\n"
+        "CORE GUIDELINES:\n"
+        "1. Prioritize technical depth, concrete mechanisms, empirical data, and clear explanations over generic fluff.\n"
+        "2. Structure your response naturally with clean, informative Markdown headings tailored directly to the question (do NOT force arbitrary artificial labels like 'Stage 1' or '4-step mechanism').\n"
+        "3. Integrate inline numeric citation badges like [1], [2], [3] mapped to the retrieved sources.\n"
+        "4. Include mathematical equations ($LaTeX$), tables, or code examples whenever appropriate.\n"
+        "5. Conclude with key takeaways, strategic insights, or forward-looking implications."
     )
 
     research_prompt = (
-        f"# RESEARCH MISSION: {user_prompt}\n\n"
+        f"# RESEARCH TOPIC: {user_prompt}\n\n"
         f"Retrieved Empirical Literature & Context:\n"
         f"{search_raw}\n\n"
-        f"Execute your 4-stage cognitive workflow (Deconstruction -> Contradiction Mapping -> Cross-Pollinated Synthesis -> Hypothesis Generation).\n\n"
-        f"You MUST structure your output into these exact four sections with rigorous technical depth and citation tags [1], [2] where applicable:\n\n"
-        f"## 1. State-of-the-Art (SOTA) Mechanism Breakdown\n"
-        f"Map the dominant paradigms found in the data. For each:\n"
-        f"- **Core Mechanism:** How it actually works under the hood (mathematical, architectural, or algorithmic mechanisms).\n"
-        f"- **Hidden Assumptions:** What must be true for this to work (e.g., stationary data distribution, dense reward signals, oracle verifiers).\n\n"
-        f"## 2. The Frontier Bottleneck (Why Current Approaches Fail)\n"
-        f"Identify the exact wall researchers are hitting right now. Highlight conflicting empirical results across sources and explicitly state the **Knowledge Gap**—what nobody in the retrieved literature has solved yet.\n\n"
-        f"## 3. Novel Research Hypotheses & Architectural Proposals\n"
-        f"Propose 2–3 original, technically grounded hypotheses to bridge the Knowledge Gap. For each hypothesis, provide:\n"
-        f"- **The Synthesis:** Which two or more distinct concepts/mechanisms you are combining and why.\n"
-        f"- **Proposed Architecture / Mechanism:** Step-by-step explanation of how the system operates (information flow, objective function, memory update rule, or inference loop).\n"
-        f"- **Why It Overcomes the Bottleneck:** The theoretical justification.\n\n"
-        f"## 4. Falsification & Experimental Design\n"
-        f"For your strongest hypothesis, design a concrete experiment a researcher could run today:\n"
-        f"- **Baseline vs. Proposed Model:** What is being compared.\n"
-        f"- **Dataset / Environment:** Specific benchmarks (e.g., ARC-AGI, Procgen, custom non-stationary environments).\n"
-        f"- **Falsification Criteria:** What exact metric or failure result would prove your hypothesis wrong."
+        f"Conduct an exhaustive, high-depth analysis synthesizing the retrieved context.\n"
+        f"Format your response with clean, thematic Markdown headings specifically designed for this topic, with rigorous technical detail and verified citations [1], [2]."
     )
 
     research_summary, provider1 = safe_hand.generate(
