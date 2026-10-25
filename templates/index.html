@@ -209,6 +209,24 @@
         <span class="text-[10px] font-mono text-pplx-muted group-hover:text-white transition-colors">Ctrl+K</span>
       </button>
 
+      <!-- AI Engine Switcher: DeepSeek-R1 vs Google Gemini -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between px-1">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-pplx-muted font-semibold">Reasoning Engine</span>
+          <span class="text-[9px] font-mono text-cyan-400 font-semibold" id="currentEngineLabel">DeepSeek-R1</span>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5 p-1 bg-[#090b10] border border-pplx-border rounded-xl">
+          <button onclick="setEngine('deepseek-r1')" id="engineBtnDeepseek" class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center space-x-1 transition-all">
+            <span>🧠</span>
+            <span class="truncate">DeepSeek-R1</span>
+          </button>
+          <button onclick="setEngine('gemini')" id="engineBtnGemini" class="py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card flex items-center justify-center space-x-1 transition-all">
+            <span>⚡</span>
+            <span class="truncate">Gemini 3.1</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Feature 1: Search Focus Modes -->
       <div class="space-y-1.5">
         <span class="text-[10px] font-mono uppercase tracking-wider text-pplx-muted px-1 font-semibold">Search Focus</span>
@@ -503,10 +521,15 @@
             class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-3 font-sans"
           />
 
-          <!-- Mode Badge indicator -->
-          <div class="hidden sm:flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-slate-300 font-mono">
+          <!-- Engine & Mode Badges -->
+          <div class="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-cyan-400 font-mono">
+            <span id="selectedEngineIcon">🧠</span>
+            <span id="selectedEngineLabel">DeepSeek-R1</span>
+          </div>
+
+          <div class="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-slate-300 font-mono">
             <span>🎯</span>
-            <span id="selectedFocusLabel">Web Deep Research</span>
+            <span id="selectedFocusLabel">Web Search</span>
           </div>
 
           <!-- Submit Button -->
@@ -537,6 +560,7 @@
     let currentMarkdown = '';
     let isThinkingExpanded = true;
     let activeFocusMode = 'all';
+    let activeEngine = 'deepseek-r1';
 
     // Elements
     const promptInput = document.getElementById('promptInput');
@@ -592,11 +616,34 @@
       });
 
       const labelMap = {
-        all: 'Web Deep Research',
-        academic: 'Academic & arXiv Papers',
-        enterprise: 'Enterprise & Outreach'
+        all: 'Web Search',
+        academic: 'Academic & arXiv',
+        enterprise: 'Enterprise'
       };
-      document.getElementById('selectedFocusLabel').innerText = labelMap[mode] || 'Web Deep Research';
+      document.getElementById('selectedFocusLabel').innerText = labelMap[mode] || 'Web Search';
+    }
+
+    function setEngine(eng) {
+      activeEngine = eng;
+      const btnDs = document.getElementById('engineBtnDeepseek');
+      const btnGemini = document.getElementById('engineBtnGemini');
+      const currentLabel = document.getElementById('currentEngineLabel');
+      const badgeIcon = document.getElementById('selectedEngineIcon');
+      const badgeLabel = document.getElementById('selectedEngineLabel');
+
+      if (eng === 'deepseek-r1') {
+        if (btnDs) btnDs.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center space-x-1 transition-all';
+        if (btnGemini) btnGemini.className = 'py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card flex items-center justify-center space-x-1 transition-all';
+        if (currentLabel) currentLabel.innerText = 'DeepSeek-R1';
+        if (badgeIcon) badgeIcon.innerText = '🧠';
+        if (badgeLabel) badgeLabel.innerText = 'DeepSeek-R1';
+      } else {
+        if (btnGemini) btnGemini.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center space-x-1 transition-all';
+        if (btnDs) btnDs.className = 'py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card flex items-center justify-center space-x-1 transition-all';
+        if (currentLabel) currentLabel.innerText = 'Gemini 3.1';
+        if (badgeIcon) badgeIcon.innerText = '⚡';
+        if (badgeLabel) badgeLabel.innerText = 'Gemini 3.1';
+      }
     }
 
     function applyPreset(text) {
@@ -652,7 +699,7 @@
       searchBtnText.innerText = 'Researching...';
 
       // Start SSE Streaming
-      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}`;
+      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}`;
       const es = new EventSource(url);
 
       es.onmessage = function(e) {

@@ -72,7 +72,8 @@ def generate_followup_questions(user_prompt: str, summary: str) -> List[str]:
 def stream_multi_agent_pipeline(
     user_prompt: str,
     client_name: Optional[str] = None,
-    mode: str = "auto"
+    mode: str = "auto",
+    engine: str = "gemini"
 ) -> Generator[str, None, None]:
     """Generator yielding SSE JSON events detailing live agent execution for ANY user prompt."""
     
@@ -91,8 +92,9 @@ def stream_multi_agent_pipeline(
         "prompt": user_prompt,
         "recipient": actual_recipient,
         "mode": "enterprise" if is_outreach_mode else "research",
+        "engine": engine,
         "models": {
-            "researcher": RESEARCHER_MODEL,
+            "researcher": "DeepSeek-R1" if engine == "deepseek-r1" else RESEARCHER_MODEL,
             "email": EMAIL_MODEL,
             "scheduler": SCHEDULER_MODEL,
         },
@@ -196,14 +198,25 @@ def stream_multi_agent_pipeline(
 
     yield emit("agent_thought", {
         "agent": "Proposal Generator",
-        "thought": "Generating initial high-depth research synthesis from indexed sources..."
+        "thought": f"Generating initial high-depth research synthesis using {engine.upper()}..."
     })
 
     initial_draft, provider1 = safe_hand.generate(
         research_prompt,
         system_instruction=system_instruction,
-        search_context=search_raw
+        search_context=search_raw,
+        engine=engine
     )
+
+    # Stream DeepSeek-R1 native chain-of-thought exploration if available
+    if safe_hand.last_reasoning_trace:
+        trace_steps = [s.strip() for s in safe_hand.last_reasoning_trace.split("\n\n") if len(s.strip()) > 15]
+        for step in trace_steps[:4]:
+            yield emit("agent_thought", {
+                "agent": "DeepSeek-R1 Reasoning Engine",
+                "thought": f"🧠 {step[:160]}..."
+            })
+            time.sleep(0.12)
 
     # -------------------------------------------------------------
     # Stage 4: Phase 2 & 3 — Verifier & Sequential Revision (for Level 3+)
@@ -211,12 +224,19 @@ def stream_multi_agent_pipeline(
     if compute_budget >= 2:
         yield emit("agent_thought", {
             "agent": "Process & Grounding Verifier",
-            "thought": "Running Step-Level Verification (checking citation accuracy, empirical grounding & claim validity)..."
+            "thought": "Running Step-Level Verification & Deterministic Rule-Based Metric Audit..."
         })
         time.sleep(0.2)
 
         verifier = ProcessGroundingVerifier(safe_hand)
-        v_res = verifier.verify_and_critique(user_prompt, initial_draft, search_raw)
+        v_res = verifier.verify_and_critique(user_prompt, initial_draft, search_raw, engine=engine)
+
+        rule_check = v_res.get("rule_check", {})
+        if rule_check.get("verified_metrics"):
+            yield emit("agent_thought", {
+                "agent": "Deterministic Metric Verifier (DeepSeek Principle)",
+                "thought": f"Rule-based audit: Grounding ratio {int(rule_check['grounding_ratio']*100)}% ({len(rule_check['verified_metrics'])} metrics verified against source text)."
+            })
 
         yield emit("agent_thought", {
             "agent": "Process & Grounding Verifier",
@@ -231,7 +251,7 @@ def stream_multi_agent_pipeline(
 
         optimizer = SequentialRevisionOptimizer(safe_hand)
         research_summary, final_provider = optimizer.revise_proposal(
-            user_prompt, initial_draft, v_res["critique_points"], search_raw
+            user_prompt, initial_draft, v_res["critique_points"], search_raw, engine=engine
         )
     else:
         research_summary = initial_draft

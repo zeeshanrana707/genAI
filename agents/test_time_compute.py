@@ -79,10 +79,69 @@ class DifficultyEstimator:
         }
 
 
-class ProcessGroundingVerifier:
-    """PRM-inspired Step & Grounding Verifier (Section 5.1).
+class DeterministicRuleBasedVerifier:
+    """Rule-based accuracy verifier inspired by DeepSeek-R1-Zero.
     
-    Verifies draft assertions against empirical search context and citation accuracy.
+    Deterministically audits numeric claims, percentages, multipliers, and dates against
+    retrieved empirical sources without neural reward model hallucination or hacking.
+    """
+
+    METRIC_PATTERNS = [
+        r'\b\d+(?:\.\d+)?\s*(?:%|percent)\b',                   # 85%, 6.3 percent
+        r'\b\d+(?:\.\d+)?\s*(?:x|×|times)\b',                    # 6.3x, 14×, 4 times
+        r'\b\d+(?:\.\d+)?\s*(?:B|M|k|GB|TB|MB|ms|s|h|FLOPs)\b',    # 671B, 37B, 512, 100ms
+        r'\b(?:19|20)\d{2}\b',                                   # 2024, 2026
+    ]
+
+    @classmethod
+    def verify_grounding(cls, draft: str, search_context: str) -> Dict[str, Any]:
+        """Extract and check every quantitative claim against the retrieved text."""
+        context_lower = search_context.lower()
+        
+        extracted_metrics = set()
+        for pat in cls.METRIC_PATTERNS:
+            for match in re.finditer(pat, draft, re.IGNORECASE):
+                val = match.group(0).strip().lower()
+                extracted_metrics.add(val)
+
+        if not extracted_metrics:
+            return {
+                "grounding_ratio": 1.0,
+                "verified_metrics": [],
+                "unverified_metrics": [],
+                "is_grounded": True,
+                "feedback": "No quantitative claims to audit."
+            }
+
+        verified = []
+        unverified = []
+
+        for m in extracted_metrics:
+            num_only = re.sub(r'[^\d\.]', '', m)
+            if m in context_lower or (len(num_only) >= 2 and num_only in context_lower):
+                verified.append(m)
+            else:
+                unverified.append(m)
+
+        ratio = len(verified) / len(extracted_metrics) if extracted_metrics else 1.0
+
+        feedback = ""
+        if unverified:
+            feedback = f"Rule-Based Verification Notice: The metrics {unverified[:4]} were not directly found in the retrieved text. Verify or remove ungrounded figures."
+
+        return {
+            "grounding_ratio": round(ratio, 2),
+            "verified_metrics": verified,
+            "unverified_metrics": unverified,
+            "is_grounded": ratio >= 0.75,
+            "feedback": feedback
+        }
+
+
+class ProcessGroundingVerifier:
+    """PRM-inspired Step & Grounding Verifier (Section 5.1 & DeepSeek Rule-Based Verifier).
+    
+    Verifies draft assertions against empirical search context, citation accuracy, and numeric claims.
     """
 
     def __init__(self, safe_hand: SafeHandAgentRunner):
@@ -92,9 +151,14 @@ class ProcessGroundingVerifier:
         self,
         prompt: str,
         draft: str,
-        search_context: str
+        search_context: str,
+        engine: str = "auto"
     ) -> Dict[str, Any]:
         """Score the draft and produce actionable critique points for revision."""
+        # 1. Deterministic Rule-Based Check (DeepSeek-R1-Zero style)
+        rule_check = DeterministicRuleBasedVerifier.verify_grounding(draft, search_context)
+
+        # 2. Neural PRM Grounding & Step Verification
         verification_instruction = (
             "You are an expert Process Reward Model (PRM) and Research Verifier.\n"
             "Evaluate the provided research draft against the retrieved sources.\n"
@@ -119,12 +183,16 @@ class ProcessGroundingVerifier:
 
         verifier_output, provider = self.safe_hand.generate(
             verification_prompt,
-            system_instruction=verification_instruction
+            system_instruction=verification_instruction,
+            engine=engine
         )
 
         # Parse score and critique
         score_match = re.search(r'SCORE:\s*(\d+)', verifier_output, re.IGNORECASE)
-        score = int(score_match.group(1)) if score_match else 82
+        base_score = int(score_match.group(1)) if score_match else 82
+        
+        # Combine neural score with deterministic grounding penalty
+        final_score = int(base_score * rule_check["grounding_ratio"]) if rule_check["grounding_ratio"] < 0.7 else base_score
 
         critique_points = []
         critique_section = re.split(r'CRITIQUE:', verifier_output, flags=re.IGNORECASE)
@@ -135,6 +203,10 @@ class ProcessGroundingVerifier:
                 if len(p_clean) > 8:
                     critique_points.append(p_clean)
 
+        # If deterministic ungrounded numbers exist, enforce rule-based critique
+        if rule_check["feedback"]:
+            critique_points.insert(0, rule_check["feedback"])
+
         if not critique_points:
             critique_points = [
                 "Ensure every key technical claim explicitly references relevant source indices [1], [2].",
@@ -143,9 +215,10 @@ class ProcessGroundingVerifier:
             ]
 
         return {
-            "score": score,
-            "is_sufficient": score >= 85,
-            "critique_points": critique_points[:3],
+            "score": final_score,
+            "rule_check": rule_check,
+            "is_sufficient": final_score >= 85 and rule_check["is_grounded"],
+            "critique_points": critique_points[:4],
             "provider": provider
         }
 
@@ -161,7 +234,8 @@ class SequentialRevisionOptimizer:
         prompt: str,
         initial_draft: str,
         critique_points: List[str],
-        search_context: str
+        search_context: str,
+        engine: str = "auto"
     ) -> Tuple[str, str]:
         """Produce an improved revision conditioned on previous mistakes and critique."""
         revision_instruction = (
@@ -187,7 +261,8 @@ class SequentialRevisionOptimizer:
         revised_output, provider = self.safe_hand.generate(
             revision_prompt,
             system_instruction=revision_instruction,
-            search_context=search_context
+            search_context=search_context,
+            engine=engine
         )
 
         return revised_output, provider

@@ -39,10 +39,10 @@ app = FastAPI(title="Perplexity Deep Research & Multi-Agent Enterprise Canvas")
 
 
 @app.get("/api/stream")
-async def stream_agents(prompt: str, client: Optional[str] = None, mode: str = "auto"):
+async def stream_agents(prompt: str, client: Optional[str] = None, mode: str = "auto", engine: str = "gemini"):
     """Server-Sent Events streaming endpoint providing Perplexity-grade real-time research."""
     return StreamingResponse(
-        stream_multi_agent_pipeline(prompt, client, mode),
+        stream_multi_agent_pipeline(prompt, client, mode, engine),
         media_type="text/event-stream"
     )
 

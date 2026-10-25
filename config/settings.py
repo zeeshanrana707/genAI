@@ -13,6 +13,7 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 # Retrieve API Keys
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
 
 # Configured Model Identifiers
 # Priority models that have live free-tier quota on Google Gemini
@@ -39,6 +40,12 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 def is_live_key_configured() -> bool:
     """Check if a real Gemini API key is configured."""
     key = GEMINI_API_KEY.strip() if GEMINI_API_KEY else ""
+    return bool(key and not key.startswith("your_") and len(key) > 10)
+
+
+def is_deepseek_key_configured() -> bool:
+    """Check if a real DeepSeek API key is configured."""
+    key = DEEPSEEK_API_KEY.strip() if DEEPSEEK_API_KEY else ""
     return bool(key and not key.startswith("your_") and len(key) > 10)
 
 
