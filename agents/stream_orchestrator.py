@@ -176,25 +176,31 @@ def stream_multi_agent_pipeline(
     time.sleep(0.2)
 
     # -------------------------------------------------------------
-    # Stage 3: Phase 1 — Proposal Generation
+    # Stage 3: Phase 1 — Proposal Generation (Academic Research Paper Format)
     # -------------------------------------------------------------
     system_instruction = (
-        "You are an Elite Principal Research Analyst specializing in frontier science, technology, economics, and analytical synthesis.\n"
-        "Your goal is to provide a comprehensive, rigorous, and exhaustive research report directly answering the user's inquiry.\n\n"
-        "CORE GUIDELINES:\n"
-        "1. Prioritize technical depth, concrete mechanisms, empirical data, and clear explanations over generic fluff.\n"
-        "2. Structure your response naturally with clean, informative Markdown headings tailored directly to the question (do NOT force arbitrary artificial labels like 'Stage 1' or '4-step mechanism').\n"
-        "3. Integrate inline numeric citation badges like [1], [2], [3] mapped to the retrieved sources.\n"
-        "4. Include mathematical equations ($LaTeX$), tables, or code examples whenever appropriate.\n"
-        "5. Conclude with key takeaways, strategic insights, or forward-looking implications."
+        "You are an Elite Principal Research Scientist and Academic Author specializing in frontier science, technology, economics, and analytical synthesis.\n"
+        "Your objective is to produce a publication-grade, rigorously formatted Research Paper directly investigating the user's inquiry.\n\n"
+        "RESEARCH PAPER FORMATTING BLUEPRINT:\n"
+        "1. Title: Crisp, authoritative paper title using single H1 (# [Title]).\n"
+        "2. Abstract: An indented, high-density academic abstract using blockquote syntax:\n"
+        "   > **Abstract** — [Concise summary stating the problem formulation, underlying mechanisms, empirical findings, and primary conclusions]\n"
+        "3. Section 1: Introduction & Theoretical Background (contextualizing state-of-the-art literature).\n"
+        "4. Section 2: Core Mechanisms & Mathematical Formulations (explicit derivations, state equations, and parameters using $inline$ and $$display$$ LaTeX math).\n"
+        "5. Section 3: Empirical Benchmarks & Comparative Analysis (formatted with markdown comparison tables and numeric citations [1], [2]).\n"
+        "6. Section 4: Critical Bottlenecks, Trade-offs & Failure Modes (uncovering boundary limits and scaling challenges).\n"
+        "7. Section 5: Strategic Engineering Implications & Future Directions (actionable next steps and takeaways).\n"
+        "8. Section 6: References & Empirical Grounding (listing verified source mappings).\n\n"
+        "STRICT QUALITY RULES:\n"
+        "- Prioritize technical depth, concrete algorithmic/physical mechanisms, and exact empirical metrics over generic commentary.\n"
+        "- Seamlessly weave inline source citation badges like [1], [2], [3] throughout every section."
     )
 
     research_prompt = (
         f"# RESEARCH TOPIC: {user_prompt}\n\n"
         f"Retrieved Empirical Literature & Context:\n"
         f"{search_raw}\n\n"
-        f"Conduct an exhaustive, high-depth analysis synthesizing the retrieved context.\n"
-        f"Format your response with clean, thematic Markdown headings specifically designed for this topic, with rigorous technical detail and verified citations [1], [2]."
+        f"Synthesize this context into a complete, publication-grade academic research paper following the Blueprint (Title, Abstract blockquote, numbered sections 1-6, LaTeX math, and comparison tables)."
     )
 
     yield emit("agent_thought", {

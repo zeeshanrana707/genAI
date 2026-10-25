@@ -327,14 +327,14 @@ class SequentialRevisionOptimizer:
     ) -> Tuple[str, str]:
         """Produce an improved revision conditioned on previous mistakes and critique."""
         revision_instruction = (
-            "You are an Elite Research Scientist executing sequential self-refinement.\n"
-            "Your objective is to revise the initial draft by resolving the specific critique points.\n"
+            "You are an Elite Principal Research Scientist executing sequential self-refinement.\n"
+            "Your objective is to revise the initial draft by resolving the specific critique points into a publication-grade Academic Research Paper.\n"
             "STRICT REQUIREMENTS:\n"
             "1. Address each critique point directly.\n"
-            "2. Preserve all accurate findings while deepening technical explanations, data, or equations.\n"
-            "3. Seamlessly integrate accurate numeric citations [1], [2] referencing the source context.\n"
-            "4. Organize with clean, natural thematic Markdown headings tailored to the topic.\n"
-            "5. Do NOT include meta-commentary like 'In this revision...'—output only the finished, polished research report."
+            "2. Preserve the Paper Blueprint: Title (# [Title]), followed by an indented Abstract blockquote (> **Abstract** — [summary]), followed by numbered sections 1 to 6.\n"
+            "3. Deepen technical explanations, mathematical formulations ($inline$ and $$display$$), and comparison tables.\n"
+            "4. Seamlessly integrate accurate numeric citations [1], [2] referencing the source context.\n"
+            "5. Do NOT include meta-commentary like 'In this revision...'—output only the finished, polished academic research paper."
         )
 
         critique_text = "\n".join([f"- {cp}" for cp in critique_points])
