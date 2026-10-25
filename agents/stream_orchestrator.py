@@ -21,6 +21,7 @@ from agents.failover import SafeHandAgentRunner
 from agents.test_time_compute import (
     DifficultyEstimator,
     ProcessGroundingVerifier,
+    DeepSeekCrossCheckVerifier,
     SequentialRevisionOptimizer,
 )
 from agents.hooks import HookRegistry, AudioAgentHook, VideoAgentHook, PipelineStage
@@ -219,39 +220,46 @@ def stream_multi_agent_pipeline(
             time.sleep(0.12)
 
     # -------------------------------------------------------------
-    # Stage 4: Phase 2 & 3 — Verifier & Sequential Revision (for Level 3+)
+    # Stage 4: Phase 2 & 3 — DeepSeek-R1 Peer-Review Verifier & Sequential Revision
     # -------------------------------------------------------------
     if compute_budget >= 2:
         yield emit("agent_thought", {
-            "agent": "Process & Grounding Verifier",
-            "thought": "Running Step-Level Verification & Deterministic Rule-Based Metric Audit..."
+            "agent": "DeepSeek-R1 Cross-Check Verifier",
+            "thought": "Initiating Adversarial DeepSeek-R1 Peer Review: Auditing mathematical formalisms, conceptual boundaries, and citation grounding..."
         })
         time.sleep(0.2)
 
-        verifier = ProcessGroundingVerifier(safe_hand)
-        v_res = verifier.verify_and_critique(user_prompt, initial_draft, search_raw, engine=engine)
+        cross_verifier = DeepSeekCrossCheckVerifier(safe_hand)
+        cross_res = cross_verifier.cross_check(user_prompt, initial_draft, search_raw)
 
-        rule_check = v_res.get("rule_check", {})
+        rule_check = cross_res.get("rule_check", {})
         if rule_check.get("verified_metrics"):
             yield emit("agent_thought", {
                 "agent": "Deterministic Metric Verifier (DeepSeek Principle)",
-                "thought": f"Rule-based audit: Grounding ratio {int(rule_check['grounding_ratio']*100)}% ({len(rule_check['verified_metrics'])} metrics verified against source text)."
+                "thought": f"Rule-based metric audit: Grounding ratio {int(rule_check['grounding_ratio']*100)}% ({len(rule_check['verified_metrics'])} metrics verified against source text)."
             })
 
+        yield emit("cross_check_result", {
+            "score": cross_res["score"],
+            "verdict": cross_res["verdict"],
+            "provider": cross_res["provider"],
+            "critique": cross_res["critique_points"]
+        })
+
         yield emit("agent_thought", {
-            "agent": "Process & Grounding Verifier",
-            "thought": f"Verification completed (Score: {v_res['score']}/100). Identified {len(v_res['critique_points'])} targeted refinement vectors."
+            "agent": "DeepSeek-R1 Cross-Check Verifier",
+            "thought": f"DeepSeek Peer Review Complete (Score: {cross_res['score']}/100, Verdict: {cross_res['verdict']}). Identified {len(cross_res['critique_points'])} precision refinement vectors."
         })
         time.sleep(0.2)
 
         yield emit("agent_thought", {
             "agent": "Sequential Revision Optimizer",
-            "thought": "Executing Sequential Revision pass: conditioning on critique to eliminate gaps and deepen empirical rigor..."
+            "thought": "Executing Sequential Revision pass: Conditioning on DeepSeek-R1 cross-check critique to harden equations and resolve boundary trade-offs..."
         })
 
         optimizer = SequentialRevisionOptimizer(safe_hand)
         research_summary, final_provider = optimizer.revise_proposal(
-            user_prompt, initial_draft, v_res["critique_points"], search_raw, engine=engine
+            user_prompt, initial_draft, cross_res["critique_points"], search_raw, engine=engine
         )
     else:
         research_summary = initial_draft
