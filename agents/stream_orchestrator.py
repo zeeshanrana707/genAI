@@ -18,6 +18,11 @@ from config.settings import (
 )
 from tools.tools import WebSearchTool, DraftEmailTool, CreateCalendarInviteTool
 from agents.failover import SafeHandAgentRunner
+from agents.test_time_compute import (
+    DifficultyEstimator,
+    ProcessGroundingVerifier,
+    SequentialRevisionOptimizer,
+)
 from agents.hooks import HookRegistry, AudioAgentHook, VideoAgentHook, PipelineStage
 
 
@@ -154,23 +159,21 @@ def stream_multi_agent_pipeline(
     time.sleep(0.3)
 
     # -------------------------------------------------------------
-    # Stage 2: Deep Reasoning & Analytical Progress
+    # Stage 2: DeepMind Compute-Optimal Test-Time Scaling Engine
     # -------------------------------------------------------------
-    thinking_steps = [
-        f"Analyzing empirical sources and verifying citations for '{user_prompt[:55]}'.",
-        f"Synthesizing key findings and cross-referencing {len(sources_payload)} live sources.",
-        "Formulating structured analysis with technical depth and citations."
-    ]
+    difficulty_plan = DifficultyEstimator.estimate_difficulty(user_prompt)
+    diff_level = difficulty_plan["difficulty_level"]
+    compute_budget = difficulty_plan["compute_budget"]
+    strategy_desc = difficulty_plan["description"]
 
-    for thought in thinking_steps:
-        yield emit("agent_thought", {
-            "agent": "Perplexity Research Engine",
-            "thought": thought
-        })
-        time.sleep(0.2)
+    yield emit("agent_thought", {
+        "agent": "Test-Time Compute Allocator (DeepMind Architecture)",
+        "thought": f"Assessing query difficulty: Level {diff_level}/5 — {strategy_desc}"
+    })
+    time.sleep(0.2)
 
     # -------------------------------------------------------------
-    # Stage 3: Deep Research Synthesis & Comprehensive Report
+    # Stage 3: Phase 1 — Proposal Generation
     # -------------------------------------------------------------
     system_instruction = (
         "You are an Elite Principal Research Analyst specializing in frontier science, technology, economics, and analytical synthesis.\n"
@@ -191,11 +194,48 @@ def stream_multi_agent_pipeline(
         f"Format your response with clean, thematic Markdown headings specifically designed for this topic, with rigorous technical detail and verified citations [1], [2]."
     )
 
-    research_summary, provider1 = safe_hand.generate(
+    yield emit("agent_thought", {
+        "agent": "Proposal Generator",
+        "thought": "Generating initial high-depth research synthesis from indexed sources..."
+    })
+
+    initial_draft, provider1 = safe_hand.generate(
         research_prompt,
         system_instruction=system_instruction,
         search_context=search_raw
     )
+
+    # -------------------------------------------------------------
+    # Stage 4: Phase 2 & 3 — Verifier & Sequential Revision (for Level 3+)
+    # -------------------------------------------------------------
+    if compute_budget >= 2:
+        yield emit("agent_thought", {
+            "agent": "Process & Grounding Verifier",
+            "thought": "Running Step-Level Verification (checking citation accuracy, empirical grounding & claim validity)..."
+        })
+        time.sleep(0.2)
+
+        verifier = ProcessGroundingVerifier(safe_hand)
+        v_res = verifier.verify_and_critique(user_prompt, initial_draft, search_raw)
+
+        yield emit("agent_thought", {
+            "agent": "Process & Grounding Verifier",
+            "thought": f"Verification completed (Score: {v_res['score']}/100). Identified {len(v_res['critique_points'])} targeted refinement vectors."
+        })
+        time.sleep(0.2)
+
+        yield emit("agent_thought", {
+            "agent": "Sequential Revision Optimizer",
+            "thought": "Executing Sequential Revision pass: conditioning on critique to eliminate gaps and deepen empirical rigor..."
+        })
+
+        optimizer = SequentialRevisionOptimizer(safe_hand)
+        research_summary, final_provider = optimizer.revise_proposal(
+            user_prompt, initial_draft, v_res["critique_points"], search_raw
+        )
+    else:
+        research_summary = initial_draft
+        final_provider = provider1
 
     # Stream markdown content in progressive chunks to give real-time typing feel
     lines = research_summary.split("\n\n")
@@ -205,9 +245,9 @@ def stream_multi_agent_pipeline(
         yield emit("content_chunk", {
             "chunk": paragraph + "\n\n",
             "full_content": accumulated_content,
-            "provider": provider1
+            "provider": final_provider
         })
-        time.sleep(0.08)
+        time.sleep(0.06)
 
     # Dynamic follow-up questions
     followup_questions = generate_followup_questions(user_prompt, research_summary)
@@ -218,8 +258,8 @@ def stream_multi_agent_pipeline(
     yield emit("agent_complete", {
         "step": 1,
         "agent": "Perplexity Deep Research Analyst",
-        "provider": provider1,
-        "summary": "Deep research synthesis completed with live web citations.",
+        "provider": final_provider,
+        "summary": f"Compute-optimal research synthesis completed (Difficulty Level {diff_level}/5).",
         "content": research_summary,
         "sources": sources_payload,
         "followups": followup_questions,
