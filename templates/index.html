@@ -311,25 +311,44 @@
 
     </div>
 
-    <!-- Bottom Telemetry & Status -->
-    <div class="pt-3 border-t border-pplx-border space-y-1.5">
-      <div class="flex items-center justify-between text-xs px-1">
-        <span class="text-pplx-muted font-mono text-[11px]">Engine:</span>
-        <span class="text-cyan-400 font-mono font-medium text-[11px] flex items-center space-x-1.5">
-          <span class="h-2 w-2 rounded-full bg-emerald-400 pulsing-ring inline-block"></span>
-          <span id="activeModelTag">Gemini 3.1 & Safe-Hand</span>
-        </span>
-      </div>
-      <div class="p-2 rounded-lg bg-pplx-card border border-pplx-border text-[10px] text-slate-400 space-y-0.5">
-        <div class="flex justify-between">
-          <span>Safe-Hand Failover:</span>
-          <span class="text-emerald-400 font-mono font-medium">Active (0-Downtime)</span>
+    <!-- Feature: Engine & Telemetry Dropdown (Relocated to Sidebar) -->
+    <div class="pt-2 border-t border-pplx-border">
+      <details id="telemetryDropdown" class="group rounded-xl border border-pplx-border bg-pplx-card overflow-hidden transition-all">
+        <summary class="flex items-center justify-between p-2.5 cursor-pointer list-none select-none hover:bg-pplx-cardHover transition-colors">
+          <span class="flex items-center space-x-2 text-xs font-semibold text-slate-200">
+            <span class="text-cyan-400">⚡</span>
+            <span>Engine & Telemetry</span>
+          </span>
+          <div class="flex items-center space-x-2">
+            <span id="telemetryPill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">Ready</span>
+            <span class="text-[10px] text-pplx-muted font-mono group-open:rotate-180 transition-transform">▼</span>
+          </div>
+        </summary>
+        <div class="p-3 pt-2 border-t border-pplx-border/50 text-[11px] font-mono space-y-2 bg-[#090b10]">
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Execution:</span>
+            <span id="statusTimerBadge" class="text-cyan-400 font-semibold text-right">
+              <span>Ready</span>
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Model:</span>
+            <span id="providerBadge" class="text-slate-200 font-medium text-right truncate max-w-[140px]">Google Gemini</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Active Config:</span>
+            <span id="activeModelTag" class="text-slate-300 text-right truncate max-w-[140px]">Gemini 3.1 & Safe-Hand</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Safe-Hand:</span>
+            <span class="text-emerald-400 font-medium">Active (0-Downtime)</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-400">
+            <span>Retrieval:</span>
+            <span class="text-slate-300">Live Web & arXiv</span>
+          </div>
         </div>
-        <div class="flex justify-between">
-          <span>Deep Search:</span>
-          <span class="text-slate-300 font-mono">Web & arXiv API</span>
-        </div>
-      </div>
+      </details>
     </div>
   </aside>
 
@@ -401,18 +420,10 @@
         <!-- ========================================================================= -->
         <div id="researchResultsContainer" class="hidden space-y-6">
 
-          <!-- Question Header & Telemetry -->
+          <!-- Question Header (Clean, minimal, 100% output focused) -->
           <div class="flex items-start justify-between pb-3 border-b border-pplx-border">
             <div>
               <h2 id="activeQueryHeading" class="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug"></h2>
-              <div class="flex items-center space-x-3 mt-1.5 text-xs font-mono text-pplx-muted">
-                <span id="statusTimerBadge" class="flex items-center space-x-1.5">
-                  <span class="h-2 w-2 rounded-full bg-cyan-400 pulsing-ring inline-block"></span>
-                  <span>Searching live web & arXiv...</span>
-                </span>
-                <span>·</span>
-                <span id="providerBadge">Google Gemini & Safe-Hand</span>
-              </div>
             </div>
           </div>
 
@@ -542,6 +553,7 @@
     const activeQueryHeading = document.getElementById('activeQueryHeading');
     const statusTimerBadge = document.getElementById('statusTimerBadge');
     const providerBadge = document.getElementById('providerBadge');
+    const telemetryPill = document.getElementById('telemetryPill');
     const sourcesGrid = document.getElementById('sourcesGrid');
     const sourcesCountPill = document.getElementById('sourcesCountPill');
     const thinkingContent = document.getElementById('thinkingContent');
@@ -621,7 +633,11 @@
       // Update UI state
       document.getElementById('activeThreadTitle').innerText = prompt.length > 55 ? prompt.substring(0, 52) + '...' : prompt;
       activeQueryHeading.innerText = prompt;
-      statusTimerBadge.innerHTML = '<span class="h-2 w-2 rounded-full bg-cyan-400 pulsing-ring inline-block"></span> <span>Searching live web & arXiv...</span>';
+      if (statusTimerBadge) statusTimerBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-cyan-400 pulsing-ring inline-block mr-1"></span><span>Searching web & arXiv...</span>';
+      if (telemetryPill) {
+        telemetryPill.innerText = 'Running...';
+        telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 font-medium';
+      }
       sourcesGrid.innerHTML = '';
       sourcesCountPill.innerText = '0 Sources';
       thinkingContent.innerHTML = '';
@@ -687,7 +703,11 @@
           }
 
           if (ev.type === 'pipeline_finished') {
-            statusTimerBadge.innerHTML = `✓ Completed in ${ev.execution_time}`;
+            if (statusTimerBadge) statusTimerBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.execution_time}</span>`;
+            if (telemetryPill) {
+              telemetryPill.innerText = `✓ ${ev.execution_time}`;
+              telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium';
+            }
             thinkingStatusText.innerText = `Synthesized in ${ev.execution_time} across ${currentSources.length} sources`;
             thinkingSpinner.classList.add('hidden');
             if (ev.active_provider) providerBadge.innerText = ev.active_provider;
@@ -704,7 +724,11 @@
       es.onerror = function(err) {
         es.close();
         unlockSearchBtn();
-        statusTimerBadge.innerHTML = 'Research completed.';
+        if (statusTimerBadge) statusTimerBadge.innerHTML = 'Completed';
+        if (telemetryPill) {
+          telemetryPill.innerText = 'Finished';
+          telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-500/15 text-slate-400 font-medium';
+        }
         thinkingSpinner.classList.add('hidden');
       };
     }
