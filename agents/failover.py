@@ -57,6 +57,10 @@ def call_deepseek_api(prompt: str, system_instruction: str = "") -> Tuple[str, s
             content = choice.get("content", "").strip()
             reasoning = choice.get("reasoning_content", "").strip()
             return content, reasoning
+        elif resp.status_code == 402:
+            print(f"[SafeHand: DeepSeek] Notice: DeepSeek API key authenticated, but account has Insufficient Balance (HTTP 402). Top up at https://platform.deepseek.com/top_up to enable direct DeepSeek cloud calls. Falling back to DeepSeek-R1 CoT Protocol.")
+        else:
+            print(f"[SafeHand: DeepSeek] API notice: HTTP {resp.status_code} - {resp.text}")
     except Exception as e:
         print(f"[SafeHand: DeepSeek] API notice: {e}")
 

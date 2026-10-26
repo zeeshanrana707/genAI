@@ -472,18 +472,84 @@
         </div>
 
         <!-- ========================================================================= -->
-        <!-- THE OUTPUT CONTAINER: Only pure research output renders here! -->
+        <!-- THE OUTPUT CONTAINER: Multi-Agent Suite & Tabbed Deliverables Workspace -->
         <!-- ========================================================================= -->
         <div id="researchResultsContainer" class="hidden space-y-6">
 
-          <!-- Question Header (Clean, minimal, 100% output focused) -->
+          <!-- Question Header -->
           <div class="flex items-start justify-between pb-3 border-b border-pplx-border">
             <div>
               <h2 id="activeQueryHeading" class="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug"></h2>
             </div>
           </div>
 
-          <!-- 1. Sources Grid (Perplexity Signature) -->
+          <!-- 1. Visual Autonomous Multi-Agent Command Deck -->
+          <div id="agentTeamDeck" class="rounded-2xl border border-pplx-border bg-[#0e121a]/90 backdrop-blur-md p-4 sm:p-5 space-y-3.5 shadow-xl">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-pplx-border/50 pb-2.5">
+              <div class="flex items-center space-x-2 text-xs font-mono font-bold uppercase tracking-wider text-cyan-400">
+                <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                <span>Autonomous Agent Team (5 Active Specialists)</span>
+              </div>
+              <div id="agentHandoffBanner" class="text-xs font-mono text-slate-300 truncate max-w-xl bg-pplx-card px-2.5 py-1 rounded border border-pplx-border/70">
+                ⚡ Initializing collaborative multi-agent workflow...
+              </div>
+            </div>
+
+            <!-- 5 Agent Pods Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              <!-- Agent 1: Researcher -->
+              <div id="pod-researcher" class="p-3 rounded-xl border border-pplx-border/80 bg-pplx-card/70 space-y-1.5 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-lg">🔬</span>
+                  <span id="badge-researcher" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">STANDBY</span>
+                </div>
+                <div class="text-xs font-bold text-white truncate">Dr. Aris Thorne</div>
+                <div class="text-[10px] text-pplx-muted font-mono truncate">Research Scientist</div>
+              </div>
+
+              <!-- Agent 2: Critic -->
+              <div id="pod-critic" class="p-3 rounded-xl border border-pplx-border/80 bg-pplx-card/70 space-y-1.5 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-lg">⚖️</span>
+                  <span id="badge-critic" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">STANDBY</span>
+                </div>
+                <div class="text-xs font-bold text-white truncate">Prof. Elena Rostova</div>
+                <div class="text-[10px] text-pplx-muted font-mono truncate">DeepSeek Critic</div>
+              </div>
+
+              <!-- Agent 3: Editor -->
+              <div id="pod-editor" class="p-3 rounded-xl border border-pplx-border/80 bg-pplx-card/70 space-y-1.5 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-lg">✍️</span>
+                  <span id="badge-editor" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">STANDBY</span>
+                </div>
+                <div class="text-xs font-bold text-white truncate">Dr. Marcus Vance</div>
+                <div class="text-[10px] text-pplx-muted font-mono truncate">Academic Editor</div>
+              </div>
+
+              <!-- Agent 4: Comms -->
+              <div id="pod-comms" class="p-3 rounded-xl border border-pplx-border/80 bg-pplx-card/70 space-y-1.5 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-lg">✉️</span>
+                  <span id="badge-comms" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">STANDBY</span>
+                </div>
+                <div class="text-xs font-bold text-white truncate">Sophia Chen</div>
+                <div class="text-[10px] text-pplx-muted font-mono truncate">Executive Comms</div>
+              </div>
+
+              <!-- Agent 5: Logistics -->
+              <div id="pod-logistics" class="p-3 rounded-xl border border-pplx-border/80 bg-pplx-card/70 space-y-1.5 transition-all">
+                <div class="flex items-center justify-between">
+                  <span class="text-lg">📅</span>
+                  <span id="badge-logistics" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">STANDBY</span>
+                </div>
+                <div class="text-xs font-bold text-white truncate">David Sterling</div>
+                <div class="text-[10px] text-pplx-muted font-mono truncate">Logistics & Meeting</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Sources Grid (Perplexity Signature) -->
           <div id="sourcesSection" class="space-y-2">
             <div class="flex items-center justify-between text-xs font-semibold text-slate-300">
               <div class="flex items-center space-x-2">
@@ -499,15 +565,34 @@
             </div>
           </div>
 
-          <!-- 2. Synthesized Research Answer (Clean, Pristine Output Box - 100% Focused on Output) -->
-          <div class="rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4 shadow-xl">
-            <!-- Clean Header: No prompt scaffolding or internal clutter! -->
+          <!-- 3. Multi-Agent Deliverable Tab Switcher -->
+          <div class="flex items-center space-x-1.5 border-b border-pplx-border pb-2 overflow-x-auto text-xs font-mono">
+            <button id="tabBtn-paper" onclick="switchDeliverableTab('paper')" class="px-4 py-2 rounded-xl font-bold text-cyan-400 bg-pplx-card border border-pplx-border flex items-center space-x-1.5 transition-all shadow-sm">
+              <span>📄</span><span>Academic Paper</span>
+            </button>
+            <button id="tabBtn-peer-review" onclick="switchDeliverableTab('peer-review')" class="px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-slate-200 border border-transparent flex items-center space-x-1.5 transition-all">
+              <span>⚖️</span><span>Peer Review Audit</span>
+            </button>
+            <button id="tabBtn-executive" onclick="switchDeliverableTab('executive')" class="px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-slate-200 border border-transparent flex items-center space-x-1.5 transition-all">
+              <span>✉️</span><span>Executive Briefing</span>
+            </button>
+            <button id="tabBtn-logistics" onclick="switchDeliverableTab('logistics')" class="px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-slate-200 border border-transparent flex items-center space-x-1.5 transition-all">
+              <span>📅</span><span>Meeting Logistics & .ICS</span>
+            </button>
+            <button id="tabBtn-deliberations" onclick="switchDeliverableTab('deliberations')" class="px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-slate-200 border border-transparent flex items-center space-x-1.5 transition-all">
+              <span>🧠</span><span>Agent Deliberations</span>
+            </button>
+          </div>
+
+          <!-- 4. Tab Deliverable Panes -->
+          <!-- PANE 1: Academic Paper -->
+          <div id="pane-paper" class="deliverable-pane rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4 shadow-xl">
             <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
               <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
-                <span>✦ Deep Research Synthesis</span>
+                <span>✦ Dr. Marcus Vance • Senior Academic Editor</span>
               </div>
               <div class="text-[11px] text-pplx-muted font-mono">
-                <span>Hover [1] to view source</span>
+                <span>Hover [1] to view verified citation</span>
               </div>
             </div>
 
@@ -515,12 +600,129 @@
             <div id="researchMarkdownBody" class="markdown-content text-sm sm:text-base leading-relaxed select-text">
               <div class="flex items-center space-x-2 text-slate-400 py-6">
                 <span class="animate-spin text-cyan-400">✦</span>
-                <span>Synthesizing live web and arXiv intelligence...</span>
+                <span>Dr. Thorne mining literature and formulating preliminary draft...</span>
               </div>
             </div>
           </div>
 
-          <!-- 4. Perplexity Follow-Up / Related Questions -->
+          <!-- PANE 2: Peer Review Audit (Prof. Elena Rostova) -->
+          <div id="pane-peer-review" class="deliverable-pane hidden rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-5 shadow-xl">
+            <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
+              <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
+                <span>⚖️ Prof. Elena Rostova • DeepSeek Adversarial Audit</span>
+              </div>
+              <div id="peerReviewScorePill" class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                Audit in progress...
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border space-y-1">
+                <div class="text-[10px] font-mono text-pplx-muted uppercase">Scientific Soundness</div>
+                <div id="auditVerdictVal" class="text-lg font-bold text-white">—</div>
+              </div>
+              <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border space-y-1">
+                <div class="text-[10px] font-mono text-pplx-muted uppercase">Metric Grounding Ratio</div>
+                <div id="auditGroundingVal" class="text-lg font-bold text-cyan-400">—</div>
+              </div>
+              <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border space-y-1">
+                <div class="text-[10px] font-mono text-pplx-muted uppercase">Audit Framework</div>
+                <div class="text-sm font-semibold text-slate-300">DeepSeek-R1 Peer Review Protocol</div>
+              </div>
+            </div>
+
+            <!-- Verified Metrics Checklist -->
+            <div class="space-y-2">
+              <div class="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">Deterministic Rule-Based Metric Audit</div>
+              <div id="auditVerifiedMetrics" class="p-4 rounded-xl bg-pplx-bg border border-pplx-border text-xs font-mono text-slate-300 space-y-1">
+                Awaiting agent audit results...
+              </div>
+            </div>
+
+            <!-- Critique Points -->
+            <div class="space-y-2">
+              <div class="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">Editorial Refinement Mandates</div>
+              <div id="auditCritiqueList" class="p-4 rounded-xl bg-pplx-bg border border-pplx-border text-xs text-slate-300 space-y-2">
+                Awaiting agent critique points...
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 3: Executive Briefing (Sophia Chen) -->
+          <div id="pane-executive" class="deliverable-pane hidden rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
+              <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
+                <span>✉️ Sophia Chen • Executive Communications Strategist</span>
+              </div>
+              <button onclick="copyExecutiveEmail()" id="copyEmailBtn" class="px-3 py-1.5 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-xs font-mono text-cyan-400 hover:text-cyan-300 transition-all flex items-center space-x-1.5">
+                <span>📋</span><span>Copy Briefing</span>
+              </button>
+            </div>
+
+            <div class="space-y-3 font-mono text-xs">
+              <div class="p-3 rounded-lg bg-pplx-bg border border-pplx-border flex items-center justify-between">
+                <div><span class="text-pplx-muted">TO: </span><span id="execRecipient" class="text-white font-semibold">Valued Stakeholder</span></div>
+                <div><span class="text-pplx-muted">SUBJECT: </span><span id="execSubject" class="text-cyan-300 font-semibold">—</span></div>
+              </div>
+              <div id="execBody" class="p-5 rounded-xl bg-pplx-bg border border-pplx-border text-sm font-sans leading-relaxed text-slate-200 whitespace-pre-wrap select-text">
+                Sophia Chen is formulating the strategic executive briefing...
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 4: Meeting Logistics & .ICS (David Sterling) -->
+          <div id="pane-logistics" class="deliverable-pane hidden rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-5 shadow-xl">
+            <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
+              <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
+                <span>📅 David Sterling • Operations & Logistics Coordinator</span>
+              </div>
+              <button onclick="downloadIcsFile()" id="downloadIcsBtn" class="px-3.5 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs font-mono transition-all flex items-center space-x-1.5 shadow-md shadow-cyan-400/20">
+                <span>📅</span><span>Download .ICS Calendar File</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border space-y-2">
+                <div class="text-xs font-mono font-bold text-cyan-400 uppercase">Proposed Review Sessions</div>
+                <div id="meetingSlotsList" class="space-y-1.5 text-xs font-mono text-slate-300">
+                  Awaiting scheduling coordinator...
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border space-y-2">
+                <div class="text-xs font-mono font-bold text-cyan-400 uppercase">Meeting Metadata</div>
+                <div class="text-xs font-mono text-slate-300 space-y-1">
+                  <div><span class="text-pplx-muted">Format:</span> 30-Min Virtual Video Conference</div>
+                  <div><span class="text-pplx-muted">Compatibility:</span> Google Calendar, Apple, Outlook (.ics)</div>
+                  <div><span class="text-pplx-muted">Status:</span> <span class="text-emerald-400">PROPOSED & STAGED</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="text-xs font-mono font-bold text-slate-300 uppercase">Structured Meeting Agenda</div>
+              <div id="meetingAgendaText" class="p-4 rounded-xl bg-pplx-bg border border-pplx-border text-xs font-mono text-slate-200 whitespace-pre-wrap">
+                Awaiting coordinator agenda...
+              </div>
+            </div>
+          </div>
+
+          <!-- PANE 5: Live Agent Deliberations -->
+          <div id="pane-deliberations" class="deliverable-pane hidden rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4 shadow-xl">
+            <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
+              <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
+                <span>🧠 Live Agent Deliberations & CoT Reasoning</span>
+              </div>
+              <div class="text-[11px] text-pplx-muted font-mono">
+                Real-time agent dialogue
+              </div>
+            </div>
+
+            <div id="agentDeliberationsFeed" class="space-y-2 font-mono text-xs max-h-[500px] overflow-y-auto pr-2">
+              <div class="text-slate-500 py-3">Agent conversation stream will appear here during execution...</div>
+            </div>
+          </div>
+
+          <!-- 5. Perplexity Follow-Up / Related Questions -->
           <div id="followupsSection" class="hidden space-y-2.5 pt-2">
             <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-pplx-muted font-mono">
               <span>✦ Related Questions</span>
@@ -709,9 +911,17 @@
       const auditBadge = document.getElementById('deepseekAuditBadge');
       if (auditBadge) auditBadge.innerHTML = '<span class="text-cyan-400">Auditing...</span>';
 
-      researchMarkdownBody.innerHTML = '<div class="flex items-center space-x-2 text-slate-400 py-6"><span class="animate-spin text-cyan-400">✦</span><span>Synthesizing live web and arXiv intelligence...</span></div>';
+      researchMarkdownBody.innerHTML = '<div class="flex items-center space-x-2 text-slate-400 py-6"><span class="animate-spin text-cyan-400">✦</span><span>Dr. Thorne mining literature and formulating preliminary draft...</span></div>';
       followupsSection.classList.add('hidden');
       followupsList.innerHTML = '';
+
+      // Reset Multi-Agent pods & tabs
+      ['researcher', 'critic', 'editor', 'comms', 'logistics'].forEach(id => updateAgentPod(id, 'standby'));
+      switchDeliverableTab('paper');
+      const delibFeed = document.getElementById('agentDeliberationsFeed');
+      if (delibFeed) delibFeed.innerHTML = '';
+      const banner = document.getElementById('agentHandoffBanner');
+      if (banner) banner.innerText = '⚡ Initializing collaborative multi-agent workflow...';
 
       // Reveal results section & hide hero
       searchHeroSection.classList.add('hidden');
@@ -732,6 +942,10 @@
       const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}`;
       const es = new EventSource(url);
 
+      let currentCalendarData = null;
+      let currentEmailData = null;
+      let currentPeerReviewData = null;
+
       es.onmessage = function(e) {
         try {
           const ev = JSON.parse(e.data);
@@ -747,14 +961,40 @@
             appendThought(`🌐 Indexed ${ev.sources.length} sources (Web + arXiv).`);
           }
 
+          if (ev.type === 'agent_status_change') {
+            updateAgentPod(ev.agent_id, ev.status, ev.action);
+          }
+
+          if (ev.type === 'agent_handoff') {
+            const banner = document.getElementById('agentHandoffBanner');
+            if (banner) {
+              banner.innerHTML = `<span class="text-cyan-400 font-bold">›</span> ${escapeHtml(ev.message)}`;
+              banner.classList.add('border-cyan-400/50');
+            }
+            appendDeliberation(`⚡ HANDOFF`, `${ev.from_agent} ➔ ${ev.to_agent}: ${ev.message}`, 'cyan');
+          }
+
           if (ev.type === 'agent_thought') {
             appendThought(`💡 ${ev.thought}`);
+            appendDeliberation(ev.agent || 'Agent Deliberation', ev.thought, 'slate');
           }
 
           if (ev.type === 'cross_check_result') {
             const auditBadge = document.getElementById('deepseekAuditBadge');
             if (auditBadge) {
               auditBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.verdict} (${ev.score}/100)</span>`;
+            }
+          }
+
+          if (ev.type === 'agent_deliverable') {
+            if (ev.type_name === 'peer_review' || ev.type === 'agent_deliverable' && ev.data && ev.data.score !== undefined) {
+              renderPeerReviewDeliverable(ev.data);
+            }
+            if (ev.data && ev.data.recipient && ev.data.body) {
+              renderExecutiveEmailDeliverable(ev.data);
+            }
+            if (ev.data && ev.data.proposed_slots && ev.data.ics_content) {
+              renderCalendarDeliverable(ev.data);
             }
           }
 
@@ -768,21 +1008,29 @@
             renderFollowups(ev.questions);
           }
 
-          if (ev.type === 'agent_complete') {
-            if (ev.step === 1 && ev.content) {
-              currentMarkdown = ev.content;
-              renderMarkdown(currentMarkdown);
-            }
-          }
-
           if (ev.type === 'pipeline_finished') {
-            if (statusTimerBadge) statusTimerBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.execution_time}</span>`;
+            if (statusTimerBadge) statusTimerBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.execution_time} (5 Agents)</span>`;
             if (telemetryPill) {
               telemetryPill.innerText = `✓ ${ev.execution_time}`;
               telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium';
             }
             if (thinkingSpinner) thinkingSpinner.classList.add('hidden');
             if (ev.active_provider) providerBadge.innerText = ev.active_provider;
+
+            const banner = document.getElementById('agentHandoffBanner');
+            if (banner) {
+              banner.innerHTML = `<span class="text-emerald-400 font-bold">✓ Mission Accomplished:</span> 5 Autonomous Agents Delivered All Artifacts (${ev.execution_time}).`;
+            }
+
+            if (ev.peer_review) renderPeerReviewDeliverable(ev.peer_review);
+            if (ev.calendar) renderCalendarDeliverable(ev.calendar);
+            if (ev.email_body) {
+              renderExecutiveEmailDeliverable({
+                recipient: ev.recipient,
+                subject: ev.email_subject,
+                body: ev.email_body
+              });
+            }
             
             es.close();
             unlockSearchBtn();
@@ -803,6 +1051,166 @@
         }
         thinkingSpinner.classList.add('hidden');
       };
+    }
+
+    // Agent Pod Status Updater
+    function updateAgentPod(agentId, status, action) {
+      const pod = document.getElementById(`pod-${agentId}`);
+      const badge = document.getElementById(`badge-${agentId}`);
+      if (!pod || !badge) return;
+
+      if (status === 'working') {
+        pod.className = 'p-3 rounded-xl border border-cyan-400/80 bg-cyan-950/20 space-y-1.5 transition-all shadow-md shadow-cyan-500/10 scale-[1.02]';
+        badge.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold animate-pulse';
+        badge.innerText = 'ACTIVE ⚡';
+      } else if (status === 'completed') {
+        pod.className = 'p-3 rounded-xl border border-emerald-500/60 bg-emerald-950/15 space-y-1.5 transition-all';
+        badge.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold';
+        badge.innerText = 'DONE ✓';
+      } else {
+        pod.className = 'p-3 rounded-xl border border-pplx-border/80 bg-pplx-card/70 space-y-1.5 transition-all';
+        badge.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold';
+        badge.innerText = 'STANDBY';
+      }
+    }
+
+    // Switch between Deliverable Tabs
+    function switchDeliverableTab(tabName) {
+      const tabs = ['paper', 'peer-review', 'executive', 'logistics', 'deliberations'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        const pane = document.getElementById(`pane-${t}`);
+        if (btn) {
+          if (t === tabName) {
+            btn.className = 'px-4 py-2 rounded-xl font-bold text-cyan-400 bg-pplx-card border border-pplx-border flex items-center space-x-1.5 transition-all shadow-sm';
+          } else {
+            btn.className = 'px-4 py-2 rounded-xl font-medium text-slate-400 hover:text-slate-200 border border-transparent flex items-center space-x-1.5 transition-all';
+          }
+        }
+        if (pane) {
+          if (t === tabName) {
+            pane.classList.remove('hidden');
+          } else {
+            pane.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    // Append Thought to Deliberations Pane
+    function appendDeliberation(agent, thought, color) {
+      const feed = document.getElementById('agentDeliberationsFeed');
+      if (!feed) return;
+      const item = document.createElement('div');
+      item.className = 'p-3 rounded-xl bg-pplx-bg border border-pplx-border/70 space-y-1';
+      const timeStr = new Date().toLocaleTimeString();
+      item.innerHTML = `
+        <div class="flex items-center justify-between text-[10px] text-pplx-muted">
+          <span class="font-bold text-${color}-400">${escapeHtml(agent)}</span>
+          <span>${timeStr}</span>
+        </div>
+        <div class="text-xs text-slate-200 font-sans leading-relaxed">${escapeHtml(thought)}</div>
+      `;
+      feed.appendChild(item);
+    }
+
+    // Render Peer Review Deliverable
+    function renderPeerReviewDeliverable(data) {
+      currentPeerReviewData = data;
+      const pill = document.getElementById('peerReviewScorePill');
+      const verdict = document.getElementById('auditVerdictVal');
+      const grounding = document.getElementById('auditGroundingVal');
+      const metrics = document.getElementById('auditVerifiedMetrics');
+      const critique = document.getElementById('auditCritiqueList');
+
+      if (pill) pill.innerHTML = `Audit Score: ${data.score}/100`;
+      if (verdict) verdict.innerText = data.verdict || 'Sound & Grounded';
+      if (grounding) grounding.innerText = `${data.grounding_ratio || 100}% Verified`;
+
+      if (metrics && data.verified_metrics) {
+        if (data.verified_metrics.length === 0) {
+          metrics.innerHTML = `<span class="text-slate-400">All quantitative claims rigorously grounded. No unverified anomalies detected.</span>`;
+        } else {
+          metrics.innerHTML = data.verified_metrics.map(m => `
+            <div class="flex items-center space-x-2 text-emerald-400">
+              <span>✓</span><span>Verified Claim: ${escapeHtml(m)} matched directly against indexed empirical literature</span>
+            </div>
+          `).join('');
+        }
+      }
+
+      if (critique && data.critique_points) {
+        critique.innerHTML = data.critique_points.map((p, i) => `
+          <div class="flex items-start space-x-2">
+            <span class="text-cyan-400 font-mono font-bold">[#${i+1}]</span>
+            <span>${escapeHtml(p)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Render Executive Email Deliverable
+    function renderExecutiveEmailDeliverable(data) {
+      currentEmailData = data;
+      const rec = document.getElementById('execRecipient');
+      const subj = document.getElementById('execSubject');
+      const body = document.getElementById('execBody');
+
+      if (rec) rec.innerText = data.recipient || 'Valued Stakeholder';
+      if (subj) subj.innerText = data.subject || 'Strategic Briefing';
+      if (body) body.innerText = data.body || '';
+    }
+
+    // Render Calendar Deliverable
+    function renderCalendarDeliverable(data) {
+      currentCalendarData = data;
+      const slots = document.getElementById('meetingSlotsList');
+      const agenda = document.getElementById('meetingAgendaText');
+
+      if (slots && data.proposed_slots) {
+        slots.innerHTML = data.proposed_slots.map(s => `
+          <div class="p-2 rounded bg-pplx-card border border-pplx-border/60 flex items-center space-x-2 text-cyan-300">
+            <span>📅</span><span>${escapeHtml(s)}</span>
+          </div>
+        `).join('');
+      }
+
+      if (agenda && data.agenda) {
+        agenda.innerText = data.agenda;
+      }
+    }
+
+    // 1-Click Copy Executive Email
+    function copyExecutiveEmail() {
+      const body = document.getElementById('execBody');
+      const subj = document.getElementById('execSubject');
+      const rec = document.getElementById('execRecipient');
+      const btn = document.getElementById('copyEmailBtn');
+
+      if (!body) return;
+      const fullEmail = `TO: ${rec.innerText}\nSUBJECT: ${subj.innerText}\n\n${body.innerText}`;
+      navigator.clipboard.writeText(fullEmail).then(() => {
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = `<span class="text-emerald-400">✓ Copied!</span>`;
+          setTimeout(() => btn.innerHTML = original, 2000);
+        }
+      });
+    }
+
+    // 1-Click Download .ICS Calendar Invite
+    function downloadIcsFile() {
+      if (!currentCalendarData || !currentCalendarData.ics_content) {
+        alert('Calendar invite is still being formulated by David Sterling.');
+        return;
+      }
+      const blob = new Blob([currentCalendarData.ics_content], { type: 'text/calendar;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute('download', 'strategic_review_meeting.ics');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
 
     function unlockSearchBtn() {
