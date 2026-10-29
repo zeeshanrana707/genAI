@@ -142,10 +142,12 @@ class SafeHandAgentRunner:
 
         # Tier 1: Google Gemini (subscription key or free tier, multiple model fallbacks)
         keys_to_try = []
-        if self.custom_api_key and len(self.custom_api_key.strip()) >= 20:
-            keys_to_try.append(self.custom_api_key.strip())
-        if GEMINI_API_KEY and GEMINI_API_KEY not in keys_to_try:
-            keys_to_try.append(GEMINI_API_KEY)
+        is_explicit_free_mode = bool(self.custom_api_key and self.custom_api_key.lower().strip() in ("free", "none", "zero_cost"))
+        if not is_explicit_free_mode:
+            if self.custom_api_key and len(self.custom_api_key.strip()) >= 20:
+                keys_to_try.append(self.custom_api_key.strip())
+            if GEMINI_API_KEY and GEMINI_API_KEY not in keys_to_try:
+                keys_to_try.append(GEMINI_API_KEY)
 
         candidate_models = [self.gemini_model] + [
             m for m in GEMINI_MODELS_PRIORITY if m != self.gemini_model
