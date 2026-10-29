@@ -95,7 +95,8 @@ def stream_multi_agent_pipeline(
     mode: str = "auto",
     engine: str = "gemini",
     prior_context: str = "",
-    uploaded_papers_text: str = ""
+    uploaded_papers_text: str = "",
+    gemini_api_key: Optional[str] = None
 ) -> Generator[str, None, None]:
     """Generator yielding SSE JSON events detailing live agent execution for ANY user prompt."""
     
@@ -108,7 +109,7 @@ def stream_multi_agent_pipeline(
     actual_recipient = intent["recipient"]
 
     agents_roster = [
-        {"id": "researcher", "name": "Dr. Aris Thorne", "role": "Principal Research Scientist", "avatar": "🔬", "model": "Gemini 2.0 Flash / Web Indexer"},
+        {"id": "researcher", "name": "Dr. Aris Thorne", "role": "Principal Research Scientist", "avatar": "🔬", "model": f"Gemini ({RESEARCHER_MODEL}) / Web Indexer"},
         {"id": "critic", "name": "Prof. Elena Rostova", "role": "Adversarial Critic", "avatar": "⚖️", "model": "Adversarial Proof Audit Protocol"},
         {"id": "editor", "name": "Dr. Marcus Vance", "role": "Senior Academic Editor", "avatar": "✍️", "model": "Sequential Revision Optimizer"},
         {"id": "comms", "name": "Sophia Chen", "role": "Executive Communications Strategist", "avatar": "✉️", "model": "Executive Briefing Engine"},
@@ -129,7 +130,7 @@ def stream_multi_agent_pipeline(
     web_search = WebSearchTool()
     draft_email = DraftEmailTool()
     calendar_tool = CreateCalendarInviteTool()
-    safe_hand = SafeHandAgentRunner(preferred_gemini_model=RESEARCHER_MODEL)
+    safe_hand = SafeHandAgentRunner(preferred_gemini_model=RESEARCHER_MODEL, api_key=gemini_api_key)
 
     # =============================================================
     # AGENT 1: Dr. Aris Thorne (Principal Research Scientist)
@@ -321,7 +322,7 @@ def stream_multi_agent_pipeline(
         "thought": "Synthesizing Python verification script (numpy / scipy) to test proposed differential equations and dynamical parameter regimes..."
     })
 
-    verif_res = run_numerical_verification(initial_draft[:3000], user_prompt)
+    verif_res = run_numerical_verification(initial_draft[:3000], user_prompt, api_key=gemini_api_key)
     verif_summary = "Verification skipped: no candidate equations identified."
     if verif_res.get("executed"):
         verif_summary = f"Simulated successfully in Python: {verif_res.get('output', '')[:250]}"

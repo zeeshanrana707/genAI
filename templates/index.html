@@ -274,6 +274,27 @@
         </div>
       </div>
 
+      <!-- Gemini API Key (Subscription / Custom) -->
+      <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2">
+        <div class="flex items-center justify-between text-xs font-semibold">
+          <span class="flex items-center space-x-1.5 text-cyan-400">
+            <span>⚡</span>
+            <span>Gemini Key</span>
+          </span>
+          <span id="geminiKeyStatus" class="text-[9px] font-mono text-emerald-400">Free Tier Active</span>
+        </div>
+        <p class="text-[11px] text-pplx-muted leading-relaxed">
+          Uses Google free tier automatically. Optionally paste your subscription API key below:
+        </p>
+        <input
+          id="customGeminiKeyInput"
+          type="password"
+          placeholder="AIzaSy... (Subscription key)"
+          class="w-full bg-[#080a0f] border border-pplx-border rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-400 font-mono transition-colors"
+          oninput="saveCustomGeminiKey(this.value)"
+        />
+      </div>
+
       <!-- Feature 1: Search Focus Modes -->
       <div class="space-y-1.5">
         <span class="text-[10px] font-mono uppercase tracking-wider text-pplx-muted px-1 font-semibold">Search Focus</span>
@@ -845,9 +866,27 @@
     const followupsSection = document.getElementById('followupsSection');
     const followupsList = document.getElementById('followupsList');
 
+    // Custom / Subscription Gemini Key
+    let customGeminiKey = localStorage.getItem('custom_gemini_key') || '';
+
+    function saveCustomGeminiKey(val) {
+      customGeminiKey = (val || '').trim();
+      localStorage.setItem('custom_gemini_key', customGeminiKey);
+      const status = document.getElementById('geminiKeyStatus');
+      if (status) {
+        status.innerText = customGeminiKey ? 'Subscription Key Active' : 'Free Tier Active';
+        status.className = customGeminiKey ? 'text-[9px] font-mono text-cyan-400 font-semibold' : 'text-[9px] font-mono text-emerald-400';
+      }
+    }
+
     // Auto-focus input on load
     window.addEventListener('DOMContentLoaded', () => {
       promptInput.focus();
+      const keyInput = document.getElementById('customGeminiKeyInput');
+      if (keyInput && customGeminiKey) {
+        keyInput.value = customGeminiKey;
+        saveCustomGeminiKey(customGeminiKey);
+      }
       loadRecentHistory();
       loadUploadedPapers();
       checkBackendHealth();
@@ -1064,9 +1103,9 @@
       searchBtn.classList.add('opacity-75');
       searchBtnText.innerText = 'Researching...';
 
-      // Start SSE Streaming with session continuity and selected uploaded papers
+      // Start SSE Streaming with session continuity, selected uploaded papers, and optional subscription key
       const paperIdsParam = Array.from(selectedPaperIds).join(',');
-      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}`;
+      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}&gemini_api_key=${encodeURIComponent(customGeminiKey)}`;
       const es = new EventSource(url);
 
       let currentCalendarData = null;

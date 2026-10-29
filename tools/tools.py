@@ -180,7 +180,7 @@ def fetch_arxiv_full_text(arxiv_url: str) -> Dict[str, Any]:
 # Python Numerical Verification Sandbox
 # -------------------------------------------------------------------------
 
-def run_numerical_verification(equations_context: str, topic: str) -> Dict[str, Any]:
+def run_numerical_verification(equations_context: str, topic: str, api_key: Optional[str] = None) -> Dict[str, Any]:
     """Generate and execute a Python numerical verification script for the given equations.
 
     Uses numpy (and scipy if available) to numerically validate differential equations
@@ -189,19 +189,25 @@ def run_numerical_verification(equations_context: str, topic: str) -> Dict[str, 
     Args:
         equations_context: String describing the equations to verify
         topic: Research topic for context
+        api_key: Optional subscription or custom Gemini API key
 
     Returns:
         dict: {executed, script, output, metrics, error}
     """
     result = {"executed": False, "script": "", "output": "", "metrics": [], "error": ""}
 
-    if not is_live_key_configured():
-        result["error"] = "Gemini API not configured — skipping numerical verification."
+    effective_key = (api_key.strip() if api_key else "") or GEMINI_API_KEY
+    if not effective_key or len(effective_key) < 8:
+        result["error"] = "Gemini API key not configured — skipping numerical verification."
         return result
 
     try:
         from google import genai as _genai
-        client = _genai.Client(api_key=GEMINI_API_KEY)
+        from google.genai import types
+        try:
+            client = _genai.Client(api_key=effective_key, http_options=types.HttpOptions(timeout=15000))
+        except Exception:
+            client = _genai.Client(api_key=effective_key)
 
         gen_prompt = (
             f"Topic: {topic}\n\n"

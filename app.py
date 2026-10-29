@@ -53,7 +53,8 @@ async def stream_agents(
     mode: str = "auto",
     engine: str = "gemini",
     session_id: Optional[str] = None,
-    paper_ids: Optional[str] = None
+    paper_ids: Optional[str] = None,
+    gemini_api_key: Optional[str] = None
 ):
     """Server-Sent Events streaming endpoint with session persistence & paper grounding."""
     # 1. Retrieve prior session research context if continuing an existing thread
@@ -82,7 +83,8 @@ async def stream_agents(
             mode=mode,
             engine=engine,
             prior_context=prior_context,
-            uploaded_papers_text=uploaded_papers_text
+            uploaded_papers_text=uploaded_papers_text,
+            gemini_api_key=gemini_api_key
         ):
             if "pipeline_finished" in sse_event:
                 try:

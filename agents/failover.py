@@ -16,6 +16,7 @@ from config.settings import (
     GEMINI_API_KEY,
     is_live_key_configured,
     GEMINI_MODELS_PRIORITY,
+    RESEARCHER_MODEL,
 )
 
 FREE_AI_ENDPOINT = "https://text.pollinations.ai/"
@@ -97,8 +98,9 @@ def local_dynamic_synthesize(prompt: str, search_context: str = "") -> str:
 class SafeHandAgentRunner:
     """Orchestrates agent execution with automatic multi-tier Gemini-only failover."""
 
-    def __init__(self, preferred_gemini_model: str = "gemini-2.0-flash"):
+    def __init__(self, preferred_gemini_model: str = RESEARCHER_MODEL, api_key: Optional[str] = None):
         self.gemini_model = preferred_gemini_model
+        self.custom_api_key = api_key
         self.active_provider = "Gemini"
         self.last_reasoning_trace = ""
         self.failover_triggered = False
@@ -128,7 +130,6 @@ class SafeHandAgentRunner:
         self.last_reasoning_trace = ""
 
         # Build effective system instruction
-        # If DeepSeek-R1 reasoning style was requested, inject the CoT protocol into Gemini
         effective_system = system_instruction
         if engine == "deepseek-r1":
             cot_addon = (
@@ -139,12 +140,18 @@ class SafeHandAgentRunner:
             )
             effective_system = (system_instruction + cot_addon) if system_instruction else cot_addon.strip()
 
-        # Tier 1: Google Gemini (free tier, multiple model fallbacks)
-        if is_live_key_configured():
+        # Tier 1: Google Gemini (subscription key or free tier, multiple model fallbacks)
+        active_key = (self.custom_api_key.strip() if self.custom_api_key else "") or GEMINI_API_KEY
+        if active_key and len(active_key) > 8:
             candidate_models = [self.gemini_model] + [
                 m for m in GEMINI_MODELS_PRIORITY if m != self.gemini_model
             ]
-            client = genai.Client(api_key=GEMINI_API_KEY)
+            try:
+                from google.genai import types
+                client = genai.Client(api_key=active_key, http_options=types.HttpOptions(timeout=15000))
+            except Exception:
+                client = genai.Client(api_key=active_key)
+
             full_prompt = f"{effective_system}\n\n{prompt}" if effective_system else prompt
 
             for model_name in candidate_models:
@@ -167,10 +174,8 @@ class SafeHandAgentRunner:
                         return clean_text, self.active_provider
                 except Exception as e:
                     err_msg = str(e)
-                    if any(code in err_msg for code in ["429", "RESOURCE_EXHAUSTED", "404", "503"]):
-                        continue
-                    else:
-                        self.log(f"[Safe-Hand] Gemini error on {model_name}: {err_msg[:120]}")
+                    self.log(f"[Safe-Hand] Gemini on {model_name} noticed ({err_msg[:60]}), trying next...")
+                    continue
 
             self.failover_triggered = True
             self.failover_reason = "Gemini quota limit reached — switching to free provider."
