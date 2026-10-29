@@ -670,14 +670,20 @@
             <span id="selectedFocusLabel">Web Search</span>
           </div>
 
-          <!-- Submit Button -->
+          <!-- Submit / Action Button (Antigravity Style with Running Red Block) -->
           <button
             id="searchBtn"
-            onclick="triggerDeepResearch()"
-            class="h-9 px-4 rounded-xl font-bold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-md shadow-cyan-400/20"
+            onclick="handleSearchBtnClick()"
+            type="button"
+            class="h-9 px-3.5 rounded-xl font-bold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-md shadow-cyan-400/20 flex-shrink-0"
+            title="Send prompt / Start research"
           >
-            <span id="searchBtnIcon">✦</span>
-            <span id="searchBtnText">Search</span>
+            <span id="searchBtnIcon" class="flex items-center justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+              </svg>
+            </span>
+            <span id="searchBtnText">Send</span>
           </button>
 
         </div>
@@ -1170,6 +1176,7 @@
     promptInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        if (isResearchRunning) return;
         triggerDeepResearch();
       }
     });
@@ -1845,10 +1852,8 @@
       // Save to recent thread history
       saveToHistory(prompt);
 
-      // Lock search button during execution
-      searchBtn.disabled = true;
-      searchBtn.classList.add('opacity-75');
-      searchBtnText.innerText = 'Researching...';
+      // Set running state on button (Antigravity running red block)
+      setSearchBtnRunningState();
 
       // Initialize WordStreamer for word-by-word streaming
       const streamer = new WordStreamer(turnId, (text, isFinal) => {
@@ -2730,15 +2735,80 @@
       if (label) label.innerText = labelMap[mode] || 'Web Search';
     }
 
-    function applyPreset(text) {
-      promptInput.value = text;
-      triggerDeepResearch();
+    let isResearchRunning = false;
+
+    function handleSearchBtnClick() {
+      if (isResearchRunning) {
+        abortActiveResearch();
+      } else {
+        triggerDeepResearch();
+      }
+    }
+
+    function setSearchBtnRunningState() {
+      isResearchRunning = true;
+      if (!searchBtn) return;
+      searchBtn.disabled = false;
+      searchBtn.className = 'h-9 px-3.5 rounded-xl font-bold text-xs text-red-200 bg-red-950/80 hover:bg-red-900 border border-red-500/60 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-red-500/25 flex-shrink-0 cursor-pointer';
+      searchBtn.title = 'Stop running research';
+
+      if (searchBtnIcon) {
+        searchBtnIcon.innerHTML = `
+          <span class="relative flex h-3.5 w-3.5 items-center justify-center">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-sm bg-red-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-[3px] h-3 w-3 bg-red-500 shadow-sm shadow-red-500"></span>
+          </span>
+        `;
+      }
+      if (searchBtnText) {
+        searchBtnText.innerText = 'Stop';
+      }
     }
 
     function unlockSearchBtn() {
+      isResearchRunning = false;
+      if (!searchBtn) return;
       searchBtn.disabled = false;
-      searchBtn.classList.remove('opacity-75');
-      searchBtnText.innerText = 'Search';
+      searchBtn.className = 'h-9 px-3.5 rounded-xl font-bold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer';
+      searchBtn.title = 'Send prompt / Start research';
+
+      if (searchBtnIcon) {
+        searchBtnIcon.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        `;
+      }
+      if (searchBtnText) {
+        searchBtnText.innerText = 'Send';
+      }
+    }
+
+    function abortActiveResearch() {
+      if (!isResearchRunning) return;
+      if (currentEventSource) {
+        try { currentEventSource.close(); } catch (e) {}
+        currentEventSource = null;
+      }
+      if (activeTurnId && turnsData[activeTurnId] && turnsData[activeTurnId].streamer) {
+        turnsData[activeTurnId].streamer.complete();
+      }
+      if (activeTurnId) {
+        const pill = document.getElementById(`turn-${activeTurnId}-statusPill`);
+        if (pill) {
+          pill.innerText = 'Stopped ⏹';
+          pill.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 font-semibold border border-red-500/30';
+        }
+      }
+      if (thinkingSpinner) thinkingSpinner.classList.add('hidden');
+      if (statusTimerBadge) statusTimerBadge.innerHTML = '<span class="text-red-400 font-semibold">⏹ Stopped</span>';
+      unlockSearchBtn();
+    }
+
+    function applyPreset(text) {
+      if (isResearchRunning) return;
+      promptInput.value = text;
+      triggerDeepResearch();
     }
 
     function appendThought(text) {
