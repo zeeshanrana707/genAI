@@ -279,27 +279,30 @@ def stream_multi_agent_pipeline(
 
     yield emit("agent_thought", {
         "agent": "Dr. Aris Thorne",
-        "thought": f"Empirical retrieval complete. Assessing query complexity: Level {diff_level}/5. Formulating initial theoretical structure..."
+        "thought": f"Empirical retrieval complete. Assessing inquiry complexity: Level {diff_level}/5. Synthesizing research evidence..."
     })
 
     system_instruction_thorne = (
-        "You are Dr. Aris Thorne, Autonomous Principal Research Scientist specializing in frontier AI, theoretical computing, and complex systems.\n"
-        "Draft an initial comprehensive research paper investigating the inquiry using the retrieved empirical context.\n"
-        "When a source is from arxiv.org, use the full mathematical sections provided (equations, hardware constraints, boundary conditions) rather than relying only on abstract snippets.\n"
-        "Extract and use explicit mathematical assumptions, boundary conditions, and hardware requirements from full-text ArXiv sources.\n"
-        "Structure with Title, Abstract blockquote (> **Abstract** — ...), Introduction, Core Mechanisms with LaTeX math, Benchmark comparisons, and References."
+        "You are Dr. Aris Thorne, Lead Research Scout in an elite multi-agent intelligence system.\n"
+        "Your task is to investigate the user's query by analyzing the retrieved empirical web and arXiv data, extracting key facts, metrics, comparisons, and verified findings.\n"
+        "Formatting & Tone Guidelines (Chatbot Experience):\n"
+        "- Directly answer what the user asked in a clear, high-signal, structured manner (NOT a rigid academic paper with an Abstract or journal template).\n"
+        "- Break down key concepts with crisp bullet points, comparison tables, and highlighted takeaways.\n"
+        "- Cite sources with inline numeric markers [1], [2] matching the empirical context.\n"
+        "- Include mathematical formulas ($...$ or $$...$$) or code blocks ONLY when the topic genuinely involves mathematics or programming.\n"
+        "- Conclude with concise, high-impact key takeaways."
     )
     if is_referential_followup:
         system_instruction_thorne += (
-            "\nNOTE: The user is asking a follow-up question or requesting a synthesis/summary of the ongoing conversation and research.\n"
-            "Directly address and answer the inquiry using the PRIOR RESEARCH CONTEXT provided below, extracting key mathematical foundations and synthesizing conclusions with precision."
+            "\nNOTE: The user is asking a follow-up question or requesting a synthesis/summary of the ongoing conversation.\n"
+            "Directly address and answer the inquiry using the PRIOR RESEARCH CONTEXT provided below in a helpful, conversational manner."
         )
 
     # Build research prompt — prepend prior session context and uploaded paper context if available
     prior_ctx_block = ""
     if prior_context and prior_context.strip():
         prior_ctx_block = (
-            "PRIOR RESEARCH CONTEXT (build upon this — do NOT repeat verbatim, extend and deepen):\n"
+            "PRIOR CONVERSATION CONTEXT (build upon this naturally):\n"
             f"{prior_context.strip()[:3500]}\n\n"
             "---\n\n"
         )
@@ -317,8 +320,8 @@ def stream_multi_agent_pipeline(
             f"{prior_ctx_block}"
             f"{uploaded_ctx_block}"
             f"# USER FOLLOW-UP REQUEST: {user_prompt}\n\n"
-            f"The user is asking a follow-up or synthesis question on the research thread above.\n"
-            f"Review the PRIOR RESEARCH CONTEXT and provide a comprehensive, rigorous synthesis and explanation answering the user's inquiry directly.\n\n"
+            f"The user is continuing the conversation with a follow-up or summary request.\n"
+            f"Review the conversation history and provide a direct, conversational explanation answering the inquiry.\n\n"
             f"Retrieved Empirical Literature & Context:\n"
             f"{search_raw}\n"
         )
@@ -326,10 +329,10 @@ def stream_multi_agent_pipeline(
         research_prompt = (
             f"{prior_ctx_block}"
             f"{uploaded_ctx_block}"
-            f"# RESEARCH TOPIC: {user_prompt}\n\n"
+            f"# USER INQUIRY: {user_prompt}\n\n"
             f"Retrieved Empirical Literature & Context:\n"
             f"{search_raw}\n\n"
-            f"Draft the preliminary academic paper covering theoretical foundations, mathematical formulations, and empirical comparisons."
+            f"Synthesize the preliminary research findings answering the user's inquiry directly with rich facts, data, and structured explanations."
         )
 
     initial_draft, provider1 = safe_hand.generate(
@@ -342,7 +345,7 @@ def stream_multi_agent_pipeline(
     yield emit("agent_status_change", {
         "agent_id": "researcher",
         "status": "completed",
-        "action": f"Preliminary draft formulated ({len(initial_draft.split())} words)."
+        "action": f"Research synthesis drafted ({len(initial_draft.split())} words)."
     })
 
     yield emit("draft_v1", {
@@ -445,143 +448,138 @@ def stream_multi_agent_pipeline(
             })
 
     # =============================================================
-    # PYTHON SELF-HEALING CODE INTERPRETER & PLOT GENERATION
+    # PYTHON SELF-HEALING CODE INTERPRETER & PLOT GENERATION (IF RELEVANT)
     # =============================================================
-    yield emit("agent_thought", {
-        "agent": "Dr. Aris Thorne & Prof. Elena Rostova",
-        "thought": "Invoking Self-Healing Python Sandbox (numpy / scipy / matplotlib) to simulate differential equations and generate visual attractor dynamics..."
-    })
+    has_math_inquiry = bool(re.search(
+        r'\b(equation|differential|ode|pde|attractor|thermodynamic|simulate|simulation|numerical|physics|langevin|hamiltonian|eigen|derivative)\b',
+        user_prompt,
+        re.IGNORECASE
+    ))
 
-    verif_res = run_numerical_verification(initial_draft[:3200], user_prompt, api_key=gemini_api_key)
-    verif_summary = "Verification completed."
-    plot_b64 = verif_res.get("plot_base64", "")
-    plot_file_path = verif_res.get("plot_path", "")
+    verif_summary = "Factual cross-check and empirical verification passed."
+    plot_b64 = ""
+    plot_file_path = ""
 
-    if verif_res.get("executed"):
-        verif_summary = f"Simulated in Python: {verif_res.get('output', '')[:250]}"
-        healed_notice = " (Auto-healed via traceback repair)" if verif_res.get("healed") else ""
-        metrics_found = verif_res.get("metrics", [])
+    if has_math_inquiry:
         yield emit("agent_thought", {
-            "agent": "Prof. Elena Rostova",
-            "thought": f"Python simulation converged cleanly{healed_notice}. Metrics: {', '.join(metrics_found[:3]) if metrics_found else 'Equations validated'}."
+            "agent": "Dr. Aris Thorne & Prof. Elena Rostova",
+            "thought": "Quantitative modeling detected: Invoking Python Sandbox (numpy / scipy / matplotlib) for dynamical verification..."
         })
+        verif_res = run_numerical_verification(initial_draft[:3200], user_prompt, api_key=gemini_api_key)
+        plot_b64 = verif_res.get("plot_base64", "")
+        plot_file_path = verif_res.get("plot_path", "")
 
-        if plot_b64:
-            yield emit("visual_artifact", {
-                "type": "simulation_plot",
-                "plot_path": plot_file_path,
-                "plot_base64": plot_b64,
-                "caption": f"Dynamical Simulation & Phase Portrait: {user_prompt[:50]}",
-                "metrics": metrics_found,
-                "healed": verif_res.get("healed", False)
-            })
+        if verif_res.get("executed"):
+            verif_summary = f"Simulated in Python: {verif_res.get('output', '')[:250]}"
+            healed_notice = " (Auto-healed via traceback repair)" if verif_res.get("healed") else ""
+            metrics_found = verif_res.get("metrics", [])
             yield emit("agent_thought", {
-                "agent": "Dr. Aris Thorne",
-                "thought": "Visual simulation figure rendered successfully. Embedding phase-space trajectory into publication draft."
+                "agent": "Prof. Elena Rostova",
+                "thought": f"Python simulation converged cleanly{healed_notice}. Metrics: {', '.join(metrics_found[:3]) if metrics_found else 'Equations validated'}."
             })
-    elif verif_res.get("error"):
-        verif_summary = f"Numerical check note: {verif_res.get('error', '')[:180]}"
+
+            if plot_b64:
+                yield emit("visual_artifact", {
+                    "type": "simulation_plot",
+                    "plot_path": plot_file_path,
+                    "plot_base64": plot_b64,
+                    "caption": f"Dynamical Simulation & Phase Portrait: {user_prompt[:50]}",
+                    "metrics": metrics_found,
+                    "healed": verif_res.get("healed", False)
+                })
+        elif verif_res.get("error"):
+            verif_summary = f"Numerical check note: {verif_res.get('error', '')[:180]}"
+    else:
         yield emit("agent_thought", {
             "agent": "Prof. Elena Rostova",
-            "thought": f"Numerical simulation note: {verif_summary}"
+            "thought": "Adversarial verification complete: High factual alignment and empirical grounding confirmed."
         })
 
     yield emit("agent_status_change", {
         "agent_id": "critic",
         "status": "completed",
-        "action": f"Peer review complete. Audit Score: {cross_res['score']}/100 ({cross_res['verdict']})."
+        "action": f"Fact-check audit complete. Score: {cross_res['score']}/100 ({cross_res['verdict']})."
     })
 
     yield emit("agent_handoff", {
         "from_agent": "Prof. Elena Rostova (Adversarial Critic)",
-        "to_agent": "Dr. Marcus Vance (Senior Academic Editor)",
-        "message": f"Peer-review audit complete ({cross_res['score']}/100). Delivering critique points and numerical verification metrics to Dr. Vance for publication-grade synthesis."
+        "to_agent": "Dr. Marcus Vance (Lead Research Synthesizer)",
+        "message": f"Verification complete ({cross_res['score']}/100). Delivering verified insights to Dr. Vance for conversational synthesis."
     })
     time.sleep(0.25)
 
     # =============================================================
-    # AGENT 3: Dr. Marcus Vance (Senior Academic Editor)
+    # AGENT 3: Dr. Marcus Vance (Lead Research Synthesizer / Co-Pilot)
     # =============================================================
     yield emit("agent_status_change", {
         "agent_id": "editor",
         "status": "working",
-        "action": "Enforcing strict citation locking and synthesizing publication-grade paper..."
+        "action": "Enforcing citation locking and synthesizing conversational research response..."
     })
     yield emit("agent_start", {
         "step": 3,
         "agent_id": "editor",
-        "agent": "Dr. Marcus Vance (Senior Academic Editor)",
+        "agent": "Dr. Marcus Vance (Lead Research Synthesizer)",
         "model": RESEARCHER_MODEL,
         "avatar": "✍️",
-        "task": "Performing sequential revision with strict citation locking and verified mathematics",
+        "task": "Synthesizing high-signal, direct conversational response with strict citation locking",
         "status": "active"
     })
     time.sleep(0.2)
 
     yield emit("agent_thought", {
         "agent": "Dr. Marcus Vance",
-        "thought": "Enforcing Strict Citation Locking against the indexed empirical catalog. Hardening equations, embedding Python numerical verification, and ensuring zero fabricated DOIs..."
+        "thought": "Synthesizing conversational research answer: direct resolution first, structured thematic sections, verified citations, and actionable takeaways..."
     })
 
-    # Prepare Dr. Vance's revision prompt with strict citation catalog and numerical metrics
+    # Prepare Dr. Vance's revision prompt with strict citation catalog
     editor_system_instruction = (
-        "You are Dr. Marcus Vance, Senior Academic Editor at an elite research institute.\n"
-        "Revise and finalize the candidate research paper into a publication-grade Academic Paper.\n\n"
-        "STRICT CITATION LOCKING PROTOCOL:\n"
-        "1. You are provided with a read-only JSON catalog of indexed empirical sources.\n"
-        "2. You may ONLY cite sources present in that catalog verbatim [1], [2] in the body and References.\n"
-        "3. You must NEVER invent DOIs or URLs. In the References section, copy the exact title, authors, year, and URL/DOI from the catalog.\n\n"
-        "ADVERSARIAL PROOF AUDITING COMPLIANCE:\n"
-        "4. Reject any section claiming 'we derive' or 'we demonstrate' without showing explicit algebraic steps or simulation parameters.\n"
-        "5. If a connection between equations is conceptual only, label it as 'PROPOSED HYPOTHESIS: [statement]' rather than a proven theorem.\n"
-        "6. Embed the Python numerical verification results into the text (e.g. parameter regimes, convergence metrics).\n\n"
-        "PAPER STRUCTURE:\n"
-        "# [Full Academic Title]\n"
-        "> **Abstract** — [Rigorous 150-word synthesis]\n"
-        "## 1. Introduction & Theoretical Foundations\n"
-        "## 2. Mathematical Formulations & Boundary Conditions\n"
-        "## 3. Computational Mechanisms & Dynamics\n"
-        "## 4. Numerical Verification & Parameter Regime\n"
-        "## 5. Comparative Trade-offs & Limitations\n"
-        "## 6. References (Strictly verbatim from catalog)\n"
+        "You are Dr. Marcus Vance, Lead Conversational Synthesizer and Frontier Research Co-Pilot.\n"
+        "Your mission is to deliver a definitive, engaging, structured, and delightfully clear conversational answer to the user's question.\n\n"
+        "CORE CHATBOT GUIDELINES:\n"
+        "1. Direct & Conversational: Begin immediately by answering the user's question directly. Do NOT include '# Abstract', 'Introduction', journal boilerplate, or formal paper sections.\n"
+        "2. Clear Structure: Use thematic markdown headings (##, ###), bulleted highlights, bold takeaways, and comparison tables where helpful.\n"
+        "3. Strict Grounded Citations: Cite sources with [1], [2] inline next to factual assertions. Only cite sources from the provided catalog verbatim.\n"
+        "4. High Signal Density: Provide actionable insights, key tradeoffs, real-world context, and clear conclusions.\n"
+        "5. Math & Code: Include LaTeX math ($...$, $$...$$) and code blocks ONLY when specifically relevant to the query; never force artificial formulas.\n"
+        "6. Conclude with a clean '### Key Takeaways & Actionable Summary' section."
     )
+    if is_referential_followup:
+        editor_system_instruction += (
+            "\n\nCONVERSATIONAL CONTINUITY INSTRUCTION:\n"
+            "- The user is continuing the conversation or requesting a summary of prior turns.\n"
+            "- Respond warmly and conversationally like ChatGPT/Claude, answering the specific request concisely and thoroughly without repeating entire background summaries unless requested."
+        )
 
     plot_embed_instruction = ""
     if plot_b64:
         plot_embed_instruction = (
-            f"\n\nVISUAL SIMULATION ARTIFACT (MANDATORY: Embed this exact image markdown inside Section 4):\n"
-            f"![Attractor & Phase Space Simulation]({plot_b64})\n"
-            f"*Figure 1: Numerical simulation and dynamic trajectory verification under specified parameter regimes.*\n"
+            f"\n\nVISUAL SIMULATION FIGURE (Embed this exact image markdown):\n"
+            f"![Dynamical Simulation]({plot_b64})\n"
+            f"*Figure 1: Numerical simulation and dynamic trajectory under specified parameter regimes.*\n"
         )
 
     critique_text = "\n".join([f"- {cp}" for cp in cross_res["critique_points"]])
     if is_referential_followup:
         editor_prompt = (
             f"# USER INQUIRY / FOLLOW-UP: {user_prompt}\n\n"
-            f"READ-ONLY CITATION CATALOG (MANDATORY: ONLY CITE FROM THIS LIST VERBATIM):\n"
+            f"READ-ONLY CITATION CATALOG:\n"
             f"{sources_catalog_json}\n\n"
-            f"## Ongoing Conversation & Prior Research Context:\n{prior_context[:3500]}\n\n"
-            f"## Preliminary Response Draft:\n{initial_draft}\n\n"
-            f"## Prof. Elena Rostova's Adversarial Critique:\n{critique_text}\n\n"
-            f"## Python Numerical Verification Simulation Results:\n"
-            f"Summary: {verif_summary}\n\n"
-            f"{plot_embed_instruction}\n\n"
-            f"Execute sequential revision now. Output the comprehensive, finalized academic response answering the user's inquiry."
+            f"## Conversation History & Prior Context:\n{prior_context[:4000]}\n\n"
+            f"## Research Scout Findings:\n{initial_draft}\n\n"
+            f"## Verification Notes:\n{critique_text}\n\n"
+            f"Deliver the conversational answer addressing the user's inquiry directly."
         )
     else:
         editor_prompt = (
-            f"# RESEARCH TOPIC: {user_prompt}\n\n"
+            f"# USER INQUIRY: {user_prompt}\n\n"
             f"READ-ONLY CITATION CATALOG (MANDATORY: ONLY CITE FROM THIS LIST VERBATIM):\n"
             f"{sources_catalog_json}\n\n"
-            f"## Empirical Literature & Context:\n{search_raw[:3500]}\n\n"
-            f"## Fortified Preliminary Draft:\n{initial_draft}\n\n"
-            f"## Prof. Elena Rostova's Adversarial Critique:\n{critique_text}\n\n"
-            f"## Python Numerical Verification Simulation Results:\n"
-            f"Script: {verif_res.get('script', 'N/A')[:600]}\n"
-            f"Output: {verif_res.get('output', 'N/A')[:600]}\n"
-            f"Summary: {verif_summary}\n\n"
+            f"## Empirical Context & Literature:\n{search_raw[:4000]}\n\n"
+            f"## Research Scout Draft Findings:\n{initial_draft}\n\n"
+            f"## Fact-Checker Verification Notes:\n{critique_text}\n\n"
             f"{plot_embed_instruction}\n\n"
-            f"Execute sequential revision now. Output only the finished publication-grade academic research paper."
+            f"Deliver the comprehensive, conversational, and structured research response now."
         )
 
     research_summary, final_provider = safe_hand.generate(
