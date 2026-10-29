@@ -890,7 +890,7 @@
       Excerpt snippet from literature mining...
     </p>
     <div class="flex items-center justify-between pt-1 border-t border-pplx-border/50 text-[10px]">
-      <a id="popoverLink" href="#" target="_blank" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-semibold">
+      <a id="popoverLink" href="#" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 font-semibold">
         <span>Open Paper</span><span>↗</span>
       </a>
       <button id="popoverBibtexBtn" onclick="copyCitationBibtexCurrent()" class="text-slate-400 hover:text-white px-2 py-0.5 rounded bg-pplx-card border border-pplx-border">
@@ -1236,6 +1236,39 @@
         if (backdrop) backdrop.classList.add('hidden');
       }
     });
+
+    // Configure Marked link renderer: all reference links open in a new tab
+    if (window.marked) {
+      try {
+        const renderer = new marked.Renderer();
+        renderer.link = function(token, title, text) {
+          let href = token;
+          let linkTitle = title;
+          let linkText = text;
+          if (typeof token === 'object' && token !== null) {
+            href = token.href || '#';
+            linkTitle = token.title || '';
+            linkText = token.text || '';
+          }
+          const titleAttr = linkTitle ? ` title="${linkTitle}"` : '';
+          return `<a href="${href}" target="_blank" rel="noopener noreferrer"${titleAttr}>${linkText}</a>`;
+        };
+        marked.use({ renderer });
+      } catch (e) {
+        console.debug('Marked custom renderer note:', e);
+      }
+    }
+
+    // Universal document link interceptor: guarantee any reference/web link opens in a new tab
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (!link) return;
+      const href = link.getAttribute('href');
+      if (href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//'))) {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+      }
+    }, true);
 
     // =========================================================================
     // WordStreamer: True Word-by-Word Fluid Typewriter (ChatGPT-Style)
@@ -1806,6 +1839,12 @@
         container.innerText = rawMd;
       }
 
+      // Guarantee ALL reference, bibliography, and external links open in a new tab
+      container.querySelectorAll('a').forEach(a => {
+        a.setAttribute('target', '_blank');
+        a.setAttribute('rel', 'noopener noreferrer');
+      });
+
       // Feature 2: Build TOC and attach progress listener when finalized
       if (isFinal) {
         buildTurnToc(turnId, rawMd);
@@ -2296,7 +2335,7 @@
       const t = turnsData[turnId];
       if (!t || !t.sources) return;
       const src = t.sources.find(s => (s.id == id));
-      if (src && src.url) window.open(src.url, '_blank');
+      if (src && src.url) window.open(src.url, '_blank', 'noopener,noreferrer');
     }
 
     function copyTurnPaper(turnId) {
