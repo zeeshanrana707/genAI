@@ -168,7 +168,9 @@ async def stream_agents(
                         "email_subject": parsed.get("email_subject"),
                         "email_body": parsed.get("email_body"),
                         "calendar": parsed.get("calendar"),
-                        "peer_review": parsed.get("peer_review")
+                        "peer_review": parsed.get("peer_review"),
+                        "draft_v1": parsed.get("draft_v1", ""),
+                        "draft_v2": parsed.get("draft_v2", "")
                     }
                     # Save immediately to persistent SQLite WAL database before yielding completion
                     if session_id and accumulated_research:
@@ -283,15 +285,23 @@ async def delete_paper(paper_id: str):
     return JSONResponse(status_code=404, content={"success": False, "error": "Paper not found."})
 
 
+@app.get("/api/sessions")
+async def list_sessions():
+    """Retrieve all persistent research sessions from SQLite database."""
+    sessions_list = database.get_all_sessions(limit=25)
+    return {"sessions": sessions_list}
+
+
 @app.get("/api/session/{session_id}")
 async def get_session(session_id: str):
-    """Retrieve prior research history and context for the active session from SQLite."""
-    history = database.get_session_history(session_id)
+    """Retrieve prior research history and all turns for the active session from SQLite."""
+    history = database.get_session_history(session_id, limit=30)
     if not history:
-        return {"exists": False, "last_research": "", "history_count": 0}
+        return {"exists": False, "turns": [], "last_research": "", "history_count": 0}
     last_t = history[-1]
     return {
         "exists": True,
+        "turns": history,
         "last_research": last_t.get("research", ""),
         "history_count": len(history)
     }

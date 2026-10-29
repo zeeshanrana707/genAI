@@ -156,6 +156,30 @@ def reset_session(session_id: str):
         conn.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
 
 
+def get_all_sessions(limit: int = 25) -> List[Dict[str, Any]]:
+    """Retrieve recent research sessions with their initial prompt, turn count, and timestamp."""
+    with get_connection() as conn:
+        rows = conn.execute("""
+            SELECT s.session_id, s.created_at, s.updated_at,
+                   COUNT(t.turn_id) as turn_count,
+                   (SELECT prompt FROM turns WHERE session_id = s.session_id ORDER BY created_at ASC LIMIT 1) as first_prompt
+            FROM sessions s
+            JOIN turns t ON s.session_id = t.session_id
+            GROUP BY s.session_id
+            ORDER BY s.updated_at DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+        return [
+            {
+                "session_id": r["session_id"],
+                "first_prompt": r["first_prompt"] or "Research Thread",
+                "turn_count": r["turn_count"],
+                "updated_at": r["updated_at"]
+            }
+            for r in rows
+        ]
+
+
 # =====================================================================
 # Uploaded Reference Papers Management
 # =====================================================================

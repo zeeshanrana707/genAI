@@ -108,9 +108,12 @@ def stream_multi_agent_pipeline(
     """Generator yielding SSE JSON events detailing live agent execution for ANY user prompt."""
     
     start_time = time.time()
+    event_id = 0
     def emit(event_type: str, data: Dict[str, Any]) -> str:
+        nonlocal event_id
+        event_id += 1
         payload = {"type": event_type, "timestamp": time.strftime("%H:%M:%S"), **data}
-        return f"data: {json.dumps(payload)}\n\n"
+        return f"id: {event_id}\ndata: {json.dumps(payload)}\n\n"
 
     intent = extract_recipient_and_intent(user_prompt, client_name)
     actual_recipient = intent["recipient"]
@@ -340,6 +343,12 @@ def stream_multi_agent_pipeline(
         "agent_id": "researcher",
         "status": "completed",
         "action": f"Preliminary draft formulated ({len(initial_draft.split())} words)."
+    })
+
+    yield emit("draft_v1", {
+        "author": "Dr. Aris Thorne",
+        "markdown": initial_draft,
+        "word_count": len(initial_draft.split())
     })
 
     yield emit("agent_handoff", {
@@ -606,6 +615,12 @@ def stream_multi_agent_pipeline(
         }
     })
 
+    yield emit("draft_v2", {
+        "author": "Dr. Marcus Vance",
+        "markdown": research_summary,
+        "word_count": len(research_summary.split())
+    })
+
     yield emit("agent_status_change", {
         "agent_id": "editor",
         "status": "completed",
@@ -796,6 +811,8 @@ def stream_multi_agent_pipeline(
         "calendar": calendar_deliverable,
         "peer_review": peer_review_deliverable,
         "research": research_summary,
+        "draft_v1": initial_draft,
+        "draft_v2": research_summary,
         "sources": sources_payload,
         "plot_base64": plot_b64,
         "plot_path": plot_file_path,

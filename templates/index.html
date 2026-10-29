@@ -689,7 +689,7 @@
       }
     }
 
-    // Auto-focus input on load
+    // Auto-focus input on load & rehydrate persistent SQLite session
     window.addEventListener('DOMContentLoaded', () => {
       promptInput.focus();
       const keyInput = document.getElementById('customGeminiKeyInput');
@@ -698,6 +698,7 @@
         saveCustomGeminiKey(customGeminiKey);
       }
       loadRecentHistory();
+      loadActiveSessionFromDb();
       loadUploadedPapers();
       checkBackendHealth();
     });
@@ -912,9 +913,22 @@
         <!-- 4. Tab Panes -->
         <!-- PANE 1: Academic Paper -->
         <div id="turn-${turnId}-pane-paper" class="turn-pane rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-4 shadow-xl">
-          <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-pplx-border/60 gap-2">
             <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
-              <span>✦ Dr. Marcus Vance • Senior Academic Editor</span>
+              <span>✦ Academic Paper</span>
+            </div>
+            <!-- OpenAI Canvas Draft Version Switcher -->
+            <div class="flex items-center space-x-1 bg-[#0a0d14] p-1 rounded-xl border border-pplx-border text-[11px] font-mono">
+              <span class="text-[10px] text-pplx-muted px-1.5 uppercase font-semibold">Draft:</span>
+              <button id="turn-${turnId}-draftBtn-v1" onclick="switchPaperDraft('${turnId}', 'v1')" class="px-2 py-0.5 rounded-lg text-slate-400 hover:text-white transition-all">
+                v1: Raw
+              </button>
+              <button id="turn-${turnId}-draftBtn-v2" onclick="switchPaperDraft('${turnId}', 'v2')" class="px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 transition-all">
+                v2: Locked
+              </button>
+              <button id="turn-${turnId}-draftBtn-v3" onclick="switchPaperDraft('${turnId}', 'v3')" class="hidden px-2 py-0.5 rounded-lg text-emerald-400 font-bold border border-emerald-500/30 transition-all">
+                v3: Canvas
+              </button>
             </div>
             <div class="flex items-center space-x-2">
               <button onclick="copyTurnPaper('${turnId}')" class="px-2.5 py-1 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-[11px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors flex items-center space-x-1">
@@ -1246,6 +1260,14 @@
             }
           }
 
+          if (ev.type === 'draft_v1') {
+            if (turnsData[turnId]) turnsData[turnId].draftV1 = ev.markdown;
+          }
+
+          if (ev.type === 'draft_v2') {
+            if (turnsData[turnId]) turnsData[turnId].draftV2 = ev.markdown;
+          }
+
           if (ev.type === 'content_chunk') {
             // True word-by-word streaming queue
             if (turnsData[turnId] && turnsData[turnId].streamer) {
@@ -1293,6 +1315,9 @@
                 body: ev.email_body
               });
             }
+
+            if (ev.draft_v1 && turnsData[turnId]) turnsData[turnId].draftV1 = ev.draft_v1;
+            if (ev.draft_v2 && turnsData[turnId]) turnsData[turnId].draftV2 = ev.draft_v2;
 
             if (ev.plot_base64) {
               renderTurnSimulationPlot(turnId, {
@@ -1731,7 +1756,10 @@
           }
 
           turnsData[turnId].markdown = updatedMd;
-          renderTurnMarkdown(turnId, updatedMd, true);
+          turnsData[turnId].draftV3 = updatedMd;
+          const btn3 = document.getElementById(`turn-${turnId}-draftBtn-v3`);
+          if (btn3) btn3.classList.remove('hidden');
+          switchPaperDraft(turnId, 'v3');
           appendThought(`✍️ Dr. Marcus Vance refined paper section with Canvas: "${instruction.substring(0, 40)}..."`);
           hideCanvasFloatingBar();
         } else {
@@ -2101,41 +2129,165 @@
     }
 
     // =========================================================================
-    // History Storage
+    // SQLite WAL Session Persistence & Thread Rehydration
     // =========================================================================
-    function saveToHistory(prompt) {
-      let history = JSON.parse(localStorage.getItem('pplx_history') || '[]');
-      history = history.filter(item => item !== prompt);
-      history.unshift(prompt);
-      if (history.length > 10) history.pop();
-      localStorage.setItem('pplx_history', JSON.stringify(history));
-      loadRecentHistory();
-    }
-
-    function loadRecentHistory() {
-      const history = JSON.parse(localStorage.getItem('pplx_history') || '[]');
+    async function loadRecentHistory() {
       const container = document.getElementById('recentHistoryList');
       if (!container) return;
-      container.innerHTML = '';
-      if (!history.length) {
-        container.innerHTML = '<span class="text-pplx-muted text-[10px] px-1 italic">No past threads</span>';
-        return;
+      try {
+        const res = await fetch('/api/sessions');
+        const data = await res.json();
+        const sessions = data.sessions || [];
+        if (!sessions.length) {
+          container.innerHTML = '<span class="text-pplx-muted text-[10px] px-1 italic">No past threads</span>';
+          return;
+        }
+        container.innerHTML = sessions.map(s => {
+          const isActive = s.session_id === sessionId;
+          const turnCount = s.turn_count || 1;
+          return `
+            <button onclick="switchSession('${s.session_id}')" class="w-full text-left px-2 py-1.5 rounded-lg ${isActive ? 'bg-cyan-500/15 text-cyan-300 font-semibold border border-cyan-500/30' : 'text-slate-400 hover:text-white hover:bg-pplx-card border border-transparent'} truncate transition-colors text-[11px] flex items-center justify-between group">
+              <span class="truncate flex-1 mr-1">${escapeHtml(s.first_prompt)}</span>
+              <span class="text-[9px] font-mono text-cyan-400 bg-cyan-950/40 px-1 py-0.2 rounded border border-cyan-500/20">${turnCount}t</span>
+            </button>
+          `;
+        }).join('');
+      } catch (e) {
+        console.debug('Failed to load sessions from SQLite:', e);
       }
-      history.forEach(item => {
-        const btn = document.createElement('button');
-        btn.onclick = () => {
-          promptInput.value = item;
-          triggerDeepResearch();
-        };
-        btn.className = 'w-full text-left px-2 py-1 rounded text-slate-400 hover:text-white hover:bg-pplx-card truncate transition-colors text-[11px]';
-        btn.innerText = item;
-        container.appendChild(btn);
-      });
     }
 
-    function clearHistory() {
-      localStorage.removeItem('pplx_history');
+    async function switchSession(targetSessionId) {
+      if (!targetSessionId || targetSessionId === sessionId) return;
+      sessionId = targetSessionId;
+      localStorage.setItem('genai_session_id', sessionId);
+      await loadActiveSessionFromDb();
       loadRecentHistory();
+    }
+
+    async function loadActiveSessionFromDb() {
+      if (!sessionId) return;
+      try {
+        const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}`);
+        const data = await res.json();
+        if (data.exists && data.turns && data.turns.length > 0) {
+          searchHeroSection.classList.add('hidden');
+          conversationTurnsFeed.innerHTML = '';
+          for (const k in turnsData) delete turnsData[k];
+
+          data.turns.forEach(t => {
+            rehydrateSavedTurn(t);
+          });
+
+          const lastTurn = data.turns[data.turns.length - 1];
+          if (lastTurn && lastTurn.prompt) {
+            document.getElementById('activeThreadTitle').innerText = lastTurn.prompt.length > 50 ? lastTurn.prompt.substring(0, 48) + '...' : lastTurn.prompt;
+          }
+        }
+      } catch (err) {
+        console.debug('Session rehydration notice:', err);
+      }
+    }
+
+    function rehydrateSavedTurn(turn) {
+      const turnId = turn.turn_id;
+      const prompt = turn.prompt;
+      activeTurnId = turnId;
+
+      const deliverables = turn.deliverables || {};
+      turnsData[turnId] = {
+        prompt: prompt,
+        time: turn.timestamp ? new Date(turn.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        mode: 'SQLite Thread',
+        sources: turn.sources || [],
+        markdown: turn.research || '',
+        draftV1: (deliverables.draft_v1) || '',
+        draftV2: turn.research || '',
+        draftV3: '',
+        peerReview: deliverables.peer_review || null,
+        email: deliverables.email_body ? {
+          subject: deliverables.email_subject || 'Executive Briefing',
+          body: deliverables.email_body,
+          recipient: 'Valued Stakeholder'
+        } : null,
+        calendar: deliverables.calendar || null,
+        streamer: null
+      };
+
+      const turnElement = createTurnElement(turnId, prompt, 'Preserved');
+      conversationTurnsFeed.appendChild(turnElement);
+
+      renderTurnMarkdown(turnId, turn.research, true);
+
+      if (turn.sources && turn.sources.length) {
+        renderTurnSourceCards(turnId, turn.sources);
+      }
+
+      if (turn.plot_path) {
+        renderTurnSimulationPlot(turnId, {
+          plot_path: turn.plot_path,
+          caption: 'Phase Space Attractor & Dissipation Dynamics (Persistent Artifact)'
+        });
+      }
+
+      if (turnsData[turnId].peerReview) {
+        renderTurnPeerReview(turnId, turnsData[turnId].peerReview);
+      }
+      if (turnsData[turnId].email) {
+        renderTurnExecutiveEmail(turnId, turnsData[turnId].email);
+      }
+      if (turnsData[turnId].calendar) {
+        renderTurnCalendar(turnId, turnsData[turnId].calendar);
+      }
+
+      const statusPill = document.getElementById(`turn-${turnId}-statusPill`);
+      if (statusPill) {
+        statusPill.innerText = 'Preserved ✓ (SQLite WAL)';
+        statusPill.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold';
+      }
+      const handoffBanner = document.getElementById(`turn-${turnId}-handoffBanner`);
+      if (handoffBanner) {
+        handoffBanner.innerHTML = `<span class="text-emerald-400 font-bold">✓ Preserved Epistemic Thread:</span> Loaded securely from SQLite WAL store.`;
+      }
+    }
+
+    function switchPaperDraft(turnId, version) {
+      const t = turnsData[turnId];
+      if (!t) return;
+      
+      const btn1 = document.getElementById(`turn-${turnId}-draftBtn-v1`);
+      const btn2 = document.getElementById(`turn-${turnId}-draftBtn-v2`);
+      const btn3 = document.getElementById(`turn-${turnId}-draftBtn-v3`);
+
+      if (btn1) btn1.className = 'px-2 py-0.5 rounded-lg text-slate-400 hover:text-white transition-all';
+      if (btn2) btn2.className = 'px-2 py-0.5 rounded-lg text-slate-400 hover:text-white transition-all';
+      if (btn3) btn3.className = 'px-2 py-0.5 rounded-lg text-slate-400 hover:text-white transition-all';
+
+      let targetMd = '';
+      if (version === 'v1') {
+        targetMd = t.draftV1 || t.markdown || '';
+        if (btn1) btn1.className = 'px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 transition-all';
+      } else if (version === 'v2') {
+        targetMd = t.draftV2 || t.markdown || '';
+        if (btn2) btn2.className = 'px-2 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 transition-all';
+      } else if (version === 'v3') {
+        targetMd = t.draftV3 || t.markdown || '';
+        if (btn3) btn3.className = 'px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 transition-all';
+      }
+
+      t.activeDraft = version;
+      renderTurnMarkdown(turnId, targetMd, true);
+    }
+
+    function saveToHistory(prompt) {
+      setTimeout(loadRecentHistory, 1200);
+    }
+
+    async function clearHistory() {
+      if (confirm('Clear all past research threads from database?')) {
+        await resetSessionMemory();
+        loadRecentHistory();
+      }
     }
 
     function checkBackendHealth() {
