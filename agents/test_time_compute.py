@@ -11,6 +11,9 @@ Key Mechanisms:
 3. Sequential Revision Optimizer (Section 6 & Figure 5):
    Iteratively refines the model's proposal distribution by conditioning on
    previous draft mistakes and verifier critique.
+4. Adversarial Proof Auditing:
+   Rejects hand-waved "we derive/demonstrate" claims without explicit intermediate
+   algebraic steps. Forces PROPOSED HYPOTHESIS labeling for conceptual connections.
 """
 
 import re
@@ -223,14 +226,16 @@ class ProcessGroundingVerifier:
         }
 
 
-class DeepSeekCrossCheckVerifier:
-    """Enhanced Multi-Dimensional Adversarial Verifier powered by DeepSeek-R1.
-    
-    Conducts deep peer-review across 4 rigorous axes:
+class AdversarialCrossCheckVerifier:
+    """Enhanced Multi-Dimensional Adversarial Verifier (Proof Auditing Protocol).
+
+    Conducts deep peer-review across 5 rigorous axes:
     1. Mathematical & Physical Formalisms (derivatives, PDEs, dimensional consistency)
     2. Conceptual Boundaries & Incommensurability (trade-offs, unstated assumptions)
     3. Deterministic Numeric & Metric Audit (rule-based metric verification)
     4. Citation & Empirical Grounding (checking source indices [1], [2])
+    5. Adversarial Proof Auditing — rejects hand-waved "we derive/demonstrate" claims
+       without explicit intermediate algebraic steps; forces PROPOSED HYPOTHESIS labeling.
     """
 
     def __init__(self, safe_hand: SafeHandAgentRunner):
@@ -242,18 +247,26 @@ class DeepSeekCrossCheckVerifier:
         draft: str,
         search_context: str
     ) -> Dict[str, Any]:
-        """Execute DeepSeek-R1 adversarial peer-review audit on candidate synthesis."""
+        """Execute adversarial peer-review audit on candidate synthesis."""
         # 1. Deterministic Rule-Based Metric Check
         rule_check = DeterministicRuleBasedVerifier.verify_grounding(draft, search_context)
 
-        # 2. DeepSeek Adversarial Peer Review Prompt
+        # 2. Adversarial Peer Review Prompt (Gemini running DeepSeek-R1 CoT protocol)
         cross_check_instruction = (
-            "You are an Elite Academic Peer-Reviewer and Theoretical Scientist (DeepSeek-R1 Protocol).\n"
-            "Rigourously cross-check the proposed research draft against the retrieved literature.\n\n"
+            "You are Prof. Elena Rostova, an Elite Academic Peer-Reviewer and Theoretical Scientist.\n"
+            "Rigorously cross-check the proposed research draft against the retrieved literature.\n\n"
             "CROSS-CHECK PROTOCOL:\n"
             "1. Technical & Mathematical Rigor: Are equations, variables, and physical dynamics sound and dimensionally valid?\n"
             "2. Conceptual Boundaries: What critical trade-offs or assumptions were omitted (e.g., discrete vs continuous readouts, finite-time dissipation limits)?\n"
             "3. Empirical Grounding: Are claims verified by the sources?\n\n"
+            "ADVERSARIAL PROOF AUDITING (STRICT):\n"
+            "4. For every sentence using 'we derive', 'we demonstrate', 'we prove', 'we show', or 'it follows that':\n"
+            "   - REJECT the section UNLESS the explicit intermediate algebraic steps or numerical simulation outputs are shown in the draft.\n"
+            "   - If the connection between two equations is conceptual only (no derivation steps), MANDATE relabeling as:\n"
+            "     PROPOSED HYPOTHESIS: [statement]\n"
+            "   - Flag any equation missing units, boundary conditions, or domain of validity as UNVERIFIED CLAIM.\n"
+            "5. DO NOT accept vague hand-waving like 'coarse-graining yields' or 'in the continuum limit' as proof.\n"
+            "   Require explicit assumptions: continuum limit conditions, symmetry constraints, and parameter regimes.\n\n"
             "OUTPUT FORMAT:\n"
             "SCORE: <integer 0-100>\n"
             "VERDICT: <Sound & Grounded | Needs Refinement>\n"
@@ -268,7 +281,7 @@ class DeepSeekCrossCheckVerifier:
             f"User Research Mission: {prompt}\n\n"
             f"Retrieved Empirical Literature:\n{search_context[:3200]}\n\n"
             f"Draft Synthesis to Cross-Check:\n{draft[:3500]}\n\n"
-            f"Execute your comprehensive DeepSeek-R1 peer-review cross-check now."
+            f"Execute your comprehensive adversarial peer-review cross-check now."
         )
 
         output, provider = self.safe_hand.generate(
@@ -303,12 +316,16 @@ class DeepSeekCrossCheckVerifier:
 
         return {
             "score": final_score,
-            "verdict": "Sound & Grounded" if final_score >= 80 else "Refined with DeepSeek",
+            "verdict": "Sound & Grounded" if final_score >= 80 else "Needs Refinement",
             "rule_check": rule_check,
             "critique_points": critique_points[:4],
             "reasoning_trace": self.safe_hand.last_reasoning_trace,
             "provider": provider
         }
+
+
+# Backward-compatibility alias
+DeepSeekCrossCheckVerifier = AdversarialCrossCheckVerifier
 
 
 class SequentialRevisionOptimizer:

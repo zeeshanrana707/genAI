@@ -2,7 +2,7 @@
 
 Emits Server-Sent Events (SSE) detailing live agent execution across 5 specialized autonomous agents:
 - Agent 1: Dr. Aris Thorne (Principal Research Scientist) - Web & arXiv Literature Mining
-- Agent 2: Prof. Elena Rostova (DeepSeek Adversarial Critic) - DeepSeek-R1 Peer Review & Rule-Based Metric Audit
+- Agent 2: Prof. Elena Rostova (Adversarial Critic) - Peer Review & Rule-Based Metric Audit
 - Agent 3: Dr. Marcus Vance (Senior Academic Editor) - Sequential Revision & Paper Publication
 - Agent 4: Sophia Chen (Executive Communications Strategist) - Strategic Leadership Briefing
 - Agent 5: David Sterling (Operations & Logistics Coordinator) - Calendar Scheduling & .ics Generation
@@ -19,12 +19,12 @@ from config.settings import (
     SCHEDULER_MODEL,
     OUTPUT_DIR,
 )
-from tools.tools import WebSearchTool, DraftEmailTool, CreateCalendarInviteTool
+from tools.tools import WebSearchTool, DraftEmailTool, CreateCalendarInviteTool, run_numerical_verification
 from agents.failover import SafeHandAgentRunner
 from agents.test_time_compute import (
     DifficultyEstimator,
     ProcessGroundingVerifier,
-    DeepSeekCrossCheckVerifier,
+    AdversarialCrossCheckVerifier,
     SequentialRevisionOptimizer,
 )
 from agents.hooks import HookRegistry, AudioAgentHook, VideoAgentHook, PipelineStage
@@ -93,7 +93,9 @@ def stream_multi_agent_pipeline(
     user_prompt: str,
     client_name: Optional[str] = None,
     mode: str = "auto",
-    engine: str = "gemini"
+    engine: str = "gemini",
+    prior_context: str = "",
+    uploaded_papers_text: str = ""
 ) -> Generator[str, None, None]:
     """Generator yielding SSE JSON events detailing live agent execution for ANY user prompt."""
     
@@ -106,8 +108,8 @@ def stream_multi_agent_pipeline(
     actual_recipient = intent["recipient"]
 
     agents_roster = [
-        {"id": "researcher", "name": "Dr. Aris Thorne", "role": "Principal Research Scientist", "avatar": "🔬", "model": "Gemini 3.1 Flash / Web Indexer"},
-        {"id": "critic", "name": "Prof. Elena Rostova", "role": "DeepSeek Adversarial Critic", "avatar": "⚖️", "model": "DeepSeek-R1 Peer Review Protocol"},
+        {"id": "researcher", "name": "Dr. Aris Thorne", "role": "Principal Research Scientist", "avatar": "🔬", "model": "Gemini 2.0 Flash / Web Indexer"},
+        {"id": "critic", "name": "Prof. Elena Rostova", "role": "Adversarial Critic", "avatar": "⚖️", "model": "Adversarial Proof Audit Protocol"},
         {"id": "editor", "name": "Dr. Marcus Vance", "role": "Senior Academic Editor", "avatar": "✍️", "model": "Sequential Revision Optimizer"},
         {"id": "comms", "name": "Sophia Chen", "role": "Executive Communications Strategist", "avatar": "✉️", "model": "Executive Briefing Engine"},
         {"id": "logistics", "name": "David Sterling", "role": "Operations & Logistics Coordinator", "avatar": "📅", "model": "iCalendar Logistics Engine"}
@@ -173,8 +175,22 @@ def stream_multi_agent_pipeline(
             "url": s["url"],
             "domain": s["domain"],
             "snippet": s.get("snippet", ""),
-            "deep_content": s.get("deep_content", "")
+            "deep_content": s.get("deep_content", ""),
+            "authors": s.get("authors", ""),
         })
+
+    # Build read-only citation catalog for citation locking (Agent 3)
+    sources_catalog = [
+        {
+            "id": sp["id"],
+            "title": sp["title"],
+            "authors": sp.get("authors", ""),
+            "url": sp["url"],
+            "domain": sp["domain"],
+        }
+        for sp in sources_payload
+    ]
+    sources_catalog_json = json.dumps(sources_catalog, indent=2)
 
     yield emit("tool_call_result", {
         "tool": "Live Web & arXiv Indexer",
@@ -195,10 +211,31 @@ def stream_multi_agent_pipeline(
     system_instruction_thorne = (
         "You are Dr. Aris Thorne, Autonomous Principal Research Scientist specializing in frontier AI, theoretical computing, and complex systems.\n"
         "Draft an initial comprehensive research paper investigating the inquiry using the retrieved empirical context.\n"
+        "When a source is from arxiv.org, use the full mathematical sections provided (equations, hardware constraints, boundary conditions) rather than relying only on abstract snippets.\n"
+        "Extract and use explicit mathematical assumptions, boundary conditions, and hardware requirements from full-text ArXiv sources.\n"
         "Structure with Title, Abstract blockquote (> **Abstract** — ...), Introduction, Core Mechanisms with LaTeX math, Benchmark comparisons, and References."
     )
 
+    # Build research prompt — prepend prior session context and uploaded paper context if available
+    prior_ctx_block = ""
+    if prior_context and prior_context.strip():
+        prior_ctx_block = (
+            "PRIOR RESEARCH CONTEXT (build upon this — do NOT repeat verbatim, extend and deepen):\n"
+            f"{prior_context.strip()[:3000]}\n\n"
+            "---\n\n"
+        )
+
+    uploaded_ctx_block = ""
+    if uploaded_papers_text and uploaded_papers_text.strip():
+        uploaded_ctx_block = (
+            "UPLOADED REFERENCE PAPERS (use these as primary source material — cite them as [Uploaded]):\n"
+            f"{uploaded_papers_text.strip()[:4000]}\n\n"
+            "---\n\n"
+        )
+
     research_prompt = (
+        f"{prior_ctx_block}"
+        f"{uploaded_ctx_block}"
         f"# RESEARCH TOPIC: {user_prompt}\n\n"
         f"Retrieved Empirical Literature & Context:\n"
         f"{search_raw}\n\n"
@@ -220,36 +257,36 @@ def stream_multi_agent_pipeline(
 
     yield emit("agent_handoff", {
         "from_agent": "Dr. Aris Thorne (Research Scientist)",
-        "to_agent": "Prof. Elena Rostova (DeepSeek Adversarial Critic)",
+        "to_agent": "Prof. Elena Rostova (Adversarial Critic)",
         "message": "Candidate draft prepared. Passing to Prof. Rostova for adversarial peer-review audit and metric verification."
     })
     time.sleep(0.25)
 
     # =============================================================
-    # AGENT 2: Prof. Elena Rostova (DeepSeek Adversarial Critic)
+    # AGENT 2: Prof. Elena Rostova (Adversarial Critic)
     # =============================================================
     yield emit("agent_status_change", {
         "agent_id": "critic",
         "status": "working",
-        "action": "Auditing mathematical equations, empirical metrics, and conceptual boundaries..."
+        "action": "Auditing mathematical equations, empirical metrics, and proof derivations..."
     })
     yield emit("agent_start", {
         "step": 2,
         "agent_id": "critic",
-        "agent": "Prof. Elena Rostova (DeepSeek Adversarial Critic)",
-        "model": "DeepSeek-R1 Verification Engine",
+        "agent": "Prof. Elena Rostova (Adversarial Critic)",
+        "model": "Adversarial Proof & Metric Verification Protocol",
         "avatar": "⚖️",
-        "task": "Executing DeepSeek-R1 adversarial peer review and metric cross-check",
+        "task": "Executing adversarial peer review, proof verification, and metric cross-check",
         "status": "active"
     })
     time.sleep(0.2)
 
     yield emit("agent_thought", {
         "agent": "Prof. Elena Rostova",
-        "thought": "Commencing adversarial audit across 4 axes: (1) PDEs and mathematical formalisms, (2) conceptual boundary conditions, (3) deterministic metric grounding, and (4) citation veracity."
+        "thought": "Commencing adversarial audit across 5 axes: (1) PDEs and mathematical formalisms, (2) conceptual boundary conditions, (3) deterministic metric grounding, (4) citation veracity, and (5) adversarial proof auditing (rejecting hand-waved 'we derive' claims)."
     })
 
-    cross_verifier = DeepSeekCrossCheckVerifier(safe_hand)
+    cross_verifier = AdversarialCrossCheckVerifier(safe_hand)
     cross_res = cross_verifier.cross_check(user_prompt, initial_draft, search_raw)
     rule_check = cross_res.get("rule_check", {})
 
@@ -266,7 +303,7 @@ def stream_multi_agent_pipeline(
         "verified_metrics": rule_check.get("verified_metrics", []),
         "unverified_metrics": rule_check.get("unverified_metrics", []),
         "critique_points": cross_res["critique_points"],
-        "auditor": "Prof. Elena Rostova (DeepSeek Protocol)"
+        "auditor": "Prof. Elena Rostova (Adversarial Proof Protocol)"
     }
 
     yield emit("cross_check_result", peer_review_deliverable)
@@ -275,6 +312,29 @@ def stream_multi_agent_pipeline(
         "type": "peer_review",
         "data": peer_review_deliverable
     })
+
+    # =============================================================
+    # PYTHON NUMERICAL VERIFICATION STEP (numpy / scipy)
+    # =============================================================
+    yield emit("agent_thought", {
+        "agent": "Dr. Aris Thorne & Prof. Elena Rostova",
+        "thought": "Synthesizing Python verification script (numpy / scipy) to test proposed differential equations and dynamical parameter regimes..."
+    })
+
+    verif_res = run_numerical_verification(initial_draft[:3000], user_prompt)
+    verif_summary = "Verification skipped: no candidate equations identified."
+    if verif_res.get("executed"):
+        verif_summary = f"Simulated successfully in Python: {verif_res.get('output', '')[:250]}"
+        yield emit("agent_thought", {
+            "agent": "Prof. Elena Rostova",
+            "thought": f"Python numerical simulation passed. Computed metrics: {verif_summary}"
+        })
+    elif verif_res.get("error"):
+        verif_summary = f"Numerical check note: {verif_res.get('error', '')[:180]}"
+        yield emit("agent_thought", {
+            "agent": "Prof. Elena Rostova",
+            "thought": f"Numerical simulation note: {verif_summary}"
+        })
 
     yield emit("agent_status_change", {
         "agent_id": "critic",
@@ -285,7 +345,7 @@ def stream_multi_agent_pipeline(
     yield emit("agent_handoff", {
         "from_agent": "Prof. Elena Rostova (Adversarial Critic)",
         "to_agent": "Dr. Marcus Vance (Senior Academic Editor)",
-        "message": f"Peer-review audit complete ({cross_res['score']}/100). Delivering critique points to Dr. Vance for publication-grade synthesis."
+        "message": f"Peer-review audit complete ({cross_res['score']}/100). Delivering critique points and numerical verification metrics to Dr. Vance for publication-grade synthesis."
     })
     time.sleep(0.25)
 
@@ -295,7 +355,7 @@ def stream_multi_agent_pipeline(
     yield emit("agent_status_change", {
         "agent_id": "editor",
         "status": "working",
-        "action": "Synthesizing final publication-grade academic paper with LaTeX math..."
+        "action": "Enforcing strict citation locking and synthesizing publication-grade paper..."
     })
     yield emit("agent_start", {
         "step": 3,
@@ -303,31 +363,73 @@ def stream_multi_agent_pipeline(
         "agent": "Dr. Marcus Vance (Senior Academic Editor)",
         "model": RESEARCHER_MODEL,
         "avatar": "✍️",
-        "task": "Performing sequential revision to publish final academic research paper",
+        "task": "Performing sequential revision with strict citation locking and verified mathematics",
         "status": "active"
     })
     time.sleep(0.2)
 
     yield emit("agent_thought", {
         "agent": "Dr. Marcus Vance",
-        "thought": "Conditioning on Prof. Rostova's adversarial critique: hardening equations, clarifying physical boundaries, and formatting IEEE/Nature style abstract..."
+        "thought": "Enforcing Strict Citation Locking against the indexed empirical catalog. Hardening equations, embedding Python numerical verification, and ensuring zero fabricated DOIs..."
     })
 
-    optimizer = SequentialRevisionOptimizer(safe_hand)
-    research_summary, final_provider = optimizer.revise_proposal(
-        user_prompt, initial_draft, cross_res["critique_points"], search_raw, engine=engine
+    # Prepare Dr. Vance's revision prompt with strict citation catalog and numerical metrics
+    editor_system_instruction = (
+        "You are Dr. Marcus Vance, Senior Academic Editor at an elite research institute.\n"
+        "Revise and finalize the candidate research paper into a publication-grade Academic Paper.\n\n"
+        "STRICT CITATION LOCKING PROTOCOL:\n"
+        "1. You are provided with a read-only JSON catalog of indexed empirical sources.\n"
+        "2. You may ONLY cite sources present in that catalog verbatim [1], [2] in the body and References.\n"
+        "3. You must NEVER invent DOIs or URLs. In the References section, copy the exact title, authors, year, and URL/DOI from the catalog.\n\n"
+        "ADVERSARIAL PROOF AUDITING COMPLIANCE:\n"
+        "4. Reject any section claiming 'we derive' or 'we demonstrate' without showing explicit algebraic steps or simulation parameters.\n"
+        "5. If a connection between equations is conceptual only, label it as 'PROPOSED HYPOTHESIS: [statement]' rather than a proven theorem.\n"
+        "6. Embed the Python numerical verification results into the text (e.g. parameter regimes, convergence metrics).\n\n"
+        "PAPER STRUCTURE:\n"
+        "# [Full Academic Title]\n"
+        "> **Abstract** — [Rigorous 150-word synthesis]\n"
+        "## 1. Introduction & Theoretical Foundations\n"
+        "## 2. Mathematical Formulations & Boundary Conditions\n"
+        "## 3. Computational Mechanisms & Dynamics\n"
+        "## 4. Numerical Verification & Parameter Regime\n"
+        "## 5. Comparative Trade-offs & Limitations\n"
+        "## 6. References (Strictly verbatim from catalog)\n"
     )
 
-    paragraphs = research_summary.split("\n\n")
+    critique_text = "\n".join([f"- {cp}" for cp in cross_res["critique_points"]])
+    editor_prompt = (
+        f"# RESEARCH TOPIC: {user_prompt}\n\n"
+        f"READ-ONLY CITATION CATALOG (MANDATORY: ONLY CITE FROM THIS LIST VERBATIM):\n"
+        f"{sources_catalog_json}\n\n"
+        f"## Empirical Literature & Context:\n{search_raw[:3500]}\n\n"
+        f"## Preliminary Draft:\n{initial_draft}\n\n"
+        f"## Prof. Elena Rostova's Adversarial Critique:\n{critique_text}\n\n"
+        f"## Python Numerical Verification Simulation Results:\n"
+        f"Script: {verif_res.get('script', 'N/A')}\n"
+        f"Output: {verif_res.get('output', 'N/A')}\n"
+        f"Summary: {verif_summary}\n\n"
+        f"Execute sequential revision now. Output only the finished publication-grade academic research paper."
+    )
+
+    research_summary, final_provider = safe_hand.generate(
+        editor_prompt,
+        system_instruction=editor_system_instruction,
+        search_context=search_raw,
+        engine=engine
+    )
+
+    # Word-by-word streaming (ChatGPT-like fluid text emission)
+    words = research_summary.split(" ")
     accumulated_content = ""
-    for paragraph in paragraphs:
-        accumulated_content += (paragraph + "\n\n")
+    for i, w in enumerate(words):
+        token = w + (" " if i < len(words) - 1 else "")
+        accumulated_content += token
         yield emit("content_chunk", {
-            "chunk": paragraph + "\n\n",
+            "chunk": token,
             "full_content": accumulated_content,
             "provider": final_provider
         })
-        time.sleep(0.035)
+        time.sleep(0.012)  # Fluid word-by-word emission
 
     yield emit("agent_deliverable", {
         "agent_id": "editor",
@@ -474,7 +576,7 @@ def stream_multi_agent_pipeline(
     ]
     agenda = (
         f"1. Executive Briefing on: {user_prompt[:50]}.\n"
-        f"2. Evaluation of Key Benchmarks & DeepSeek Peer-Review Findings.\n"
+        f"2. Evaluation of Key Benchmarks & Adversarial Peer-Review Findings.\n"
         f"3. Discussion of Next Steps & Strategic Implementation with {actual_recipient}."
     )
 

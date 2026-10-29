@@ -233,21 +233,44 @@
         <span class="text-[10px] font-mono text-pplx-muted group-hover:text-white transition-colors">Ctrl+K</span>
       </button>
 
-      <!-- AI Engine Switcher: DeepSeek-R1 vs Google Gemini -->
-      <div class="space-y-1.5">
-        <div class="flex items-center justify-between px-1">
-          <span class="text-[10px] font-mono uppercase tracking-wider text-pplx-muted font-semibold">Reasoning Engine</span>
-          <span class="text-[9px] font-mono text-cyan-400 font-semibold" id="currentEngineLabel">DeepSeek-R1</span>
-        </div>
-        <div class="grid grid-cols-2 gap-1.5 p-1 bg-[#090b10] border border-pplx-border rounded-xl">
-          <button onclick="setEngine('deepseek-r1')" id="engineBtnDeepseek" class="py-1.5 px-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center space-x-1 transition-all">
+      <!-- Session Research Memory (Context Continuity) -->
+      <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2">
+        <div class="flex items-center justify-between text-xs font-semibold">
+          <span class="flex items-center space-x-1.5 text-cyan-400">
             <span>🧠</span>
-            <span class="truncate">DeepSeek-R1</span>
-          </button>
-          <button onclick="setEngine('gemini')" id="engineBtnGemini" class="py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card flex items-center justify-center space-x-1 transition-all">
-            <span>⚡</span>
-            <span class="truncate">Gemini 3.1</span>
-          </button>
+            <span>Session Research Context</span>
+          </span>
+          <span id="sessionStatusPill" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold">Preserving</span>
+        </div>
+        <p class="text-[11px] text-pplx-muted leading-relaxed">
+          Follow-up questions build on previous research instead of restarting from scratch.
+        </p>
+        <button onclick="resetSessionMemory()" class="w-full py-1 px-2 rounded-lg text-[10px] font-mono font-medium text-slate-400 hover:text-red-400 hover:bg-[#090b10] border border-pplx-border transition-colors flex items-center justify-center space-x-1">
+          <span>🔄</span>
+          <span>Clear Context & Start Fresh</span>
+        </button>
+      </div>
+
+      <!-- Upload Research Papers Section (PDF Ingestion) -->
+      <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2.5">
+        <div class="flex items-center justify-between text-xs font-semibold">
+          <span class="flex items-center space-x-1.5 text-cyan-400">
+            <span>📑</span>
+            <span>Reference Papers</span>
+          </span>
+          <span class="text-[9px] font-mono text-pplx-muted">PDF Upload</span>
+        </div>
+        <p class="text-[11px] text-pplx-muted leading-relaxed">
+          Upload PDF research papers to extract equations and ground research findings.
+        </p>
+        <label class="w-full py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#090b10] hover:bg-cyan-500/10 text-cyan-300 border border-pplx-border hover:border-cyan-400/50 flex items-center justify-center space-x-1.5 cursor-pointer transition-all">
+          <span id="uploadSpinner" class="hidden animate-spin text-cyan-400 text-xs">✦</span>
+          <span id="uploadIcon">📤</span>
+          <span id="uploadBtnLabel">Upload PDF Paper</span>
+          <input type="file" id="paperUploadInput" accept=".pdf" class="hidden" onchange="handlePaperUpload(this)" />
+        </label>
+        <div id="uploadedPapersList" class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar text-xs">
+          <div class="text-[10px] text-pplx-muted italic px-1" id="noPapersNotice">No reference papers uploaded</div>
         </div>
       </div>
 
@@ -390,8 +413,8 @@
             <span class="text-slate-300">Live Web & arXiv</span>
           </div>
           <div class="flex items-center justify-between text-slate-400">
-            <span>DeepSeek Audit:</span>
-            <span id="deepseekAuditBadge" class="text-cyan-400 font-medium text-right text-[10px]">Standby</span>
+            <span>Adversarial Audit:</span>
+            <span id="adversarialAuditBadge" class="text-cyan-400 font-medium text-right text-[10px]">Standby</span>
           </div>
           <!-- Live Agent Thoughts in Sidebar -->
           <div class="pt-2 border-t border-pplx-border/40">
@@ -514,7 +537,7 @@
                   <span id="badge-critic" class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold">STANDBY</span>
                 </div>
                 <div class="text-xs font-bold text-white truncate">Prof. Elena Rostova</div>
-                <div class="text-[10px] text-pplx-muted font-mono truncate">DeepSeek Critic</div>
+                <div class="text-[10px] text-pplx-muted font-mono truncate">Proof Auditor</div>
               </div>
 
               <!-- Agent 3: Editor -->
@@ -609,7 +632,7 @@
           <div id="pane-peer-review" class="deliverable-pane hidden rounded-2xl border border-pplx-border bg-pplx-card p-6 sm:p-8 space-y-5 shadow-xl">
             <div class="flex items-center justify-between pb-3 border-b border-pplx-border/60">
               <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
-                <span>⚖️ Prof. Elena Rostova • DeepSeek Adversarial Audit</span>
+                <span>⚖️ Prof. Elena Rostova • Adversarial Proof Audit</span>
               </div>
               <div id="peerReviewScorePill" class="text-xs font-mono font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                 Audit in progress...
@@ -627,7 +650,7 @@
               </div>
               <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border space-y-1">
                 <div class="text-[10px] font-mono text-pplx-muted uppercase">Audit Framework</div>
-                <div class="text-sm font-semibold text-slate-300">DeepSeek-R1 Peer Review Protocol</div>
+                <div class="text-sm font-semibold text-slate-300">Adversarial Proof & Metric Verification Protocol</div>
               </div>
             </div>
 
@@ -752,9 +775,9 @@
           />
 
           <!-- Engine & Mode Badges -->
-          <div class="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-cyan-400 font-mono">
-            <span id="selectedEngineIcon">🧠</span>
-            <span id="selectedEngineLabel">DeepSeek-R1</span>
+          <div class="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-emerald-400 font-mono">
+            <span id="selectedEngineIcon">⚡</span>
+            <span id="selectedEngineLabel">Gemini 2.0 (Free)</span>
           </div>
 
           <div class="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-slate-300 font-mono">
@@ -790,7 +813,17 @@
     let currentMarkdown = '';
     let isThinkingExpanded = true;
     let activeFocusMode = 'all';
-    let activeEngine = 'deepseek-r1';
+    let activeEngine = 'gemini';
+
+    // Session Context Persistence
+    let sessionId = localStorage.getItem('genai_session_id');
+    if (!sessionId) {
+      sessionId = 'session_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('genai_session_id', sessionId);
+    }
+    let uploadedPapers = [];
+    let selectedPaperIds = new Set();
+    let mathRenderTimeout = null;
 
     // Elements
     const promptInput = document.getElementById('promptInput');
@@ -816,6 +849,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       promptInput.focus();
       loadRecentHistory();
+      loadUploadedPapers();
       checkBackendHealth();
     });
 
@@ -834,6 +868,121 @@
       }
     });
 
+    // Upload Reference Papers Management
+    async function loadUploadedPapers() {
+      try {
+        const res = await fetch('/api/papers');
+        const data = await res.json();
+        uploadedPapers = data.papers || [];
+        uploadedPapers.forEach(p => selectedPaperIds.add(p.id));
+        renderUploadedPapersList();
+      } catch (err) {
+        console.debug('Failed to load papers:', err);
+      }
+    }
+
+    async function handlePaperUpload(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const uploadSpinner = document.getElementById('uploadSpinner');
+      const uploadIcon = document.getElementById('uploadIcon');
+      const uploadLabel = document.getElementById('uploadBtnLabel');
+
+      if (uploadSpinner) uploadSpinner.classList.remove('hidden');
+      if (uploadIcon) uploadIcon.classList.add('hidden');
+      if (uploadLabel) uploadLabel.innerText = 'Extracting PDF...';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/upload-paper', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (data.success && data.paper) {
+          uploadedPapers.push(data.paper);
+          selectedPaperIds.add(data.paper.id);
+          renderUploadedPapersList();
+          appendThought(`📑 Ingested paper: ${data.paper.filename} (${data.paper.page_count} pages).`);
+        } else {
+          alert('Upload notice: ' + (data.error || 'Failed to parse PDF.'));
+        }
+      } catch (err) {
+        alert('Failed to upload PDF: ' + err);
+      } finally {
+        if (uploadSpinner) uploadSpinner.classList.add('hidden');
+        if (uploadIcon) uploadIcon.classList.remove('hidden');
+        if (uploadLabel) uploadLabel.innerText = 'Upload PDF Paper';
+        input.value = '';
+      }
+    }
+
+    function togglePaperSelection(id) {
+      if (selectedPaperIds.has(id)) {
+        selectedPaperIds.delete(id);
+      } else {
+        selectedPaperIds.add(id);
+      }
+      renderUploadedPapersList();
+    }
+
+    async function deletePaper(id) {
+      try {
+        await fetch(`/api/papers/${id}`, { method: 'DELETE' });
+        uploadedPapers = uploadedPapers.filter(p => p.id !== id);
+        selectedPaperIds.delete(id);
+        renderUploadedPapersList();
+      } catch (err) {
+        console.error('Delete error:', err);
+      }
+    }
+
+    function renderUploadedPapersList() {
+      const list = document.getElementById('uploadedPapersList');
+      if (!list) return;
+      if (!uploadedPapers.length) {
+        list.innerHTML = '<div class="text-[10px] text-pplx-muted italic px-1" id="noPapersNotice">No reference papers uploaded</div>';
+        return;
+      }
+      list.innerHTML = uploadedPapers.map(p => {
+        const isChecked = selectedPaperIds.has(p.id);
+        return `
+          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#080a0f] border border-pplx-border hover:border-cyan-400/40 text-[11px] group">
+            <label class="flex items-center space-x-1.5 cursor-pointer truncate flex-1 mr-1">
+              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePaperSelection('${p.id}')" class="rounded border-slate-700 text-cyan-500 focus:ring-0 text-xs" />
+              <span class="truncate text-slate-200 group-hover:text-cyan-300 font-medium">${escapeHtml(p.filename)}</span>
+            </label>
+            <div class="flex items-center space-x-1 flex-shrink-0">
+              <span class="text-[9px] font-mono text-pplx-muted">${p.page_count}p</span>
+              <button onclick="deletePaper('${p.id}')" class="text-slate-500 hover:text-red-400 px-1 py-0.5 rounded transition-colors" title="Delete paper">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function resetSessionMemory() {
+      if (confirm('Start a fresh research thread and clear prior research context?')) {
+        try {
+          await fetch(`/api/session/${sessionId}`, { method: 'DELETE' });
+        } catch (e) {}
+        sessionId = 'session_' + Math.random().toString(36).substring(2, 10);
+        localStorage.setItem('genai_session_id', sessionId);
+        const pill = document.getElementById('sessionStatusPill');
+        if (pill) {
+          pill.innerText = 'Reset';
+          pill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 font-semibold';
+          setTimeout(() => {
+            pill.innerText = 'Preserving';
+            pill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold';
+          }, 1500);
+        }
+        resetToNewSearch();
+      }
+    }
+
     function setFocusMode(mode) {
       activeFocusMode = mode;
       ['all', 'academic', 'enterprise'].forEach(m => {
@@ -851,29 +1000,6 @@
         enterprise: 'Enterprise'
       };
       document.getElementById('selectedFocusLabel').innerText = labelMap[mode] || 'Web Search';
-    }
-
-    function setEngine(eng) {
-      activeEngine = eng;
-      const btnDs = document.getElementById('engineBtnDeepseek');
-      const btnGemini = document.getElementById('engineBtnGemini');
-      const currentLabel = document.getElementById('currentEngineLabel');
-      const badgeIcon = document.getElementById('selectedEngineIcon');
-      const badgeLabel = document.getElementById('selectedEngineLabel');
-
-      if (eng === 'deepseek-r1') {
-        if (btnDs) btnDs.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center space-x-1 transition-all';
-        if (btnGemini) btnGemini.className = 'py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card flex items-center justify-center space-x-1 transition-all';
-        if (currentLabel) currentLabel.innerText = 'DeepSeek-R1';
-        if (badgeIcon) badgeIcon.innerText = '🧠';
-        if (badgeLabel) badgeLabel.innerText = 'DeepSeek-R1';
-      } else {
-        if (btnGemini) btnGemini.className = 'py-1.5 px-2 rounded-lg text-xs font-semibold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 flex items-center justify-center space-x-1 transition-all';
-        if (btnDs) btnDs.className = 'py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-pplx-card flex items-center justify-center space-x-1 transition-all';
-        if (currentLabel) currentLabel.innerText = 'Gemini 3.1';
-        if (badgeIcon) badgeIcon.innerText = '⚡';
-        if (badgeLabel) badgeLabel.innerText = 'Gemini 3.1';
-      }
     }
 
     function applyPreset(text) {
@@ -908,7 +1034,7 @@
       sourcesCountPill.innerText = '0 Sources';
       if (thinkingContent) thinkingContent.innerHTML = '';
       if (thinkingSpinner) thinkingSpinner.classList.remove('hidden');
-      const auditBadge = document.getElementById('deepseekAuditBadge');
+      const auditBadge = document.getElementById('adversarialAuditBadge');
       if (auditBadge) auditBadge.innerHTML = '<span class="text-cyan-400">Auditing...</span>';
 
       researchMarkdownBody.innerHTML = '<div class="flex items-center space-x-2 text-slate-400 py-6"><span class="animate-spin text-cyan-400">✦</span><span>Dr. Thorne mining literature and formulating preliminary draft...</span></div>';
@@ -938,8 +1064,9 @@
       searchBtn.classList.add('opacity-75');
       searchBtnText.innerText = 'Researching...';
 
-      // Start SSE Streaming
-      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}`;
+      // Start SSE Streaming with session continuity and selected uploaded papers
+      const paperIdsParam = Array.from(selectedPaperIds).join(',');
+      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}`;
       const es = new EventSource(url);
 
       let currentCalendarData = null;
@@ -980,7 +1107,7 @@
           }
 
           if (ev.type === 'cross_check_result') {
-            const auditBadge = document.getElementById('deepseekAuditBadge');
+            const auditBadge = document.getElementById('adversarialAuditBadge');
             if (auditBadge) {
               auditBadge.innerHTML = `<span class="text-emerald-400 font-semibold">✓ ${ev.verdict} (${ev.score}/100)</span>`;
             }
@@ -999,6 +1126,7 @@
           }
 
           if (ev.type === 'content_chunk') {
+            // Fluid ChatGPT-like word-by-word streaming
             currentMarkdown = ev.full_content;
             renderMarkdown(currentMarkdown);
             if (ev.provider) providerBadge.innerText = ev.provider;
@@ -1272,21 +1400,24 @@
         researchMarkdownBody.innerText = rawMd;
       }
 
-      // Auto-render LaTeX math with KaTeX
+      // Auto-render LaTeX math with KaTeX (debounced for fluid word-by-word streaming)
       if (window.renderMathInElement) {
-        try {
-          renderMathInElement(researchMarkdownBody, {
-            delimiters: [
-              { left: '$$', right: '$$', display: true },
-              { left: '$', right: '$', display: false },
-              { left: '\\(', right: '\\)', display: false },
-              { left: '\\[', right: '\\]', display: true }
-            ],
-            throwOnError: false
-          });
-        } catch (e) {
-          console.debug('KaTeX note:', e);
-        }
+        if (mathRenderTimeout) clearTimeout(mathRenderTimeout);
+        mathRenderTimeout = setTimeout(() => {
+          try {
+            renderMathInElement(researchMarkdownBody, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false },
+                { left: '\\[', right: '\\]', display: true }
+              ],
+              throwOnError: false
+            });
+          } catch (e) {
+            console.debug('KaTeX note:', e);
+          }
+        }, 60);
       }
     }
 

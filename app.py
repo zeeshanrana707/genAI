@@ -6,29 +6,33 @@ interactive citation badges, dynamic agent reasoning, and optional outreach stag
 
 import sys
 import os
+import io
 import json
+import uuid
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from urllib.parse import quote
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 # Ensure utf-8
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 import uvicorn
+import pdfplumber
 
 from config.settings import (
     RESEARCHER_MODEL,
     EMAIL_MODEL,
     SCHEDULER_MODEL,
     OUTPUT_DIR,
+    PAPERS_DIR,
     is_live_key_configured,
 )
 from agents.crew_factory import run_pipeline
@@ -37,14 +41,170 @@ from agents.stream_orchestrator import stream_multi_agent_pipeline
 
 app = FastAPI(title="Perplexity Deep Research & Multi-Agent Enterprise Canvas")
 
+# In-memory stores for session persistence and uploaded papers
+RESEARCH_SESSIONS: Dict[str, Dict[str, Any]] = {}
+UPLOADED_PAPERS: Dict[str, Dict[str, Any]] = {}
+
 
 @app.get("/api/stream")
-async def stream_agents(prompt: str, client: Optional[str] = None, mode: str = "auto", engine: str = "gemini"):
-    """Server-Sent Events streaming endpoint providing Perplexity-grade real-time research."""
+async def stream_agents(
+    prompt: str,
+    client: Optional[str] = None,
+    mode: str = "auto",
+    engine: str = "gemini",
+    session_id: Optional[str] = None,
+    paper_ids: Optional[str] = None
+):
+    """Server-Sent Events streaming endpoint with session persistence & paper grounding."""
+    # 1. Retrieve prior session research context if continuing an existing thread
+    prior_context = ""
+    if session_id and session_id in RESEARCH_SESSIONS:
+        prior_context = RESEARCH_SESSIONS[session_id].get("last_research", "")
+
+    # 2. Retrieve text from selected uploaded reference papers
+    uploaded_text_parts = []
+    if paper_ids:
+        p_ids = [pid.strip() for pid in paper_ids.split(",") if pid.strip()]
+        for pid in p_ids:
+            if pid in UPLOADED_PAPERS:
+                paper_info = UPLOADED_PAPERS[pid]
+                uploaded_text_parts.append(
+                    f"=== UPLOADED PAPER: {paper_info['filename']} ===\n"
+                    f"{paper_info['text'][:3500]}"
+                )
+    uploaded_papers_text = "\n\n".join(uploaded_text_parts)
+
+    def event_stream_wrapper():
+        accumulated_research = ""
+        for sse_event in stream_multi_agent_pipeline(
+            user_prompt=prompt,
+            client_name=client,
+            mode=mode,
+            engine=engine,
+            prior_context=prior_context,
+            uploaded_papers_text=uploaded_papers_text
+        ):
+            if "pipeline_finished" in sse_event:
+                try:
+                    clean = sse_event.strip().replace("data: ", "", 1)
+                    parsed = json.loads(clean)
+                    if parsed.get("research"):
+                        accumulated_research = parsed["research"]
+                except Exception:
+                    pass
+            yield sse_event
+
+        # Save to research session store for follow-up continuity
+        if session_id and accumulated_research:
+            if session_id not in RESEARCH_SESSIONS:
+                RESEARCH_SESSIONS[session_id] = {"history": []}
+            RESEARCH_SESSIONS[session_id]["last_research"] = accumulated_research
+            RESEARCH_SESSIONS[session_id]["history"].append({
+                "prompt": prompt,
+                "research": accumulated_research,
+                "timestamp": datetime.now().isoformat()
+            })
+
     return StreamingResponse(
-        stream_multi_agent_pipeline(prompt, client, mode, engine),
+        event_stream_wrapper(),
         media_type="text/event-stream"
     )
+
+
+@app.post("/api/upload-paper")
+async def upload_paper(file: UploadFile = File(...)):
+    """Upload research paper (PDF), extract text with pdfplumber, and index for research grounding."""
+    try:
+        if not file.filename.lower().endswith(".pdf"):
+            return JSONResponse(status_code=400, content={"success": False, "error": "Only PDF files are supported."})
+
+        file_bytes = await file.read()
+        paper_id = str(uuid.uuid4())[:8]
+        save_path = PAPERS_DIR / f"{paper_id}_{file.filename}"
+        save_path.write_bytes(file_bytes)
+
+        # Extract text using pdfplumber
+        extracted_text = []
+        page_count = 0
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            page_count = len(pdf.pages)
+            for page in pdf.pages[:30]:  # Up to 30 pages
+                text = page.extract_text()
+                if text:
+                    extracted_text.append(text)
+
+        full_text = "\n\n".join(extracted_text)
+        if not full_text.strip():
+            full_text = f"[PDF loaded: {file.filename} ({page_count} pages). No extractable text stream detected.]"
+
+        paper_record = {
+            "id": paper_id,
+            "filename": file.filename,
+            "page_count": page_count,
+            "char_count": len(full_text),
+            "text": full_text,
+            "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        UPLOADED_PAPERS[paper_id] = paper_record
+
+        return {
+            "success": True,
+            "paper": {
+                "id": paper_id,
+                "filename": file.filename,
+                "page_count": page_count,
+                "char_count": len(full_text),
+                "uploaded_at": paper_record["uploaded_at"]
+            }
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
+
+
+@app.get("/api/papers")
+async def list_papers():
+    """List all uploaded reference research papers."""
+    papers_summary = [
+        {
+            "id": p["id"],
+            "filename": p["filename"],
+            "page_count": p["page_count"],
+            "char_count": p["char_count"],
+            "uploaded_at": p["uploaded_at"]
+        }
+        for p in UPLOADED_PAPERS.values()
+    ]
+    return {"papers": papers_summary}
+
+
+@app.delete("/api/papers/{paper_id}")
+async def delete_paper(paper_id: str):
+    """Delete an uploaded reference paper."""
+    if paper_id in UPLOADED_PAPERS:
+        del UPLOADED_PAPERS[paper_id]
+        return {"success": True, "message": "Paper removed."}
+    return JSONResponse(status_code=404, content={"success": False, "error": "Paper not found."})
+
+
+@app.get("/api/session/{session_id}")
+async def get_session(session_id: str):
+    """Retrieve prior research context for the active session."""
+    session = RESEARCH_SESSIONS.get(session_id)
+    if not session:
+        return {"exists": False, "last_research": "", "history_count": 0}
+    return {
+        "exists": True,
+        "last_research": session.get("last_research", ""),
+        "history_count": len(session.get("history", []))
+    }
+
+
+@app.delete("/api/session/{session_id}")
+async def reset_session(session_id: str):
+    """Reset the research session to start fresh from scratch."""
+    if session_id in RESEARCH_SESSIONS:
+        del RESEARCH_SESSIONS[session_id]
+    return {"success": True, "message": "Session research memory reset."}
 
 
 class PipelineRequest(BaseModel):
