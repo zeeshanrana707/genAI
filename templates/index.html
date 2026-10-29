@@ -320,46 +320,6 @@
         </div>
       </div>
 
-      <!-- Google AI Studio Key vs Free Tier Switcher -->
-      <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2.5">
-        <div class="flex items-center justify-between text-xs font-semibold">
-          <span class="flex items-center space-x-1.5 text-cyan-400">
-            <span>⚡</span>
-            <span>API Engine & Key Mode</span>
-          </span>
-          <span id="geminiKeyStatus" class="text-[9px] font-mono text-cyan-400 font-semibold">AI Studio Active ✓</span>
-        </div>
-        
-        <!-- Segmented Mode Switcher Button -->
-        <div class="grid grid-cols-2 gap-1 p-1 bg-[#080a0f] rounded-xl border border-pplx-border text-xs font-mono">
-          <button id="engineBtnStudio" type="button" onclick="setApiEngineMode('studio')" class="px-2 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 transition-all flex items-center justify-center space-x-1">
-            <span>🔑</span><span>AI Studio</span>
-          </button>
-          <button id="engineBtnFree" type="button" onclick="setApiEngineMode('free')" class="px-2 py-1.5 rounded-lg text-slate-400 hover:text-white transition-all flex items-center justify-center space-x-1">
-            <span>⚡</span><span>Free Tier</span>
-          </button>
-        </div>
-
-        <div id="studioKeyContainer" class="space-y-1.5">
-          <p class="text-[11px] text-pplx-muted leading-relaxed">
-            Using your Google AI Studio key (<code class="text-cyan-300 font-mono">gemini-3.1-flash-lite</code> quota). Paste new key below to override:
-          </p>
-          <div class="relative">
-            <input
-              id="customGeminiKeyInput"
-              type="password"
-              placeholder="Paste AI Studio API key..."
-              class="w-full bg-[#080a0f] border border-pplx-border rounded-lg pl-2.5 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-400 font-mono transition-colors"
-              oninput="saveCustomGeminiKey(this.value)"
-            />
-            <button type="button" onclick="toggleKeyVisibility()" class="absolute right-2 top-1.5 text-slate-500 hover:text-slate-300 text-xs" title="Toggle visibility">👁️</button>
-          </div>
-        </div>
-
-        <div id="freeTierNotice" class="hidden p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/30 text-[11px] text-emerald-300">
-          ✓ Free Serverless Safe-Hand active. Zero quota consumed from your Google AI Studio account.
-        </div>
-      </div>
 
       <!-- Feature 1: Search Focus Modes -->
       <div class="space-y-1.5">
