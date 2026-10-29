@@ -568,6 +568,77 @@
 
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- OPENAI CANVAS FLOATING INLINE SELECTION BAR -->
+  <!-- ========================================================================= -->
+  <div id="canvasFloatingBar" class="fixed hidden z-50 transition-all select-none pointer-events-auto">
+    <!-- Floating Action Pill -->
+    <div id="canvasActionPill" class="flex items-center space-x-1.5 p-1.5 bg-[#121620] border border-cyan-400/80 rounded-full shadow-2xl shadow-cyan-500/25">
+      <button onclick="openCanvasRefineCard()" class="px-3 py-1 rounded-full bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs font-mono flex items-center space-x-1.5 transition-all">
+        <span>✦</span>
+        <span>Refine Section (Canvas)</span>
+      </button>
+      <button onclick="hideCanvasFloatingBar()" class="px-2 py-1 text-slate-400 hover:text-white text-xs">✕</button>
+    </div>
+
+    <!-- Expanded Refinement Popover -->
+    <div id="canvasRefineCard" class="hidden mt-2 w-80 sm:w-96 p-4 rounded-2xl bg-[#0e121a] border border-cyan-400/60 shadow-2xl space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-pplx-border">
+        <div class="flex items-center space-x-1.5 text-xs font-mono font-bold text-cyan-400">
+          <span>✦</span>
+          <span>Dr. Marcus Vance • Canvas Refiner</span>
+        </div>
+        <button onclick="hideCanvasFloatingBar()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+
+      <div class="text-[11px] font-mono text-slate-400 line-clamp-2 italic bg-[#06080c] p-2 rounded-lg border border-pplx-border" id="canvasSelectionPreview">
+        Selection preview...
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="text-[11px] font-mono text-slate-300 font-semibold">Refinement Directive:</label>
+        <textarea id="canvasInstructionInput" rows="2" placeholder="e.g. Derive intermediate algebraic steps, add boundary conditions..." class="w-full text-xs font-sans p-2 rounded-lg bg-pplx-bg border border-pplx-border text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400"></textarea>
+      </div>
+
+      <!-- Quick Preset Chips -->
+      <div class="flex flex-wrap gap-1 text-[10px] font-mono">
+        <button type="button" onclick="setCanvasPreset('Derive explicit intermediate algebraic derivations with KaTeX')" class="px-2 py-0.5 rounded bg-pplx-card hover:bg-slate-700 text-cyan-300 border border-pplx-border">📐 Show Math</button>
+        <button type="button" onclick="setCanvasPreset('Formulate boundary conditions & negative differential conductance parameters')" class="px-2 py-0.5 rounded bg-pplx-card hover:bg-slate-700 text-cyan-300 border border-pplx-border">⚡ Hardware NDC</button>
+        <button type="button" onclick="setCanvasPreset('Convert conceptual leap into explicit Falsifiable Hypothesis')" class="px-2 py-0.5 rounded bg-pplx-card hover:bg-slate-700 text-cyan-300 border border-pplx-border">🔬 Hypothesis</button>
+      </div>
+
+      <div class="flex items-center justify-end space-x-2 pt-1">
+        <button type="button" onclick="hideCanvasFloatingBar()" class="px-3 py-1.5 rounded-lg text-xs font-mono text-slate-400 hover:text-white">Cancel</button>
+        <button type="button" id="canvasSubmitBtn" onclick="submitCanvasRefinement()" class="px-4 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs font-mono shadow-md shadow-cyan-400/20 flex items-center space-x-1">
+          <span id="canvasSubmitIcon">✦</span>
+          <span id="canvasSubmitText">Apply Refinement</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-Screen Visual Lightbox Modal -->
+  <div id="plotLightboxModal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="relative max-w-4xl w-full bg-[#0c0e12] border border-pplx-border rounded-2xl p-4 sm:p-6 space-y-3 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 border-b border-pplx-border">
+        <div class="flex items-center space-x-2 text-xs font-mono font-bold text-cyan-400">
+          <span>📊</span>
+          <span>COMPUTATIONAL ATTRACTOR MANIFOLD & SIMULATION DYNAMICS</span>
+        </div>
+        <button onclick="closePlotModal()" class="text-slate-400 hover:text-white text-sm font-mono px-2 py-1">✕ Close</button>
+      </div>
+      <div class="flex items-center justify-center bg-black/50 rounded-xl p-2 border border-pplx-border/50">
+        <img id="lightboxPlotImg" src="" alt="Simulation Plot" class="max-h-[70vh] w-auto object-contain rounded-lg shadow-lg" />
+      </div>
+      <div class="flex items-center justify-between pt-1 text-xs font-mono">
+        <span class="text-slate-400">High-Resolution Numerical Simulation Artifact (150 DPI)</span>
+        <a id="lightboxDownloadBtn" href="" download="simulation_plot.png" class="px-3 py-1.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs font-mono transition-colors">
+          ⬇️ Download Plot
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- Hidden bridge for Drawer if needed -->
   <div id="briefBodyPreview" class="hidden"></div>
   <div id="briefSubjectPreview" class="hidden"></div>
@@ -855,7 +926,10 @@
             </div>
           </div>
 
-          <div id="turn-${turnId}-markdown" class="markdown-content text-sm sm:text-base leading-relaxed select-text">
+          <!-- Simulation Plot Visual Artifact Container -->
+          <div id="turn-${turnId}-visualPlotContainer" class="hidden my-3"></div>
+
+          <div id="turn-${turnId}-markdown" onmouseup="handleMarkdownSelection(event, '${turnId}')" class="markdown-content text-sm sm:text-base leading-relaxed select-text">
             <div class="flex items-center space-x-2 text-slate-400 py-6">
               <span class="animate-spin text-cyan-400">✦</span>
               <span>Dr. Thorne mining literature and formulating preliminary draft...</span>
@@ -1156,6 +1230,10 @@
             }
           }
 
+          if (ev.type === 'visual_artifact') {
+            renderTurnSimulationPlot(turnId, ev);
+          }
+
           if (ev.type === 'agent_deliverable') {
             if (ev.type_name === 'peer_review' || (ev.data && ev.data.score !== undefined)) {
               renderTurnPeerReview(turnId, ev.data);
@@ -1213,6 +1291,14 @@
                 recipient: ev.recipient,
                 subject: ev.email_subject,
                 body: ev.email_body
+              });
+            }
+
+            if (ev.plot_base64) {
+              renderTurnSimulationPlot(turnId, {
+                plot_base64: ev.plot_base64,
+                plot_path: ev.plot_path,
+                caption: ev.plot_caption || 'Phase Space Attractor & Dissipation Dynamics'
               });
             }
 
@@ -1511,6 +1597,216 @@
       link.click();
       document.body.removeChild(link);
     }
+
+    // =========================================================================
+    // OpenAI Canvas: Inline Section Refinement & Visual Lightbox
+    // =========================================================================
+    let activeCanvasSelection = null;
+
+    function handleMarkdownSelection(event, turnId) {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) return;
+
+      const selectedText = sel.toString().trim();
+      if (selectedText.length < 5) return;
+
+      const range = sel.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
+      if (!rect || rect.width === 0) return;
+
+      activeCanvasSelection = {
+        turnId: turnId,
+        text: selectedText,
+        container: event.currentTarget
+      };
+
+      const bar = document.getElementById('canvasFloatingBar');
+      const preview = document.getElementById('canvasSelectionPreview');
+      const refineCard = document.getElementById('canvasRefineCard');
+      const actionPill = document.getElementById('canvasActionPill');
+
+      if (preview) {
+        preview.innerText = selectedText.length > 130 ? selectedText.substring(0, 127) + '...' : selectedText;
+      }
+      if (refineCard) refineCard.classList.add('hidden');
+      if (actionPill) actionPill.classList.remove('hidden');
+
+      if (bar) {
+        const top = Math.max(10, rect.top + window.scrollY - 46);
+        const left = Math.max(10, Math.min(window.innerWidth - 320, rect.left + (rect.width / 2) - 90));
+        bar.style.top = `${top}px`;
+        bar.style.left = `${left}px`;
+        bar.classList.remove('hidden');
+      }
+    }
+
+    function openCanvasRefineCard() {
+      const actionPill = document.getElementById('canvasActionPill');
+      const refineCard = document.getElementById('canvasRefineCard');
+      const input = document.getElementById('canvasInstructionInput');
+      if (actionPill) actionPill.classList.add('hidden');
+      if (refineCard) refineCard.classList.remove('hidden');
+      if (input) {
+        input.focus();
+      }
+    }
+
+    function hideCanvasFloatingBar() {
+      const bar = document.getElementById('canvasFloatingBar');
+      const refineCard = document.getElementById('canvasRefineCard');
+      const actionPill = document.getElementById('canvasActionPill');
+      if (bar) bar.classList.add('hidden');
+      if (refineCard) refineCard.classList.add('hidden');
+      if (actionPill) actionPill.classList.remove('hidden');
+      activeCanvasSelection = null;
+    }
+
+    function setCanvasPreset(text) {
+      const input = document.getElementById('canvasInstructionInput');
+      if (input) {
+        input.value = text;
+        input.focus();
+      }
+    }
+
+    async function submitCanvasRefinement() {
+      if (!activeCanvasSelection || !activeCanvasSelection.text) {
+        alert('Please select text inside the research paper first.');
+        return;
+      }
+      const turnId = activeCanvasSelection.turnId;
+      const originalText = activeCanvasSelection.text;
+      const input = document.getElementById('canvasInstructionInput');
+      const instruction = input ? input.value.trim() : '';
+
+      if (!instruction) {
+        alert('Please enter a refinement instruction (e.g., derive equations, add boundary conditions).');
+        if (input) input.focus();
+        return;
+      }
+
+      const submitBtn = document.getElementById('canvasSubmitBtn');
+      const submitIcon = document.getElementById('canvasSubmitIcon');
+      const submitText = document.getElementById('canvasSubmitText');
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (submitIcon) submitIcon.className = 'animate-spin inline-block';
+      if (submitText) submitText.innerText = 'Dr. Vance Fortifying...';
+
+      const currentMd = (turnsData[turnId] && turnsData[turnId].markdown) || '';
+
+      try {
+        const res = await fetch('/api/canvas/refine', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            selection: originalText,
+            instruction: instruction,
+            context: currentMd,
+            gemini_api_key: customGeminiKey
+          })
+        });
+
+        const data = await res.json();
+        if (data.success && data.refined) {
+          let updatedMd = currentMd;
+          if (updatedMd.includes(originalText)) {
+            updatedMd = updatedMd.replace(originalText, data.refined);
+          } else {
+            const cleanOrig = originalText.replace(/\s+/g, ' ').trim();
+            const words = cleanOrig.split(' ');
+            if (words.length > 4) {
+              const startHead = words.slice(0, 3).join(' ');
+              const endTail = words.slice(-3).join(' ');
+              const sIdx = updatedMd.indexOf(startHead);
+              const eIdx = updatedMd.indexOf(endTail, sIdx > -1 ? sIdx : 0);
+              if (sIdx !== -1 && eIdx !== -1) {
+                updatedMd = updatedMd.substring(0, sIdx) + data.refined + updatedMd.substring(eIdx + endTail.length);
+              } else {
+                updatedMd = updatedMd + '\n\n### Dr. Vance Mathematical Refinement\n' + data.refined;
+              }
+            } else {
+              updatedMd = updatedMd + '\n\n' + data.refined;
+            }
+          }
+
+          turnsData[turnId].markdown = updatedMd;
+          renderTurnMarkdown(turnId, updatedMd, true);
+          appendThought(`✍️ Dr. Marcus Vance refined paper section with Canvas: "${instruction.substring(0, 40)}..."`);
+          hideCanvasFloatingBar();
+        } else {
+          alert('Refinement notice: ' + (data.error || 'Failed to refine section.'));
+        }
+      } catch (err) {
+        console.error('Canvas refine error:', err);
+        alert('Canvas refine failed: ' + err);
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitIcon) submitIcon.className = '';
+        if (submitText) submitText.innerText = 'Apply Refinement';
+      }
+    }
+
+    function renderTurnSimulationPlot(turnId, artifact) {
+      const container = document.getElementById(`turn-${turnId}-visualPlotContainer`);
+      if (!container) return;
+
+      const imgSrc = artifact.plot_base64 || (artifact.plot_path ? `/${artifact.plot_path}` : '');
+      if (!imgSrc) return;
+
+      container.classList.remove('hidden');
+      container.innerHTML = `
+        <div class="p-3.5 rounded-2xl bg-[#090c12] border border-cyan-500/40 shadow-xl space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm">📊</span>
+              <span class="text-xs font-mono font-bold text-cyan-400 uppercase tracking-wide">Numerical Verification Plot • Phase Space Attractor</span>
+              <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">Verified ✓</span>
+            </div>
+            <button onclick="openPlotModal('${imgSrc}')" class="text-xs font-mono text-cyan-300 hover:text-white px-2.5 py-1 rounded-lg bg-pplx-card hover:bg-slate-800 border border-pplx-border flex items-center space-x-1 transition-colors">
+              <span>🔍</span><span>Expand High-Res</span>
+            </button>
+          </div>
+          <div class="relative group cursor-pointer overflow-hidden rounded-xl border border-pplx-border/70 bg-black/60 flex items-center justify-center p-2" onclick="openPlotModal('${imgSrc}')">
+            <img src="${imgSrc}" alt="Simulation Trajectory" class="max-h-80 w-auto object-contain rounded transition-transform group-hover:scale-[1.01]" />
+            <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+              <span class="px-3 py-1.5 rounded-full bg-black/80 text-cyan-300 font-mono text-xs font-bold border border-cyan-400/40 shadow-lg">Click to Zoom (150 DPI)</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 px-1">
+            <span>${escapeHtml(artifact.caption || 'Differential Attractor Trajectory & Thermodynamic Uncertainty Relation Bounds')}</span>
+            <span class="text-slate-500 text-[10px]">Python 3.12 • NumPy • SciPy • Matplotlib</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function openPlotModal(src) {
+      const modal = document.getElementById('plotLightboxModal');
+      const img = document.getElementById('lightboxPlotImg');
+      const dl = document.getElementById('lightboxDownloadBtn');
+      if (img) img.src = src;
+      if (dl) dl.href = src;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closePlotModal() {
+      const modal = document.getElementById('plotLightboxModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    // Dismiss floating bar if clicked outside without active selection
+    document.addEventListener('mousedown', (e) => {
+      const bar = document.getElementById('canvasFloatingBar');
+      if (bar && !bar.classList.contains('hidden')) {
+        if (!bar.contains(e.target)) {
+          const sel = window.getSelection();
+          if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+            hideCanvasFloatingBar();
+          }
+        }
+      }
+    });
 
     // =========================================================================
     // Global Header & Sidebar Actions

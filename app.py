@@ -7,6 +7,7 @@ interactive citation badges, dynamic agent reasoning, and optional outreach stag
 import sys
 import os
 import io
+import time
 import json
 import uuid
 import smtplib
@@ -27,6 +28,7 @@ from pydantic import BaseModel
 import uvicorn
 import pdfplumber
 
+from fastapi.staticfiles import StaticFiles
 from config.settings import (
     RESEARCHER_MODEL,
     EMAIL_MODEL,
@@ -38,12 +40,54 @@ from config.settings import (
 from agents.crew_factory import run_pipeline
 from agents.failover import SafeHandAgentRunner, call_free_ai_api
 from agents.stream_orchestrator import stream_multi_agent_pipeline
+import database
+
+PLOTS_DIR = Path(__file__).resolve().parent / "output" / "plots"
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="Perplexity Deep Research & Multi-Agent Enterprise Canvas")
+app.mount("/output/plots", StaticFiles(directory=str(PLOTS_DIR)), name="plots")
 
-# In-memory stores for session persistence and uploaded papers
-RESEARCH_SESSIONS: Dict[str, Dict[str, Any]] = {}
-UPLOADED_PAPERS: Dict[str, Dict[str, Any]] = {}
+
+class CanvasRefineRequest(BaseModel):
+    selection: str
+    instruction: str
+    context: str = ""
+    gemini_api_key: Optional[str] = None
+
+
+@app.post("/api/canvas/refine")
+async def canvas_refine(req: CanvasRefineRequest):
+    """OpenAI Canvas-style inline section refinement and mathematical fortification."""
+    selection = req.selection.strip()
+    instruction = req.instruction.strip()
+    if not selection:
+        return JSONResponse(status_code=400, content={"success": False, "error": "No text selection provided."})
+
+    safe_hand = SafeHandAgentRunner(preferred_gemini_model=RESEARCHER_MODEL, api_key=req.gemini_api_key)
+    prompt = (
+        f"You are Dr. Marcus Vance, Senior Academic Editor at an elite theoretical research institute.\n"
+        f"The user selected the following specific section of an academic research paper to refine:\n\n"
+        f"=== SELECTED SECTION ===\n{selection}\n\n"
+        f"=== SURROUNDING PAPER CONTEXT ===\n{req.context[:2500]}\n\n"
+        f"=== USER REFINEMENT INSTRUCTION ===\n{instruction}\n\n"
+        f"Task:\n"
+        f"1. Refactor and rewrite the selected section addressing the user instruction with complete mathematical rigor, explicit derivations, and LaTeX equations ($...$ and $$...$$).\n"
+        f"2. Preserve any existing citation badges [1], [2] where appropriate.\n"
+        f"3. Return ONLY the drop-in replacement text for the selected section. Do not include conversational preambles or repeating text outside the selection."
+    )
+
+    refined_text, provider = safe_hand.generate(
+        prompt,
+        system_instruction="You are an elite academic editor specializing in localized section refactoring and mathematical proof fortification."
+    )
+
+    return {
+        "success": True,
+        "original": selection,
+        "refined": refined_text.strip(),
+        "provider": provider
+    }
 
 
 @app.get("/api/stream")
@@ -56,46 +100,50 @@ async def stream_agents(
     paper_ids: Optional[str] = None,
     gemini_api_key: Optional[str] = None
 ):
-    """Server-Sent Events streaming endpoint with session persistence & paper grounding."""
-    # 1. Retrieve prior session research context and sources if continuing an existing thread
+    """Server-Sent Events streaming endpoint with SQLite WAL session persistence & paper grounding."""
+    # 1. Retrieve prior session research context and sources from persistent SQLite DB
     prior_context = ""
     prior_sources = []
-    if session_id and session_id in RESEARCH_SESSIONS:
-        sess = RESEARCH_SESSIONS[session_id]
-        prior_context = sess.get("last_research", "")
-        prior_sources = sess.get("last_sources", [])
-        # If multiple conversational turns exist, provide a summary of the conversation thread
-        history_list = sess.get("history", [])
-        if len(history_list) > 1:
-            history_blocks = []
-            for h in history_list[-3:]:
-                history_blocks.append(
-                    f"Turn Query: {h.get('prompt', '')}\n"
-                    f"Findings Summary:\n{h.get('research', '')[:2000]}"
-                )
-            prior_context = (
-                "=== PRIOR CONVERSATION HISTORY ===\n\n" +
-                "\n\n---\n\n".join(history_blocks) +
-                "\n\n=== LATEST RESEARCH REPORT ===\n\n" +
-                sess.get("last_research", "")
-            )
+    if session_id:
+        history_list = database.get_session_history(session_id, limit=6)
+        if history_list:
+            last_t = history_list[-1]
+            prior_context = last_t.get("research", "")
+            prior_sources = last_t.get("sources", [])
 
-    # 2. Retrieve text from selected uploaded reference papers
+            if len(history_list) > 1:
+                history_blocks = []
+                for h in history_list[-3:]:
+                    history_blocks.append(
+                        f"Turn Query: {h.get('prompt', '')}\n"
+                        f"Findings Summary:\n{h.get('research', '')[:2000]}"
+                    )
+                prior_context = (
+                    "=== PRIOR CONVERSATION HISTORY ===\n\n" +
+                    "\n\n---\n\n".join(history_blocks) +
+                    "\n\n=== LATEST RESEARCH REPORT ===\n\n" +
+                    last_t.get("research", "")
+                )
+
+    # 2. Retrieve text from selected uploaded reference papers via SQLite
     uploaded_text_parts = []
     if paper_ids:
         p_ids = [pid.strip() for pid in paper_ids.split(",") if pid.strip()]
-        for pid in p_ids:
-            if pid in UPLOADED_PAPERS:
-                paper_info = UPLOADED_PAPERS[pid]
-                uploaded_text_parts.append(
-                    f"=== UPLOADED PAPER: {paper_info['filename']} ===\n"
-                    f"{paper_info['text'][:3500]}"
-                )
+        papers_data = database.get_uploaded_paper_texts(p_ids)
+        for p in papers_data:
+            uploaded_text_parts.append(
+                f"=== UPLOADED PAPER: {p['filename']} ===\n"
+                f"{p['text'][:4000]}"
+            )
     uploaded_papers_text = "\n\n".join(uploaded_text_parts)
 
     def event_stream_wrapper():
         accumulated_research = ""
         accumulated_sources = []
+        plot_b64 = ""
+        plot_path = ""
+        deliverables_dict = {}
+
         for sse_event in stream_multi_agent_pipeline(
             user_prompt=prompt,
             client_name=client,
@@ -114,8 +162,32 @@ async def stream_agents(
                         accumulated_research = parsed["research"]
                     if parsed.get("sources"):
                         accumulated_sources = parsed["sources"]
-                except Exception:
-                    pass
+                    plot_b64 = parsed.get("plot_base64", "")
+                    plot_path = parsed.get("plot_path", "")
+                    deliverables_dict = {
+                        "email_subject": parsed.get("email_subject"),
+                        "email_body": parsed.get("email_body"),
+                        "calendar": parsed.get("calendar"),
+                        "peer_review": parsed.get("peer_review")
+                    }
+                    # Save immediately to persistent SQLite WAL database before yielding completion
+                    if session_id and accumulated_research:
+                        turn_uid = f"turn_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+                        try:
+                            database.save_turn(
+                                session_id=session_id,
+                                turn_id=turn_uid,
+                                prompt=prompt,
+                                research=accumulated_research,
+                                sources=accumulated_sources,
+                                deliverables=deliverables_dict,
+                                plot_path=plot_path
+                            )
+                            print(f"[SQLite WAL] Persisted turn {turn_uid} for session {session_id}")
+                        except Exception as db_err:
+                            print(f"[Database Save Error]: {db_err}")
+                except Exception as parse_err:
+                    print(f"[Pipeline Finished Parse Error]: {parse_err}")
             elif "tool_call_result" in sse_event:
                 try:
                     clean = sse_event.strip().replace("data: ", "", 1)
@@ -126,18 +198,21 @@ async def stream_agents(
                     pass
             yield sse_event
 
-        # Save to research session store for continuous conversation thread
+        # Save to persistent SQLite database
         if session_id and accumulated_research:
-            if session_id not in RESEARCH_SESSIONS:
-                RESEARCH_SESSIONS[session_id] = {"history": []}
-            RESEARCH_SESSIONS[session_id]["last_research"] = accumulated_research
-            RESEARCH_SESSIONS[session_id]["last_sources"] = accumulated_sources
-            RESEARCH_SESSIONS[session_id]["history"].append({
-                "prompt": prompt,
-                "research": accumulated_research,
-                "sources": accumulated_sources,
-                "timestamp": datetime.now().isoformat()
-            })
+            turn_uid = f"turn_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+            try:
+                database.save_turn(
+                    session_id=session_id,
+                    turn_id=turn_uid,
+                    prompt=prompt,
+                    research=accumulated_research,
+                    sources=accumulated_sources,
+                    deliverables=deliverables_dict,
+                    plot_path=plot_path
+                )
+            except Exception as db_err:
+                print(f"[Database Error]: {db_err}")
 
     return StreamingResponse(
         event_stream_wrapper(),
@@ -147,7 +222,7 @@ async def stream_agents(
 
 @app.post("/api/upload-paper")
 async def upload_paper(file: UploadFile = File(...)):
-    """Upload research paper (PDF), extract text with pdfplumber, and index for research grounding."""
+    """Upload research paper (PDF), extract text with pdfplumber, and index persistently in SQLite."""
     try:
         if not file.filename.lower().endswith(".pdf"):
             return JSONResponse(status_code=400, content={"success": False, "error": "Only PDF files are supported."})
@@ -171,15 +246,12 @@ async def upload_paper(file: UploadFile = File(...)):
         if not full_text.strip():
             full_text = f"[PDF loaded: {file.filename} ({page_count} pages). No extractable text stream detected.]"
 
-        paper_record = {
-            "id": paper_id,
-            "filename": file.filename,
-            "page_count": page_count,
-            "char_count": len(full_text),
-            "text": full_text,
-            "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        UPLOADED_PAPERS[paper_id] = paper_record
+        database.save_uploaded_paper(
+            paper_id=paper_id,
+            filename=file.filename,
+            page_count=page_count,
+            text=full_text
+        )
 
         return {
             "success": True,
@@ -188,7 +260,7 @@ async def upload_paper(file: UploadFile = File(...)):
                 "filename": file.filename,
                 "page_count": page_count,
                 "char_count": len(full_text),
-                "uploaded_at": paper_record["uploaded_at"]
+                "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
         }
     except Exception as e:
@@ -197,47 +269,38 @@ async def upload_paper(file: UploadFile = File(...)):
 
 @app.get("/api/papers")
 async def list_papers():
-    """List all uploaded reference research papers."""
-    papers_summary = [
-        {
-            "id": p["id"],
-            "filename": p["filename"],
-            "page_count": p["page_count"],
-            "char_count": p["char_count"],
-            "uploaded_at": p["uploaded_at"]
-        }
-        for p in UPLOADED_PAPERS.values()
-    ]
+    """List all uploaded reference research papers from persistent SQLite database."""
+    papers_summary = database.get_all_uploaded_papers()
     return {"papers": papers_summary}
 
 
 @app.delete("/api/papers/{paper_id}")
 async def delete_paper(paper_id: str):
     """Delete an uploaded reference paper."""
-    if paper_id in UPLOADED_PAPERS:
-        del UPLOADED_PAPERS[paper_id]
+    success = database.delete_uploaded_paper(paper_id)
+    if success:
         return {"success": True, "message": "Paper removed."}
     return JSONResponse(status_code=404, content={"success": False, "error": "Paper not found."})
 
 
 @app.get("/api/session/{session_id}")
 async def get_session(session_id: str):
-    """Retrieve prior research context for the active session."""
-    session = RESEARCH_SESSIONS.get(session_id)
-    if not session:
+    """Retrieve prior research history and context for the active session from SQLite."""
+    history = database.get_session_history(session_id)
+    if not history:
         return {"exists": False, "last_research": "", "history_count": 0}
+    last_t = history[-1]
     return {
         "exists": True,
-        "last_research": session.get("last_research", ""),
-        "history_count": len(session.get("history", []))
+        "last_research": last_t.get("research", ""),
+        "history_count": len(history)
     }
 
 
 @app.delete("/api/session/{session_id}")
 async def reset_session(session_id: str):
     """Reset the research session to start fresh from scratch."""
-    if session_id in RESEARCH_SESSIONS:
-        del RESEARCH_SESSIONS[session_id]
+    database.reset_session(session_id)
     return {"success": True, "message": "Session research memory reset."}
 
 

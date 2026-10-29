@@ -98,9 +98,9 @@ def local_dynamic_synthesize(prompt: str, search_context: str = "") -> str:
 class SafeHandAgentRunner:
     """Orchestrates agent execution with automatic multi-tier Gemini-only failover."""
 
-    def __init__(self, preferred_gemini_model: str = RESEARCHER_MODEL, api_key: Optional[str] = None):
+    def __init__(self, preferred_gemini_model: str = RESEARCHER_MODEL, api_key: Optional[str] = None, custom_key: Optional[str] = None):
         self.gemini_model = preferred_gemini_model
-        self.custom_api_key = api_key
+        self.custom_api_key = api_key or custom_key
         self.active_provider = "Gemini"
         self.last_reasoning_trace = ""
         self.failover_triggered = False

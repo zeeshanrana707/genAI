@@ -176,25 +176,45 @@ def fetch_arxiv_full_text(arxiv_url: str) -> Dict[str, Any]:
         return {}
 
 
+import base64
+import os
+import time
+import uuid
+import concurrent.futures
+
+PLOTS_DIR = Path(__file__).resolve().parent.parent / "output" / "plots"
+PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
 # -------------------------------------------------------------------------
-# Python Numerical Verification Sandbox
+# Python Numerical Verification & Self-Healing Code Interpreter
 # -------------------------------------------------------------------------
 
 def run_numerical_verification(equations_context: str, topic: str, api_key: Optional[str] = None) -> Dict[str, Any]:
-    """Generate and execute a Python numerical verification script for the given equations.
+    """Generate and execute a self-healing Python computational simulation with visual plot generation.
 
-    Uses numpy (and scipy if available) to numerically validate differential equations
-    and compute concrete metrics such as dissipation rates, stability bounds, and error estimates.
+    Uses numpy, scipy, and matplotlib to numerically validate differential equations,
+    compute quantitative bounds, and generate publication-grade phase space / attractor plots.
+    If execution encounters syntax or numerical errors, executes an interactive self-healing loop.
 
     Args:
-        equations_context: String describing the equations to verify
+        equations_context: String describing the mathematical equations & assumptions
         topic: Research topic for context
         api_key: Optional subscription or custom Gemini API key
 
     Returns:
-        dict: {executed, script, output, metrics, error}
+        dict: {executed, script, output, metrics, plot_path, plot_base64, error, healed}
     """
-    result = {"executed": False, "script": "", "output": "", "metrics": [], "error": ""}
+    result = {
+        "executed": False,
+        "script": "",
+        "output": "",
+        "metrics": [],
+        "plot_path": "",
+        "plot_base64": "",
+        "error": "",
+        "healed": False
+    }
 
     effective_key = (api_key.strip() if api_key and len(api_key.strip()) >= 20 else "") or GEMINI_API_KEY
     if not effective_key or len(effective_key) < 8:
@@ -209,16 +229,26 @@ def run_numerical_verification(equations_context: str, topic: str, api_key: Opti
         except Exception:
             client = _genai.Client(api_key=effective_key)
 
+        plot_id = f"plot_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        plot_dest = PLOTS_DIR / f"{plot_id}.png"
+
         gen_prompt = (
             f"Topic: {topic}\n\n"
-            f"Equations & Context:\n{equations_context[:2000]}\n\n"
-            "Write a self-contained Python script (using only numpy and optionally scipy) that:\n"
-            "1. Defines concrete numerical parameters (e.g. gamma=1.0, kBT=0.025, tau=0.1)\n"
-            "2. Numerically integrates or evaluates the key differential equations for t=[0,1]\n"
-            "3. Computes and prints specific metrics: steady-state values, dissipation rates, SNR, or error bounds\n"
-            "4. Uses print() statements to output all computed values clearly\n"
-            "Rules: No file I/O. No imports except numpy and scipy. No plt.show(). Must complete in <10 seconds.\n"
-            "Output ONLY the raw Python code, no markdown fences, no explanations."
+            f"Mathematical Context & Equations:\n{equations_context[:2200]}\n\n"
+            "Write a self-contained Python numerical simulation script using numpy, scipy, and matplotlib that:\n"
+            "1. Defines concrete physics parameters (e.g. gamma=1.0, D=0.05, tau=0.1, V_0=1.5)\n"
+            "2. Numerically integrates or simulates the key differential equations / dynamics for t in [0, 5]\n"
+            "3. Computes and prints specific quantitative metrics: steady-state values, entropy production, dissipation rates, or TUR precision bounds\n"
+            "4. Generates a publication-grade scientific plot (e.g. phase portrait, manifold trajectory, potential well, or precision-dissipation trade-off curve).\n"
+            "   IMPORTANT PLOT REQUIREMENT: Save the figure to the path in os.environ.get('SIMULATION_PLOT_PATH') using:\n"
+            "   plt.figure(figsize=(7, 4.5), dpi=150)\n"
+            "   # ... plotting code ...\n"
+            "   plt.grid(True, alpha=0.3)\n"
+            "   plt.tight_layout()\n"
+            "   plt.savefig(os.environ['SIMULATION_PLOT_PATH'], dpi=150, bbox_inches='tight')\n"
+            "   plt.close()\n"
+            "5. Uses print() statements to output all computed metrics clearly with labels.\n"
+            "Rules: Must complete in <12 seconds. Output ONLY raw executable Python code, no markdown fences, no explanations."
         )
 
         from config.settings import GEMINI_MODELS_PRIORITY, RESEARCHER_MODEL
@@ -235,66 +265,151 @@ def run_numerical_verification(equations_context: str, topic: str, api_key: Opti
                 continue
 
         if not gen_res or not gen_res.text:
-            result["error"] = "Could not generate verification script."
+            result["error"] = "Could not generate verification simulation."
             return result
 
         script_raw = gen_res.text.strip()
-        # Strip any accidental markdown fences
         script_raw = re.sub(r'^```python\n?', '', script_raw)
         script_raw = re.sub(r'\n?```$', '', script_raw)
         result["script"] = script_raw
 
-        # Execute the script in an isolated subprocess with strict timeout
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as tmp:
-            tmp.write(script_raw)
-            tmp_path = tmp.name
+        # Execution function with environment passing
+        def execute_code(code_str: str) -> subprocess.CompletedProcess:
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as tmp:
+                tmp.write(code_str)
+                tmp_path = tmp.name
 
-        try:
-            proc = subprocess.run(
-                [sys.executable, tmp_path],
-                capture_output=True,
-                text=True,
-                timeout=15,
-                cwd=tempfile.gettempdir()
-            )
-            stdout = proc.stdout.strip()
-            stderr = proc.stderr.strip()
-
-            result["executed"] = True
-            result["output"] = stdout[:2000] if stdout else "(No output produced)"
-            if stderr:
-                result["error"] = stderr[:500]
-
-            # Extract numeric metrics from stdout
-            metric_pattern = re.compile(
-                r'(?:steady[- ]state|dissipation|SNR|error|bound|rate|metric|value|result)[^\n:]*:\s*([-\d.eE+]+)',
-                re.IGNORECASE
-            )
-            metrics = metric_pattern.findall(stdout)
-            # Also grab any lines with = sign and numbers
-            for line in stdout.split('\n'):
-                nums = re.findall(r'[-\d.eE+]{3,}', line)
-                if nums and '=' in line:
-                    metrics.append(line.strip()[:80])
-            result["metrics"] = list(dict.fromkeys(metrics))[:8]
-
-        except subprocess.TimeoutExpired:
-            result["error"] = "Numerical verification timed out (>15s)."
-        except Exception as exec_err:
-            result["error"] = f"Execution error: {exec_err}"
-        finally:
+            env_vars = os.environ.copy()
+            env_vars["SIMULATION_PLOT_PATH"] = str(plot_dest)
             try:
-                Path(tmp_path).unlink()
-            except Exception:
-                pass
+                proc = subprocess.run(
+                    [sys.executable, tmp_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=15,
+                    env=env_vars,
+                    cwd=tempfile.gettempdir()
+                )
+                return proc
+            finally:
+                try:
+                    Path(tmp_path).unlink()
+                except Exception:
+                    pass
+
+        # Attempt 1: Run initial code
+        proc = execute_code(script_raw)
+        stdout = proc.stdout.strip()
+        stderr = proc.stderr.strip()
+
+        # Self-Healing Loop: If error or non-zero exit, trigger automatic repair with traceback
+        if proc.returncode != 0 or ("Traceback" in stderr):
+            print(f"[SelfHealingSandbox] Encountered execution error:\n{stderr[:300]}\nInitiating repair...")
+            heal_prompt = (
+                f"The following Python simulation script failed with an execution error:\n\n"
+                f"```python\n{script_raw}\n```\n\n"
+                f"Error Traceback:\n{stderr}\n\n"
+                f"Diagnose the cause (e.g. array dimensions, parameter initialization, integration convergence, missing imports). "
+                f"Correct the script. Ensure it still saves the plot to os.environ['SIMULATION_PLOT_PATH']. "
+                f"Output ONLY the corrected raw executable Python code."
+            )
+            try:
+                heal_res = client.models.generate_content(
+                    model=RESEARCHER_MODEL,
+                    contents=heal_prompt
+                )
+                if heal_res and heal_res.text:
+                    healed_code = heal_res.text.strip()
+                    healed_code = re.sub(r'^```python\n?', '', healed_code)
+                    healed_code = re.sub(r'\n?```$', '', healed_code)
+                    proc2 = execute_code(healed_code)
+                    if proc2.returncode == 0:
+                        script_raw = healed_code
+                        stdout = proc2.stdout.strip()
+                        stderr = proc2.stderr.strip()
+                        result["script"] = healed_code
+                        result["healed"] = True
+                        print("[SelfHealingSandbox] Code successfully healed and executed cleanly!")
+            except Exception as heal_err:
+                print(f"[SelfHealingSandbox] Repair attempt notice: {heal_err}")
+
+        result["executed"] = True
+        result["output"] = stdout[:2000] if stdout else "(No output produced)"
+        if stderr and not result["healed"]:
+            result["error"] = stderr[:500]
+
+        # Extract numeric metrics from stdout
+        metric_pattern = re.compile(
+            r'(?:steady[- ]state|dissipation|SNR|error|bound|rate|metric|value|result|entropy)[^\n:]*:\s*([-\d.eE+]+)',
+            re.IGNORECASE
+        )
+        metrics = metric_pattern.findall(stdout)
+        for line in stdout.split('\n'):
+            nums = re.findall(r'[-\d.eE+]{3,}', line)
+            if nums and '=' in line:
+                metrics.append(line.strip()[:80])
+        result["metrics"] = list(dict.fromkeys(metrics))[:8]
+
+        # Check if plot was created
+        if plot_dest.exists() and plot_dest.stat().st_size > 1000:
+            result["plot_path"] = str(plot_dest)
+            try:
+                with open(plot_dest, "rb") as f:
+                    b64_data = base64.b64encode(f.read()).decode("utf-8")
+                    result["plot_base64"] = f"data:image/png;base64,{b64_data}"
+            except Exception as e:
+                print(f"[SelfHealingSandbox] Base64 encoding notice: {e}")
 
     except Exception as e:
         result["error"] = f"Verification setup failed: {e}"
 
     print(f"[NumericalVerification] Executed: {result['executed']}, "
+          f"Healed: {result['healed']}, "
+          f"Plot: {bool(result['plot_path'])}, "
           f"Metrics found: {len(result['metrics'])}, "
           f"Error: {result['error'][:60] if result['error'] else 'None'}")
     return result
+
+
+# -------------------------------------------------------------------------
+# Multi-Query Literature Expansion (Deep Research Snowballing)
+# -------------------------------------------------------------------------
+
+def expand_research_queries(topic: str, api_key: Optional[str] = None) -> List[str]:
+    """Decompose research inquiry into 3 orthogonal sub-queries for parallel literature indexing."""
+    effective_key = (api_key.strip() if api_key and len(api_key.strip()) >= 20 else "") or GEMINI_API_KEY
+    if not effective_key:
+        return [
+            f"{topic} theoretical foundations",
+            f"{topic} physical hardware constraints",
+            f"{topic} numerical benchmarks and parameter regimes"
+        ]
+
+    try:
+        from google import genai as _genai
+        from config.settings import RESEARCHER_MODEL
+        client = _genai.Client(api_key=effective_key)
+        prompt = (
+            f"Topic: {topic}\n\n"
+            "Decompose this research topic into exactly 3 orthogonal, highly targeted technical search queries for arXiv and web literature indexing:\n"
+            "1. Theoretical foundations & mathematical formalisms (PDEs, Langevin dynamics, state manifolds)\n"
+            "2. Hardware constraints & physical mechanisms (conductance, dissipation, noise bounds)\n"
+            "3. Empirical benchmarks & quantitative parameter regimes\n\n"
+            "Return ONLY the 3 queries, one per line, no numbering, no preamble."
+        )
+        res = client.models.generate_content(model=RESEARCHER_MODEL, contents=prompt)
+        if res and res.text:
+            lines = [l.strip().lstrip("123456789.-* ") for l in res.text.strip().split("\n") if l.strip()]
+            if len(lines) >= 3:
+                return lines[:3]
+    except Exception as e:
+        print(f"[MultiQueryExpander] Notice: {e}")
+
+    return [
+        f"{topic} theoretical foundations mathematical equations",
+        f"{topic} hardware constraints physical mechanisms",
+        f"{topic} empirical benchmark parameter regimes"
+    ]
 
 
 # -------------------------------------------------------------------------
@@ -442,6 +557,34 @@ class WebSearchTool(BaseTool):
                         item["deep_content"] = deep_text
 
         return items[:max_results]
+
+    def search_structured_multi_queries(self, queries: List[str], max_results: int = 10, mode: str = "all") -> List[Dict[str, str]]:
+        """Execute parallel web & arXiv indexing across multiple decomposed sub-queries."""
+        all_items: List[Dict[str, str]] = []
+        seen_urls = set()
+
+        def fetch_for_query(q: str):
+            try:
+                return self.search_structured(q, max_results=5, mode=mode)
+            except Exception as e:
+                print(f"[MultiQuery] Sub-query notice for '{q}': {e}")
+                return []
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, max(1, len(queries)))) as executor:
+            future_to_query = {executor.submit(fetch_for_query, q): q for q in queries}
+            for future in concurrent.futures.as_completed(future_to_query):
+                res = future.result()
+                for item in res:
+                    u = item.get("url", "")
+                    if u and u not in seen_urls:
+                        seen_urls.add(u)
+                        all_items.append(item)
+
+        # Fallback if empty
+        if not all_items and queries:
+            return self.search_structured(queries[0], max_results=max_results, mode=mode)
+
+        return all_items[:max_results]
 
     def _run(self, query: str, mode: str = "all") -> str:
         """Execute web search and return formatted text string with deep article content."""
