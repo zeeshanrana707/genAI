@@ -274,22 +274,22 @@
         </div>
       </div>
 
-      <!-- Gemini API Key (Subscription / Custom) -->
+      <!-- Google AI Studio / Gemini API Key Status -->
       <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2">
         <div class="flex items-center justify-between text-xs font-semibold">
           <span class="flex items-center space-x-1.5 text-cyan-400">
             <span>⚡</span>
-            <span>Gemini Key</span>
+            <span>Google AI Studio Key</span>
           </span>
-          <span id="geminiKeyStatus" class="text-[9px] font-mono text-emerald-400">Free Tier Active</span>
+          <span id="geminiKeyStatus" class="text-[9px] font-mono text-emerald-400 font-semibold">Configured & Active ✓</span>
         </div>
         <p class="text-[11px] text-pplx-muted leading-relaxed">
-          Uses Google free tier automatically. Optionally paste your subscription API key below:
+          Your Google AI Studio key from <code class="text-cyan-300">.env</code> is active for all 5 agents. Paste a new key below only if you want to override it:
         </p>
         <input
           id="customGeminiKeyInput"
           type="password"
-          placeholder="AIzaSy... (Subscription key)"
+          placeholder="Override with new key (optional)"
           class="w-full bg-[#080a0f] border border-pplx-border rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-cyan-400 font-mono transition-colors"
           oninput="saveCustomGeminiKey(this.value)"
         />
@@ -874,8 +874,8 @@
       localStorage.setItem('custom_gemini_key', customGeminiKey);
       const status = document.getElementById('geminiKeyStatus');
       if (status) {
-        status.innerText = customGeminiKey ? 'Subscription Key Active' : 'Free Tier Active';
-        status.className = customGeminiKey ? 'text-[9px] font-mono text-cyan-400 font-semibold' : 'text-[9px] font-mono text-emerald-400';
+        status.innerText = customGeminiKey ? 'Custom Override Active ✓' : 'Configured & Active ✓';
+        status.className = customGeminiKey ? 'text-[9px] font-mono text-cyan-400 font-semibold' : 'text-[9px] font-mono text-emerald-400 font-semibold';
       }
     }
 
