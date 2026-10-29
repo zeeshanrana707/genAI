@@ -118,6 +118,129 @@ def stream_multi_agent_pipeline(
     intent = extract_recipient_and_intent(user_prompt, client_name)
     actual_recipient = intent["recipient"]
 
+    is_simple_mode = (mode in ("simple", "chat"))
+    safe_hand = SafeHandAgentRunner(preferred_gemini_model=RESEARCHER_MODEL, api_key=gemini_api_key)
+
+    if is_simple_mode:
+        # =============================================================
+        # FAST CONVERSATIONAL CHAT MODE (Like ChatGPT / DeepSeek)
+        # Instant direct streaming (<1s TTFT) without heavy multi-agent snowballing
+        # =============================================================
+        yield emit("pipeline_init", {
+            "prompt": user_prompt,
+            "recipient": actual_recipient,
+            "mode": "simple_chat",
+            "engine": engine,
+            "agents": [
+                {"id": "editor", "name": "AI Assistant", "role": "Conversational Co-Pilot", "avatar": "⚡", "model": f"Gemini ({RESEARCHER_MODEL})"}
+            ],
+            "safe_hand_active": True,
+        })
+        time.sleep(0.02)
+
+        yield emit("agent_status_change", {
+            "agent_id": "editor",
+            "status": "working",
+            "action": "Generating direct response..."
+        })
+        yield emit("agent_start", {
+            "step": 1,
+            "agent_id": "editor",
+            "agent": "AI Assistant (Conversational Co-Pilot)",
+            "model": RESEARCHER_MODEL,
+            "avatar": "⚡",
+            "task": f"Answering user inquiry directly: '{user_prompt}'",
+            "status": "active"
+        })
+
+        chat_system_instruction = (
+            "You are a helpful, knowledgeable, brilliant, and structured conversational AI assistant, "
+            "modeled after ChatGPT and DeepSeek-V3.\n\n"
+            "GUIDELINES:\n"
+            "1. Direct & Conversational: Begin immediately by answering the user's question directly. "
+            "Do NOT include meta introductions, journal boilerplate, or formal paper headers.\n"
+            "2. Clear Structure: Use thematic markdown headings (##, ###), bullet points, bold highlights, "
+            "and comparison tables where helpful.\n"
+            "3. High Signal Density: Provide actionable insights, key tradeoffs, real-world context, and clear conclusions.\n"
+            "4. Math & Code: Include LaTeX math ($...$, $$...$$) and code blocks with language identifiers ONLY when relevant."
+        )
+
+        prior_ctx_block = ""
+        if prior_context and prior_context.strip():
+            prior_ctx_block = f"PRIOR CONVERSATION HISTORY:\n{prior_context.strip()[:3000]}\n\n---\n\n"
+
+        uploaded_ctx_block = ""
+        if uploaded_papers_text and uploaded_papers_text.strip():
+            uploaded_ctx_block = f"UPLOADED REFERENCE DOCUMENTS:\n{uploaded_papers_text.strip()[:3500]}\n\n---\n\n"
+
+        full_chat_prompt = f"{prior_ctx_block}{uploaded_ctx_block}# USER INQUIRY:\n{user_prompt}"
+
+        accumulated_content = ""
+        final_provider = f"Google Gemini ({RESEARCHER_MODEL})"
+        for chunk_text, stream_prov in safe_hand.generate_stream(
+            full_chat_prompt,
+            system_instruction=chat_system_instruction,
+            engine=engine
+        ):
+            accumulated_content += chunk_text
+            final_provider = stream_prov
+            yield emit("content_chunk", {
+                "chunk": chunk_text,
+                "full_content": accumulated_content,
+                "provider": final_provider
+            })
+
+        yield emit("agent_deliverable", {
+            "agent_id": "editor",
+            "type": "research_paper",
+            "data": {
+                "paper_markdown": accumulated_content,
+                "provider": final_provider,
+                "word_count": len(accumulated_content.split()),
+                "sources_count": 0
+            }
+        })
+        yield emit("draft_v2", {
+            "author": "AI Assistant",
+            "markdown": accumulated_content,
+            "word_count": len(accumulated_content.split())
+        })
+        yield emit("agent_status_change", {
+            "agent_id": "editor",
+            "status": "completed",
+            "action": f"Response finalized ({len(accumulated_content.split())} words)."
+        })
+
+        followup_questions = generate_followup_questions(user_prompt, accumulated_content)
+        yield emit("followup_questions", {
+            "questions": followup_questions
+        })
+
+        yield emit("pipeline_finished", {
+            "recipient": actual_recipient,
+            "mode": "simple_chat",
+            "email_subject": "",
+            "email_body": "",
+            "calendar": {},
+            "peer_review": {},
+            "research": accumulated_content,
+            "sources": []
+        })
+
+        yield emit("pipeline_complete", {
+            "duration": round(time.time() - start_time, 2),
+            "status": "success",
+            "recipient": actual_recipient,
+            "word_count": len(accumulated_content.split()),
+            "sources_count": 0,
+            "provider": final_provider,
+            "deliverables": ["chat_response"]
+        })
+        return
+
+    # =============================================================
+    # DEEP RESEARCH MODE (5-Agent Multi-Specialist Architecture)
+    # =============================================================
     agents_roster = [
         {"id": "researcher", "name": "Dr. Aris Thorne", "role": "Principal Research Scientist", "avatar": "🔬", "model": f"Gemini ({RESEARCHER_MODEL}) / Web Indexer"},
         {"id": "critic", "name": "Prof. Elena Rostova", "role": "Adversarial Critic", "avatar": "⚖️", "model": "Adversarial Proof Audit Protocol"},
@@ -140,7 +263,6 @@ def stream_multi_agent_pipeline(
     web_search = WebSearchTool()
     draft_email = DraftEmailTool()
     calendar_tool = CreateCalendarInviteTool()
-    safe_hand = SafeHandAgentRunner(preferred_gemini_model=RESEARCHER_MODEL, api_key=gemini_api_key)
 
     # =============================================================
     # AGENT 1: Dr. Aris Thorne (Principal Research Scientist)

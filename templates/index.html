@@ -659,31 +659,43 @@
             class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-3 font-sans"
           />
 
-          <!-- Engine & Mode Badges (Clickable toggle between Free and AI Studio Key) -->
-          <button type="button" onclick="toggleApiEngineModeQuick()" title="Click to toggle Free Tier vs Google AI Studio Key" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-pplx-card hover:bg-slate-800 border border-pplx-border text-[11px] text-cyan-300 font-mono transition-colors">
+          <!-- Deep Research Toggle Pill in Input Box -->
+          <button
+            id="deepResearchToggleBtn"
+            type="button"
+            onclick="toggleDeepResearchMode()"
+            class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono transition-all border flex-shrink-0 cursor-pointer select-none bg-pplx-card/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-pplx-border"
+            title="Toggle Deep Research (OFF: Instant Fast Chat like ChatGPT/DeepSeek | ON: 5-Agent Literature Mining & Grounding Audit)"
+          >
+            <span id="deepResearchIcon" class="flex items-center justify-center">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                <path d="M11 8v6M8 11h6" />
+              </svg>
+            </span>
+            <span id="deepResearchLabel" class="hidden sm:inline font-medium text-[11px]">Deep Research</span>
+          </button>
+
+          <!-- Engine Switcher Badge (Clickable toggle between Free and AI Studio Key) -->
+          <button type="button" onclick="toggleApiEngineModeQuick()" title="Click to toggle Free Tier vs Google AI Studio Key" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl bg-pplx-card hover:bg-slate-800 border border-pplx-border text-[11px] text-cyan-300 font-mono transition-colors flex-shrink-0">
             <span id="selectedEngineIcon">🔑</span>
             <span id="selectedEngineLabel">AI Studio Key</span>
           </button>
 
-          <div class="hidden sm:flex items-center space-x-1 px-2 py-1 rounded-lg bg-pplx-card border border-pplx-border text-[11px] text-slate-300 font-mono">
-            <span>🎯</span>
-            <span id="selectedFocusLabel">Web Search</span>
-          </div>
-
-          <!-- Submit / Action Button (Antigravity Style with Running Red Block) -->
+          <!-- Submit / Stop Action Button (Icon-Only: Send Arrow or Pulsing Red Block) -->
           <button
             id="searchBtn"
             onclick="handleSearchBtnClick()"
             type="button"
-            class="h-9 px-3.5 rounded-xl font-bold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-md shadow-cyan-400/20 flex-shrink-0"
-            title="Send prompt / Start research"
+            class="w-9 h-9 rounded-xl font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer"
+            title="Send prompt"
           >
             <span id="searchBtnIcon" class="flex items-center justify-center">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
               </svg>
             </span>
-            <span id="searchBtnText">Send</span>
           </button>
 
         </div>
@@ -897,9 +909,34 @@
     let activePrompt = '';
     let activeFocusMode = 'all';
     let activeEngine = 'gemini';
+    let isDeepResearchActive = false; // default false: fast simple chat like ChatGPT/DeepSeek
     let activeTurnId = null;
     let activeModalTurnId = null;
     const turnsData = {}; // turnId -> { prompt, time, mode, sources, markdown, peerReview, email, calendar, streamer, followups }
+
+    function toggleDeepResearchMode() {
+      isDeepResearchActive = !isDeepResearchActive;
+      updateDeepResearchUI();
+    }
+
+    function updateDeepResearchUI() {
+      const btn = document.getElementById('deepResearchToggleBtn');
+      const label = document.getElementById('deepResearchLabel');
+      const input = document.getElementById('promptInput');
+      if (!btn) return;
+
+      if (isDeepResearchActive) {
+        btn.className = 'flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono transition-all border flex-shrink-0 cursor-pointer select-none bg-cyan-950/90 text-cyan-300 border-cyan-400/80 shadow-md shadow-cyan-400/25 ring-1 ring-cyan-400/40';
+        btn.title = 'Deep Research: ON (5-Agent Literature Mining, arXiv indexing & Epistemic Audit)';
+        if (label) label.innerHTML = 'Deep Research <span class="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse ml-0.5"></span>';
+        if (input) input.placeholder = 'Enter topic for Deep Research (multi-agent literature mining & peer review)...';
+      } else {
+        btn.className = 'flex items-center space-x-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono transition-all border flex-shrink-0 cursor-pointer select-none bg-pplx-card/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-pplx-border';
+        btn.title = 'Deep Research: OFF (Instant Fast Chat like ChatGPT / DeepSeek)';
+        if (label) label.innerText = 'Deep Research';
+        if (input) input.placeholder = 'Ask anything... (Fast Chat like ChatGPT / DeepSeek)';
+      }
+    }
 
     // Session Context Persistence
     let sessionId = localStorage.getItem('genai_session_id');
@@ -1164,6 +1201,7 @@
         keyInput.value = customGeminiKey;
       }
       setApiEngineMode(activeEngineMode);
+      updateDeepResearchUI();
       initSidebarState();
       renderFreshRandomTopics();
       loadRecentHistory();
@@ -1273,7 +1311,7 @@
     // =========================================================================
     // Multi-Turn Chat Feed: Create and Append Conversational Turn Block
     // =========================================================================
-    function createTurnElement(turnId, prompt, modeLabel) {
+    function createTurnElement(turnId, prompt, modeLabel, isDeep = false) {
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const turnDiv = document.createElement('div');
       turnDiv.id = `turn-${turnId}`;
@@ -1291,7 +1329,7 @@
                 <span class="text-[10px] text-pplx-muted font-mono">${timeStr}</span>
               </div>
               <div class="flex items-center space-x-2">
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-pplx-card border border-pplx-border text-slate-300">${modeLabel}</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${isDeep ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-semibold' : 'bg-slate-800 text-slate-300 border border-slate-700'}">${modeLabel}</span>
                 <span id="turn-${turnId}-statusPill" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-400 font-semibold animate-pulse">Running ⚡</span>
               </div>
             </div>
@@ -1301,8 +1339,8 @@
           </div>
         </div>
 
-        <!-- Multi-Agent Deep Research Bar (Collapsible Drawer with 5 Pods, Stepper, Sources, Deliberations) -->
-        <div class="rounded-2xl border border-pplx-border bg-[#0d1117] overflow-hidden transition-all shadow-lg">
+        <!-- Multi-Agent Deep Research Bar (Collapsible Drawer with 5 Pods, Stepper, Sources, Deliberations - Only shown in Deep Research mode) -->
+        <div id="turn-${turnId}-agentResearchBar" class="${isDeep ? '' : 'hidden'} rounded-2xl border border-pplx-border bg-[#0d1117] overflow-hidden transition-all shadow-lg">
           <!-- Clickable Header Status Bar -->
           <div onclick="toggleTurnResearchDetails('${turnId}')" class="px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition-colors">
             <div class="flex items-center space-x-2.5 text-xs font-mono min-w-0">
@@ -1813,13 +1851,15 @@
 
       // Label for focus mode
       const focusLabels = { all: 'Web Search', academic: 'Academic & arXiv', enterprise: 'Enterprise' };
-      const modeLabel = focusLabels[activeFocusMode] || 'Web Search';
+      const modeLabel = isDeepResearchActive ? (focusLabels[activeFocusMode] || 'Deep Research') : 'Chat';
+      const modeToSend = isDeepResearchActive ? (activeFocusMode || 'academic') : 'simple';
 
       // Initialize turn data
       turnsData[turnId] = {
         prompt: prompt,
         time: new Date().toLocaleTimeString(),
         mode: modeLabel,
+        isDeep: isDeepResearchActive,
         sources: [],
         markdown: '',
         peerReview: null,
@@ -1829,7 +1869,7 @@
       };
 
       // Create and append Turn element
-      const turnElement = createTurnElement(turnId, prompt, modeLabel);
+      const turnElement = createTurnElement(turnId, prompt, modeLabel, isDeepResearchActive);
       conversationTurnsFeed.appendChild(turnElement);
 
       // Hide hero section & smooth scroll to the new turn
@@ -1843,9 +1883,13 @@
 
       // Update sidebar telemetry
       document.getElementById('activeThreadTitle').innerText = prompt.length > 50 ? prompt.substring(0, 48) + '...' : prompt;
-      if (statusTimerBadge) statusTimerBadge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping inline-block mr-1"></span><span>Searching web & arXiv...</span>';
+      if (statusTimerBadge) {
+        statusTimerBadge.innerHTML = isDeepResearchActive
+          ? '<span class="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping inline-block mr-1"></span><span>Deep Research (web & arXiv)...</span>'
+          : '<span class="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-ping inline-block mr-1"></span><span>Thinking & streaming...</span>';
+      }
       if (telemetryPill) {
-        telemetryPill.innerText = 'Running...';
+        telemetryPill.innerText = isDeepResearchActive ? 'Deep Research' : 'Fast Chat';
         telemetryPill.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400 font-medium';
       }
       if (thinkingContent) thinkingContent.innerHTML = '';
@@ -1866,7 +1910,7 @@
       // Start Server-Sent Events stream
       const paperIdsParam = Array.from(selectedPaperIds).join(',');
       const keyToSend = activeEngineMode === 'free' ? 'free' : customGeminiKey;
-      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(activeFocusMode)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}&gemini_api_key=${encodeURIComponent(keyToSend)}`;
+      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(modeToSend)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}&gemini_api_key=${encodeURIComponent(keyToSend)}`;
       
       if (currentEventSource) {
         try { currentEventSource.close(); } catch (e) {}
@@ -2751,8 +2795,8 @@
       isResearchRunning = true;
       if (!searchBtn) return;
       searchBtn.disabled = false;
-      searchBtn.className = 'h-9 px-3.5 rounded-xl font-bold text-xs text-red-200 bg-red-950/80 hover:bg-red-900 border border-red-500/60 active:scale-95 transition-all flex items-center space-x-2 shadow-lg shadow-red-500/25 flex-shrink-0 cursor-pointer';
-      searchBtn.title = 'Stop running research';
+      searchBtn.className = 'w-9 h-9 rounded-xl font-bold text-red-200 bg-red-950/80 hover:bg-red-900 border border-red-500/60 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-red-500/25 flex-shrink-0 cursor-pointer';
+      searchBtn.title = 'Stop generating';
 
       if (searchBtnIcon) {
         searchBtnIcon.innerHTML = `
@@ -2762,17 +2806,14 @@
           </span>
         `;
       }
-      if (searchBtnText) {
-        searchBtnText.innerText = 'Stop';
-      }
     }
 
     function unlockSearchBtn() {
       isResearchRunning = false;
       if (!searchBtn) return;
       searchBtn.disabled = false;
-      searchBtn.className = 'h-9 px-3.5 rounded-xl font-bold text-xs text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center space-x-1.5 shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer';
-      searchBtn.title = 'Send prompt / Start research';
+      searchBtn.className = 'w-9 h-9 rounded-xl font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer';
+      searchBtn.title = 'Send prompt';
 
       if (searchBtnIcon) {
         searchBtnIcon.innerHTML = `
@@ -2780,9 +2821,6 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
           </svg>
         `;
-      }
-      if (searchBtnText) {
-        searchBtnText.innerText = 'Send';
       }
     }
 
