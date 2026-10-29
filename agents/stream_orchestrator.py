@@ -284,13 +284,17 @@ def stream_multi_agent_pipeline(
 
     system_instruction_thorne = (
         "You are Dr. Aris Thorne, Lead Research Scout in an elite multi-agent intelligence system.\n"
-        "Your task is to investigate the user's query by analyzing the retrieved empirical web and arXiv data, extracting key facts, metrics, comparisons, and verified findings.\n"
-        "Formatting & Tone Guidelines (Chatbot Experience):\n"
+        "Your task is to investigate the user's query by analyzing the retrieved empirical web and arXiv data, extracting key facts, metrics, comparisons, and verified findings.\n\n"
+        "FORMATTING & TONE GUIDELINES (Conversational Research Co-Pilot):\n"
         "- Directly answer what the user asked in a clear, high-signal, structured manner (NOT a rigid academic paper with an Abstract or journal template).\n"
         "- Break down key concepts with crisp bullet points, comparison tables, and highlighted takeaways.\n"
         "- Cite sources with inline numeric markers [1], [2] matching the empirical context.\n"
-        "- Include mathematical formulas ($...$ or $$...$$) or code blocks ONLY when the topic genuinely involves mathematics or programming.\n"
-        "- Conclude with concise, high-impact key takeaways."
+        "- Include mathematical formulas ($...$ or $$...$$) or code blocks ONLY when the topic genuinely involves mathematics or programming.\n\n"
+        "STRICT EPISTEMIC & FACT-CHECKING RULES:\n"
+        "1. NO SPECULATIVE HARDWARE/LATENCY: NEVER state GPU models (A100, H100, B200), cluster node sizes (e.g. '8x H100'), VRAM requirements, or latency numbers ('10x-50x slower') unless directly cited from official documentation in the sources. If undisclosed, explicitly state that hardware requirements have not been publicly disclosed.\n"
+        "2. NO ARCHITECTURAL ABSOLUTES: Do NOT claim an architecture is 'the ONLY one capable of...' or that it 'guarantees' consistency. Frame capabilities as empirical strengths observed in benchmarks.\n"
+        "3. CLOSED VS. OPEN SYSTEMS: Differentiate open-weight models (inspectable code) from closed commercial APIs (Runway, Kling, Sora). Do not claim knowledge of proprietary internal tokenizers or encoders unless citing official technical reports.\n"
+        "4. Conclude with concise, high-impact key takeaways."
     )
     if is_referential_followup:
         system_instruction_thorne += (
@@ -420,7 +424,7 @@ def stream_multi_agent_pipeline(
         yield emit("agent_handoff", {
             "from_agent": "Prof. Elena Rostova (Adversarial Critic)",
             "to_agent": "Dr. Aris Thorne (Research Scientist)",
-            "message": f"Autonomous Reflection Triggered: Auditing identified {len(critique_pts)} mathematical proof gaps. Fortifying derivations..."
+            "message": f"Autonomous Reflection Triggered: Auditing identified {len(critique_pts)} grounding or hyperbole gaps. Fortifying draft..."
         })
         yield emit("agent_thought", {
             "agent": "Dr. Aris Thorne",
@@ -431,7 +435,7 @@ def stream_multi_agent_pipeline(
             f"{chr(10).join(['- ' + cp for cp in critique_pts])}\n\n"
             f"Preliminary Draft:\n{initial_draft}\n\n"
             f"Empirical context:\n{search_raw[:2200]}\n\n"
-            f"Fortify the draft: derive explicit intermediate steps, state boundary conditions, and formalize conceptual leaps as 'PROPOSED HYPOTHESIS:'."
+            f"Fortify the draft: resolve identified critiques, prune any unverified hardware or latency speculations, replace absolute assertions with empirical benchmark framing, and ensure strict source grounding."
         )
         fortified_draft, _ = safe_hand.generate(
             fortify_prompt,
@@ -541,8 +545,14 @@ def stream_multi_agent_pipeline(
         "2. Clear Structure: Use thematic markdown headings (##, ###), bulleted highlights, bold takeaways, and comparison tables where helpful.\n"
         "3. Strict Grounded Citations: Cite sources with [1], [2] inline next to factual assertions. Only cite sources from the provided catalog verbatim.\n"
         "4. High Signal Density: Provide actionable insights, key tradeoffs, real-world context, and clear conclusions.\n"
-        "5. Math & Code: Include LaTeX math ($...$, $$...$$) and code blocks ONLY when specifically relevant to the query; never force artificial formulas.\n"
-        "6. Conclude with a clean '### Key Takeaways & Actionable Summary' section."
+        "5. Math & Code: Include LaTeX math ($...$, $$...$$) and code blocks ONLY when specifically relevant to the query; never force artificial formulas.\n\n"
+        "STRICT ANTI-HALLUCINATION & FACT-CHECKING RULES:\n"
+        "6. NO SPECULATIVE HARDWARE/LATENCY: NEVER assert GPU requirements (e.g. 'requires 8x H100', 'single A100 node') or inference speeds ('10x-50x slower') unless directly cited from official documentation in the sources. If unknown, state clearly: 'Official hardware and deployment requirements for [Model] have not been publicly disclosed.'\n"
+        "7. NO ARCHITECTURAL ABSOLUTES: Do NOT claim an architecture is 'the only one capable of...' or that it 'guarantees' consistency. Frame capabilities as empirical strengths observed in benchmarks.\n"
+        "8. CLOSED-SOURCE VS OPEN TRANSPARENCY: Do NOT assert internal tokenization details for closed commercial APIs (Runway, Kling, Sora) unless an official technical report is cited. Focus on observable capabilities and published evaluations.\n"
+        "9. MANDATORY BIBLIOGRAPHY: You MUST conclude your response with a dedicated section:\n"
+        "   ### 📚 Sources & References\n"
+        "   listing each cited [1], [2] with its Title and URL/Domain verbatim from the catalog."
     )
     if is_referential_followup:
         editor_system_instruction += (
@@ -567,8 +577,8 @@ def stream_multi_agent_pipeline(
             f"{sources_catalog_json}\n\n"
             f"## Conversation History & Prior Context:\n{prior_context[:4000]}\n\n"
             f"## Research Scout Findings:\n{initial_draft}\n\n"
-            f"## Verification Notes:\n{critique_text}\n\n"
-            f"Deliver the conversational answer addressing the user's inquiry directly."
+            f"## Verification Notes & Critic Mandates (Prof. Rostova):\n{critique_text}\n\n"
+            f"Deliver the conversational answer addressing the user's inquiry directly. Ensure all citations [1], [2] are grounded and conclude with '### 📚 Sources & References'."
         )
     else:
         editor_prompt = (
@@ -577,9 +587,12 @@ def stream_multi_agent_pipeline(
             f"{sources_catalog_json}\n\n"
             f"## Empirical Context & Literature:\n{search_raw[:4000]}\n\n"
             f"## Research Scout Draft Findings:\n{initial_draft}\n\n"
-            f"## Fact-Checker Verification Notes:\n{critique_text}\n\n"
+            f"## Fact-Checker (Prof. Rostova) Audit & Mandates:\n{critique_text}\n\n"
             f"{plot_embed_instruction}\n\n"
-            f"Deliver the comprehensive, conversational, and structured research response now."
+            f"MANDATORY INSTRUCTIONS:\n"
+            f"1. Obey Prof. Rostova's critique: strip out any unverified hardware speculations (e.g. '8x H100') or absolute claims ('the only architecture').\n"
+            f"2. Ground all factual assertions with inline catalog citations [1], [2].\n"
+            f"3. Conclude with '### 📚 Sources & References' listing every cited source with its [n] index, title, and link from the catalog."
         )
 
     research_summary, final_provider = safe_hand.generate(
@@ -588,6 +601,21 @@ def stream_multi_agent_pipeline(
         search_context=search_raw,
         engine=engine
     )
+
+    # Deterministic Bibliography Safety Net: Ensure bibliography is NEVER missing or dangling
+    has_bib = bool(re.search(r'###\s*(?:📚\s*)?(?:Sources|References)', research_summary, re.IGNORECASE))
+    if not has_bib and sources_payload:
+        bib_block = "\n\n### 📚 Sources & References\n"
+        for sp in sources_payload:
+            sid = sp["id"]
+            title = sp["title"]
+            url = sp["url"]
+            domain = sp["domain"]
+            if url and url != "#":
+                bib_block += f"- [{sid}] [{title}]({url}) — *{domain}*\n"
+            else:
+                bib_block += f"- [{sid}] **{title}** — *{domain}*\n"
+        research_summary += bib_block
 
     # Word-by-word streaming (ChatGPT-like fluid text emission)
     words = research_summary.split(" ")

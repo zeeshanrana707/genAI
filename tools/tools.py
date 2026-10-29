@@ -380,9 +380,9 @@ def expand_research_queries(topic: str, api_key: Optional[str] = None) -> List[s
     effective_key = (api_key.strip() if api_key and len(api_key.strip()) >= 20 else "") or GEMINI_API_KEY
     if not effective_key:
         return [
-            f"{topic} theoretical foundations",
-            f"{topic} physical hardware constraints",
-            f"{topic} numerical benchmarks and parameter regimes"
+            f"{topic} official documentation architecture technical report",
+            f"{topic} empirical benchmarks comparative evaluation",
+            f"{topic} engineering trade-offs limitations deployment"
         ]
 
     try:
@@ -391,10 +391,10 @@ def expand_research_queries(topic: str, api_key: Optional[str] = None) -> List[s
         client = _genai.Client(api_key=effective_key)
         prompt = (
             f"Topic: {topic}\n\n"
-            "Decompose this research topic into exactly 3 orthogonal, highly targeted technical search queries for arXiv and web literature indexing:\n"
-            "1. Theoretical foundations & mathematical formalisms (PDEs, Langevin dynamics, state manifolds)\n"
-            "2. Hardware constraints & physical mechanisms (conductance, dissipation, noise bounds)\n"
-            "3. Empirical benchmarks & quantitative parameter regimes\n\n"
+            "Decompose this research topic into exactly 3 orthogonal, highly targeted search queries for arXiv and web literature indexing:\n"
+            "1. Core technical architecture, official specifications, and current release documentation\n"
+            "2. Verified empirical benchmarks, comparative evaluations, and standardized test metrics\n"
+            "3. Engineering trade-offs, practical constraints, and known limitations\n\n"
             "Return ONLY the 3 queries, one per line, no numbering, no preamble."
         )
         res = client.models.generate_content(model=RESEARCHER_MODEL, contents=prompt)
@@ -406,9 +406,9 @@ def expand_research_queries(topic: str, api_key: Optional[str] = None) -> List[s
         print(f"[MultiQueryExpander] Notice: {e}")
 
     return [
-        f"{topic} theoretical foundations mathematical equations",
-        f"{topic} hardware constraints physical mechanisms",
-        f"{topic} empirical benchmark parameter regimes"
+        f"{topic} official documentation architecture technical report",
+        f"{topic} empirical benchmarks comparative evaluation",
+        f"{topic} engineering trade-offs limitations deployment"
     ]
 
 

@@ -85,21 +85,33 @@ class DifficultyEstimator:
 class DeterministicRuleBasedVerifier:
     """Rule-based accuracy verifier inspired by DeepSeek-R1-Zero.
     
-    Deterministically audits numeric claims, percentages, multipliers, and dates against
-    retrieved empirical sources without neural reward model hallucination or hacking.
+    Deterministically audits numeric claims, hardware specs, absolute hyperbole,
+    and dates against retrieved empirical sources to prevent hallucinations.
     """
 
     METRIC_PATTERNS = [
-        r'\b\d+(?:\.\d+)?\s*(?:%|percent)\b',                   # 85%, 6.3 percent
-        r'\b\d+(?:\.\d+)?\s*(?:x|×|times)\b',                    # 6.3x, 14×, 4 times
-        r'\b\d+(?:\.\d+)?\s*(?:B|M|k|GB|TB|MB|ms|s|h|FLOPs)\b',    # 671B, 37B, 512, 100ms
-        r'\b(?:19|20)\d{2}\b',                                   # 2024, 2026
+        r'\b\d+(?:\.\d+)?\s*(?:%|percent)\b',                          # 85%, 6.3 percent
+        r'\b\d+(?:\.\d+)?\s*(?:x|×|times)\b',                           # 6.3x, 14×, 4 times
+        r'\b\d+(?:\.\d+)?\s*(?:B|M|k|GB|TB|MB|ms|s|h|FLOPs)\b',           # 671B, 37B, 512, 100ms
+        r'\b\d+\s*x\s*(?:H100|A100|B200|H200|L40S|V100|TPU|GPU)\b',      # 8x H100
+        r'\b(?:H100|A100|B200|H200|L40S|TPU\s*v\d+)\b',                  # H100, A100
+        r'\b\d+(?:-\d+)?x\s*(?:slower|faster)\b',                       # 10x-50x slower
+        r'\b(?:19|20)\d{2}\b',                                          # 2024, 2026
+    ]
+
+    ABSOLUTE_PATTERNS = [
+        r'\bthe only architecture\b',
+        r'\bthe sole architecture\b',
+        r'\bguarantees consistency\b',
+        r'\bflawless consistency\b',
+        r'\bprocesses the entire (?:video )?manifold globally\b',
     ]
 
     @classmethod
     def verify_grounding(cls, draft: str, search_context: str) -> Dict[str, Any]:
-        """Extract and check every quantitative claim against the retrieved text."""
+        """Extract and check quantitative claims and absolute hyperbole against retrieved text."""
         context_lower = search_context.lower()
+        draft_lower = draft.lower()
         
         extracted_metrics = set()
         for pat in cls.METRIC_PATTERNS:
@@ -107,13 +119,21 @@ class DeterministicRuleBasedVerifier:
                 val = match.group(0).strip().lower()
                 extracted_metrics.add(val)
 
-        if not extracted_metrics:
+        # Check for ungrounded absolute hyperbole
+        flagged_absolutes = []
+        for pat in cls.ABSOLUTE_PATTERNS:
+            match = re.search(pat, draft_lower)
+            if match:
+                flagged_absolutes.append(match.group(0))
+
+        if not extracted_metrics and not flagged_absolutes:
             return {
                 "grounding_ratio": 1.0,
                 "verified_metrics": [],
                 "unverified_metrics": [],
+                "flagged_absolutes": [],
                 "is_grounded": True,
-                "feedback": "No quantitative claims to audit."
+                "feedback": ""
             }
 
         verified = []
@@ -128,16 +148,19 @@ class DeterministicRuleBasedVerifier:
 
         ratio = len(verified) / len(extracted_metrics) if extracted_metrics else 1.0
 
-        feedback = ""
+        feedback_parts = []
         if unverified:
-            feedback = f"Rule-Based Verification Notice: The metrics {unverified[:4]} were not directly found in the retrieved text. Verify or remove ungrounded figures."
+            feedback_parts.append(f"Unverified Hardware/Metrics: {unverified[:4]} not found in sources. Do not invent GPU cluster sizes or latency multipliers unless cited; state they are undisclosed/proprietary.")
+        if flagged_absolutes:
+            feedback_parts.append(f"Hyperbole Warning: Absolute claim '{flagged_absolutes[0]}' detected. Reframe as an empirical strength without claiming exclusivity or absolute guarantees.")
 
         return {
             "grounding_ratio": round(ratio, 2),
             "verified_metrics": verified,
             "unverified_metrics": unverified,
-            "is_grounded": ratio >= 0.75,
-            "feedback": feedback
+            "flagged_absolutes": flagged_absolutes,
+            "is_grounded": ratio >= 0.75 and len(flagged_absolutes) == 0,
+            "feedback": " | ".join(feedback_parts)
         }
 
 
@@ -253,20 +276,14 @@ class AdversarialCrossCheckVerifier:
 
         # 2. Adversarial Peer Review Prompt (Gemini running DeepSeek-R1 CoT protocol)
         cross_check_instruction = (
-            "You are Prof. Elena Rostova, an Elite Academic Peer-Reviewer and Theoretical Scientist.\n"
+            "You are Prof. Elena Rostova, an Elite Academic Peer-Reviewer, Verification Auditor, and Senior AI Systems Scientist.\n"
             "Rigorously cross-check the proposed research draft against the retrieved literature.\n\n"
-            "CROSS-CHECK PROTOCOL:\n"
-            "1. Technical & Mathematical Rigor: Are equations, variables, and physical dynamics sound and dimensionally valid?\n"
-            "2. Conceptual Boundaries: What critical trade-offs or assumptions were omitted (e.g., discrete vs continuous readouts, finite-time dissipation limits)?\n"
-            "3. Empirical Grounding: Are claims verified by the sources?\n\n"
-            "ADVERSARIAL PROOF AUDITING (STRICT):\n"
-            "4. For every sentence using 'we derive', 'we demonstrate', 'we prove', 'we show', or 'it follows that':\n"
-            "   - REJECT the section UNLESS the explicit intermediate algebraic steps or numerical simulation outputs are shown in the draft.\n"
-            "   - If the connection between two equations is conceptual only (no derivation steps), MANDATE relabeling as:\n"
-            "     PROPOSED HYPOTHESIS: [statement]\n"
-            "   - Flag any equation missing units, boundary conditions, or domain of validity as UNVERIFIED CLAIM.\n"
-            "5. DO NOT accept vague hand-waving like 'coarse-graining yields' or 'in the continuum limit' as proof.\n"
-            "   Require explicit assumptions: continuum limit conditions, symmetry constraints, and parameter regimes.\n\n"
+            "AUDIT & FACT-CHECKING PROTOCOL (ZERO-TOLERANCE SPECULATION):\n"
+            "1. Hardware & Compute Grounding (CRITICAL): Did the draft claim specific GPU requirements (e.g. '8x H100', 'single A100 node') or latency numbers ('10x-50x slower') that are NOT verbatim in the retrieved sources? If unverified, REJECT them and mandate stating that hardware requirements are proprietary/undisclosed.\n"
+            "2. Ban Architectural Hyperbole: Flag and reject absolute assertions like 'the ONLY architecture capable of...', 'guarantees consistency', or asserting 'processes the entire manifold globally' when windowed/causal attention exists. Mandate scientifically qualified wording.\n"
+            "3. Closed-Source vs Open Internals: Did the draft assert internal tokenization or encoder algorithms for closed commercial APIs (Runway, Kling, Sora) without citing official technical cards? Mandate rewording to observable benchmark capabilities.\n"
+            "4. Temporal Validity & Service Status: Flag any services or models referenced as leading if they are discontinued, superseded, or preview-deprecated.\n"
+            "5. Mathematical & Physical Rigor: Equations must be mathematically sound, dimensions checked, and assumptions stated.\n\n"
             "OUTPUT FORMAT:\n"
             "SCORE: <integer 0-100>\n"
             "VERDICT: <Sound & Grounded | Needs Refinement>\n"
@@ -344,14 +361,14 @@ class SequentialRevisionOptimizer:
     ) -> Tuple[str, str]:
         """Produce an improved revision conditioned on previous mistakes and critique."""
         revision_instruction = (
-            "You are an Elite Principal Research Scientist executing sequential self-refinement.\n"
-            "Your objective is to revise the initial draft by resolving the specific critique points into a publication-grade Academic Research Paper.\n"
+            "You are an Elite Conversational Research Synthesizer and Fact-Checking Co-Pilot executing sequential self-refinement.\n"
+            "Your objective is to revise the candidate draft by resolving all critique points into a high-signal, structured research response.\n"
             "STRICT REQUIREMENTS:\n"
-            "1. Address each critique point directly.\n"
-            "2. Preserve the Paper Blueprint: Title (# [Title]), followed by an indented Abstract blockquote (> **Abstract** — [summary]), followed by numbered sections 1 to 6.\n"
-            "3. Deepen technical explanations, mathematical formulations ($inline$ and $$display$$), and comparison tables.\n"
-            "4. Seamlessly integrate accurate numeric citations [1], [2] referencing the source context.\n"
-            "5. Do NOT include meta-commentary like 'In this revision...'—output only the finished, polished academic research paper."
+            "1. Address each critique point directly: prune unverified hardware/VRAM/latency numbers; soften absolute hyperbole into empirical observations.\n"
+            "2. Direct & Structured: Begin immediately by answering the user inquiry directly with thematic headings (##, ###), bulleted takeaways, and comparison tables.\n"
+            "3. Grounded Numeric Citations: Cite sources with [1], [2] inline next to factual assertions based strictly on provided context.\n"
+            "4. Mandatory References Bibliography: Conclude every answer with a '### 📚 Sources & References' section mapping each cited [n] to its Title and URL/Domain.\n"
+            "5. Do NOT include meta-commentary like 'In this revision...'—output only the finished, polished response."
         )
 
         critique_text = "\n".join([f"- {cp}" for cp in critique_points])
