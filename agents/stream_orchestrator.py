@@ -95,6 +95,7 @@ def stream_multi_agent_pipeline(
     mode: str = "auto",
     engine: str = "gemini",
     prior_context: str = "",
+    prior_sources: Optional[List[Dict[str, Any]]] = None,
     uploaded_papers_text: str = "",
     gemini_api_key: Optional[str] = None
 ) -> Generator[str, None, None]:
@@ -151,11 +152,31 @@ def stream_multi_agent_pipeline(
     })
     time.sleep(0.2)
 
+    # Detect if user prompt is a referential follow-up or summary request on the prior conversation
+    is_referential_followup = bool(
+        prior_context and any(
+            kw in user_prompt.lower()
+            for kw in [
+                "this", "these", "above", "previous", "earlier", "conversation",
+                "discussed", "summary", "summarize", "takeaway", "takeaways",
+                "elaborate", "clarify", "explain further", "key points", "what did you",
+                "what have we", "recap", "review", "synthesize", "conclusion"
+            ]
+        )
+    )
+
     search_query = user_prompt.strip()
+    if is_referential_followup:
+        # Extract previous topic or title if present
+        topic_match = re.search(r"#\s*([^\n\r]+)", prior_context)
+        prior_topic = topic_match.group(1).strip() if topic_match else ""
+        if prior_topic:
+            search_query = f"{prior_topic} {user_prompt.strip()}"
+
     if mode == "academic":
-        search_query = f"{user_prompt.strip()} academic paper research arxiv"
+        search_query = f"{search_query} academic paper research arxiv"
     elif mode == "enterprise":
-        search_query = f"{user_prompt.strip()} enterprise benchmark market analysis"
+        search_query = f"{search_query} enterprise benchmark market analysis"
 
     yield emit("tool_call_start", {
         "agent": "Dr. Aris Thorne",
@@ -169,16 +190,36 @@ def stream_multi_agent_pipeline(
     search_raw = web_search._run(search_query, mode=mode)
 
     sources_payload = []
-    for idx, s in enumerate(structured_sources, 1):
-        sources_payload.append({
-            "id": idx,
-            "title": s["title"],
-            "url": s["url"],
-            "domain": s["domain"],
-            "snippet": s.get("snippet", ""),
-            "deep_content": s.get("deep_content", ""),
-            "authors": s.get("authors", ""),
-        })
+    seen_urls = set()
+    for s in structured_sources:
+        u = s.get("url", "")
+        if u and u not in seen_urls:
+            seen_urls.add(u)
+            sources_payload.append({
+                "id": len(sources_payload) + 1,
+                "title": s["title"],
+                "url": s["url"],
+                "domain": s["domain"],
+                "snippet": s.get("snippet", ""),
+                "deep_content": s.get("deep_content", ""),
+                "authors": s.get("authors", ""),
+            })
+
+    # If referential follow-up and prior sources exist, include prior sources so the citation lock is preserved
+    if is_referential_followup and prior_sources:
+        for ps in prior_sources:
+            u = ps.get("url", "")
+            if u and u not in seen_urls:
+                seen_urls.add(u)
+                sources_payload.append({
+                    "id": len(sources_payload) + 1,
+                    "title": ps.get("title", "Prior Research Source"),
+                    "url": ps.get("url", "#"),
+                    "domain": ps.get("domain", "academic"),
+                    "snippet": ps.get("snippet", ""),
+                    "deep_content": ps.get("deep_content", ""),
+                    "authors": ps.get("authors", ""),
+                })
 
     # Build read-only citation catalog for citation locking (Agent 3)
     sources_catalog = [
@@ -216,13 +257,18 @@ def stream_multi_agent_pipeline(
         "Extract and use explicit mathematical assumptions, boundary conditions, and hardware requirements from full-text ArXiv sources.\n"
         "Structure with Title, Abstract blockquote (> **Abstract** — ...), Introduction, Core Mechanisms with LaTeX math, Benchmark comparisons, and References."
     )
+    if is_referential_followup:
+        system_instruction_thorne += (
+            "\nNOTE: The user is asking a follow-up question or requesting a synthesis/summary of the ongoing conversation and research.\n"
+            "Directly address and answer the inquiry using the PRIOR RESEARCH CONTEXT provided below, extracting key mathematical foundations and synthesizing conclusions with precision."
+        )
 
     # Build research prompt — prepend prior session context and uploaded paper context if available
     prior_ctx_block = ""
     if prior_context and prior_context.strip():
         prior_ctx_block = (
             "PRIOR RESEARCH CONTEXT (build upon this — do NOT repeat verbatim, extend and deepen):\n"
-            f"{prior_context.strip()[:3000]}\n\n"
+            f"{prior_context.strip()[:3500]}\n\n"
             "---\n\n"
         )
 
@@ -234,14 +280,25 @@ def stream_multi_agent_pipeline(
             "---\n\n"
         )
 
-    research_prompt = (
-        f"{prior_ctx_block}"
-        f"{uploaded_ctx_block}"
-        f"# RESEARCH TOPIC: {user_prompt}\n\n"
-        f"Retrieved Empirical Literature & Context:\n"
-        f"{search_raw}\n\n"
-        f"Draft the preliminary academic paper covering theoretical foundations, mathematical formulations, and empirical comparisons."
-    )
+    if is_referential_followup:
+        research_prompt = (
+            f"{prior_ctx_block}"
+            f"{uploaded_ctx_block}"
+            f"# USER FOLLOW-UP REQUEST: {user_prompt}\n\n"
+            f"The user is asking a follow-up or synthesis question on the research thread above.\n"
+            f"Review the PRIOR RESEARCH CONTEXT and provide a comprehensive, rigorous synthesis and explanation answering the user's inquiry directly.\n\n"
+            f"Retrieved Empirical Literature & Context:\n"
+            f"{search_raw}\n"
+        )
+    else:
+        research_prompt = (
+            f"{prior_ctx_block}"
+            f"{uploaded_ctx_block}"
+            f"# RESEARCH TOPIC: {user_prompt}\n\n"
+            f"Retrieved Empirical Literature & Context:\n"
+            f"{search_raw}\n\n"
+            f"Draft the preliminary academic paper covering theoretical foundations, mathematical formulations, and empirical comparisons."
+        )
 
     initial_draft, provider1 = safe_hand.generate(
         research_prompt,
@@ -398,19 +455,32 @@ def stream_multi_agent_pipeline(
     )
 
     critique_text = "\n".join([f"- {cp}" for cp in cross_res["critique_points"]])
-    editor_prompt = (
-        f"# RESEARCH TOPIC: {user_prompt}\n\n"
-        f"READ-ONLY CITATION CATALOG (MANDATORY: ONLY CITE FROM THIS LIST VERBATIM):\n"
-        f"{sources_catalog_json}\n\n"
-        f"## Empirical Literature & Context:\n{search_raw[:3500]}\n\n"
-        f"## Preliminary Draft:\n{initial_draft}\n\n"
-        f"## Prof. Elena Rostova's Adversarial Critique:\n{critique_text}\n\n"
-        f"## Python Numerical Verification Simulation Results:\n"
-        f"Script: {verif_res.get('script', 'N/A')}\n"
-        f"Output: {verif_res.get('output', 'N/A')}\n"
-        f"Summary: {verif_summary}\n\n"
-        f"Execute sequential revision now. Output only the finished publication-grade academic research paper."
-    )
+    if is_referential_followup:
+        editor_prompt = (
+            f"# USER INQUIRY / FOLLOW-UP: {user_prompt}\n\n"
+            f"READ-ONLY CITATION CATALOG (MANDATORY: ONLY CITE FROM THIS LIST VERBATIM):\n"
+            f"{sources_catalog_json}\n\n"
+            f"## Ongoing Conversation & Prior Research Context:\n{prior_context[:3500]}\n\n"
+            f"## Preliminary Response Draft:\n{initial_draft}\n\n"
+            f"## Prof. Elena Rostova's Adversarial Critique:\n{critique_text}\n\n"
+            f"## Python Numerical Verification Simulation Results:\n"
+            f"Summary: {verif_summary}\n\n"
+            f"Execute sequential revision now. Output the comprehensive, finalized academic response answering the user's inquiry."
+        )
+    else:
+        editor_prompt = (
+            f"# RESEARCH TOPIC: {user_prompt}\n\n"
+            f"READ-ONLY CITATION CATALOG (MANDATORY: ONLY CITE FROM THIS LIST VERBATIM):\n"
+            f"{sources_catalog_json}\n\n"
+            f"## Empirical Literature & Context:\n{search_raw[:3500]}\n\n"
+            f"## Preliminary Draft:\n{initial_draft}\n\n"
+            f"## Prof. Elena Rostova's Adversarial Critique:\n{critique_text}\n\n"
+            f"## Python Numerical Verification Simulation Results:\n"
+            f"Script: {verif_res.get('script', 'N/A')}\n"
+            f"Output: {verif_res.get('output', 'N/A')}\n"
+            f"Summary: {verif_summary}\n\n"
+            f"Execute sequential revision now. Output only the finished publication-grade academic research paper."
+        )
 
     research_summary, final_provider = safe_hand.generate(
         editor_prompt,

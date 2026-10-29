@@ -57,10 +57,28 @@ async def stream_agents(
     gemini_api_key: Optional[str] = None
 ):
     """Server-Sent Events streaming endpoint with session persistence & paper grounding."""
-    # 1. Retrieve prior session research context if continuing an existing thread
+    # 1. Retrieve prior session research context and sources if continuing an existing thread
     prior_context = ""
+    prior_sources = []
     if session_id and session_id in RESEARCH_SESSIONS:
-        prior_context = RESEARCH_SESSIONS[session_id].get("last_research", "")
+        sess = RESEARCH_SESSIONS[session_id]
+        prior_context = sess.get("last_research", "")
+        prior_sources = sess.get("last_sources", [])
+        # If multiple conversational turns exist, provide a summary of the conversation thread
+        history_list = sess.get("history", [])
+        if len(history_list) > 1:
+            history_blocks = []
+            for h in history_list[-3:]:
+                history_blocks.append(
+                    f"Turn Query: {h.get('prompt', '')}\n"
+                    f"Findings Summary:\n{h.get('research', '')[:2000]}"
+                )
+            prior_context = (
+                "=== PRIOR CONVERSATION HISTORY ===\n\n" +
+                "\n\n---\n\n".join(history_blocks) +
+                "\n\n=== LATEST RESEARCH REPORT ===\n\n" +
+                sess.get("last_research", "")
+            )
 
     # 2. Retrieve text from selected uploaded reference papers
     uploaded_text_parts = []
@@ -77,12 +95,14 @@ async def stream_agents(
 
     def event_stream_wrapper():
         accumulated_research = ""
+        accumulated_sources = []
         for sse_event in stream_multi_agent_pipeline(
             user_prompt=prompt,
             client_name=client,
             mode=mode,
             engine=engine,
             prior_context=prior_context,
+            prior_sources=prior_sources,
             uploaded_papers_text=uploaded_papers_text,
             gemini_api_key=gemini_api_key
         ):
@@ -92,18 +112,30 @@ async def stream_agents(
                     parsed = json.loads(clean)
                     if parsed.get("research"):
                         accumulated_research = parsed["research"]
+                    if parsed.get("sources"):
+                        accumulated_sources = parsed["sources"]
+                except Exception:
+                    pass
+            elif "tool_call_result" in sse_event:
+                try:
+                    clean = sse_event.strip().replace("data: ", "", 1)
+                    parsed = json.loads(clean)
+                    if parsed.get("sources"):
+                        accumulated_sources = parsed["sources"]
                 except Exception:
                     pass
             yield sse_event
 
-        # Save to research session store for follow-up continuity
+        # Save to research session store for continuous conversation thread
         if session_id and accumulated_research:
             if session_id not in RESEARCH_SESSIONS:
                 RESEARCH_SESSIONS[session_id] = {"history": []}
             RESEARCH_SESSIONS[session_id]["last_research"] = accumulated_research
+            RESEARCH_SESSIONS[session_id]["last_sources"] = accumulated_sources
             RESEARCH_SESSIONS[session_id]["history"].append({
                 "prompt": prompt,
                 "research": accumulated_research,
+                "sources": accumulated_sources,
                 "timestamp": datetime.now().isoformat()
             })
 

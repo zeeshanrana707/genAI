@@ -196,7 +196,7 @@ def run_numerical_verification(equations_context: str, topic: str, api_key: Opti
     """
     result = {"executed": False, "script": "", "output": "", "metrics": [], "error": ""}
 
-    effective_key = (api_key.strip() if api_key else "") or GEMINI_API_KEY
+    effective_key = (api_key.strip() if api_key and len(api_key.strip()) >= 20 else "") or GEMINI_API_KEY
     if not effective_key or len(effective_key) < 8:
         result["error"] = "Gemini API key not configured — skipping numerical verification."
         return result

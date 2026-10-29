@@ -141,18 +141,23 @@ class SafeHandAgentRunner:
             effective_system = (system_instruction + cot_addon) if system_instruction else cot_addon.strip()
 
         # Tier 1: Google Gemini (subscription key or free tier, multiple model fallbacks)
-        active_key = (self.custom_api_key.strip() if self.custom_api_key else "") or GEMINI_API_KEY
-        if active_key and len(active_key) > 8:
-            candidate_models = [self.gemini_model] + [
-                m for m in GEMINI_MODELS_PRIORITY if m != self.gemini_model
-            ]
+        keys_to_try = []
+        if self.custom_api_key and len(self.custom_api_key.strip()) >= 20:
+            keys_to_try.append(self.custom_api_key.strip())
+        if GEMINI_API_KEY and GEMINI_API_KEY not in keys_to_try:
+            keys_to_try.append(GEMINI_API_KEY)
+
+        candidate_models = [self.gemini_model] + [
+            m for m in GEMINI_MODELS_PRIORITY if m != self.gemini_model
+        ]
+        full_prompt = f"{effective_system}\n\n{prompt}" if effective_system else prompt
+
+        for active_key in keys_to_try:
             try:
                 from google.genai import types
                 client = genai.Client(api_key=active_key, http_options=types.HttpOptions(timeout=15000))
             except Exception:
                 client = genai.Client(api_key=active_key)
-
-            full_prompt = f"{effective_system}\n\n{prompt}" if effective_system else prompt
 
             for model_name in candidate_models:
                 try:
