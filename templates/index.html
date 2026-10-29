@@ -1757,6 +1757,14 @@
       const prompt = promptInput.value.trim();
       if (!prompt) return;
 
+      // If a previous research was active, cleanly halt it and strip all running spinners
+      if (isResearchRunning || currentEventSource) {
+        abortActiveResearch();
+      }
+      if (activeTurnId) {
+        cleanupTurnStoppedState(activeTurnId);
+      }
+
       activePrompt = prompt;
       const turnId = 'turn_' + Date.now();
       activeTurnId = turnId;
@@ -2742,21 +2750,96 @@
       }
     }
 
+    function cleanupTurnStoppedState(turnId) {
+      if (!turnId) return;
+
+      // 1. Update turn status pill to clear any animation pulse
+      const pill = document.getElementById(`turn-${turnId}-statusPill`);
+      if (pill) {
+        pill.innerText = 'Stopped ⏹';
+        pill.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 font-semibold border border-red-500/30';
+      }
+
+      // 2. Stop and finalize WordStreamer if active
+      if (turnsData[turnId] && turnsData[turnId].streamer) {
+        try {
+          turnsData[turnId].streamer.stop();
+          turnsData[turnId].streamer = null;
+        } catch (e) {}
+      }
+
+      // 3. Main Markdown Container: Remove spinning ✦ symbol or blinking cursor ▋
+      const mdContainer = document.getElementById(`turn-${turnId}-markdown`);
+      if (mdContainer) {
+        const tData = turnsData[turnId];
+        if (tData && tData.markdown && tData.markdown.trim().length > 0) {
+          // Render final markdown cleanly without the pulsing cursor
+          renderTurnMarkdown(turnId, tData.markdown, true);
+        } else {
+          // If stopped before any content streamed, replace the initial spinning ✦ with clean stopped notice
+          mdContainer.innerHTML = `
+            <div class="flex items-center space-x-2 text-slate-500 py-3 text-xs font-mono">
+              <span class="text-red-400">⏹</span>
+              <span class="italic">Generation stopped by user.</span>
+            </div>
+          `;
+        }
+      }
+
+      // 4. Multi-Agent Pod Badges: Stop any pulsing 'ACTIVE ⚡' badges
+      const podIds = ['researcher', 'critic', 'editor', 'comms', 'logistics'];
+      podIds.forEach(pid => {
+        const badge = document.getElementById(`turn-${turnId}-badge-${pid}`);
+        if (badge) {
+          if (badge.innerText.includes('ACTIVE') || badge.classList.contains('animate-pulse')) {
+            badge.className = 'text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-semibold';
+            badge.innerText = 'STOPPED';
+          }
+        }
+        const pod = document.getElementById(`turn-${turnId}-pod-${pid}`);
+        if (pod) {
+          pod.classList.remove('scale-[1.02]', 'border-cyan-400/80', 'bg-cyan-950/20');
+          pod.classList.add('border-pplx-border/80', 'bg-pplx-card/70');
+        }
+      });
+
+      // 5. Stepper Icons: Stop any spinning ✦ icons
+      for (let s = 1; s <= 5; s++) {
+        const iconEl = document.getElementById(`turn-${turnId}-stepIcon-${s}`);
+        if (iconEl && iconEl.innerHTML.includes('animate-spin')) {
+          iconEl.innerHTML = '<span class="text-slate-500 font-bold text-xs">⏹</span>';
+        }
+        const stepEl = document.getElementById(`turn-${turnId}-step-${s}`);
+        if (stepEl && stepEl.classList.contains('text-cyan-300')) {
+          stepEl.className = 'flex items-center space-x-2 text-xs font-mono text-slate-400';
+        }
+      }
+
+      // 6. Multi-Agent Drawer Header
+      const handoffBanner = document.getElementById(`turn-${turnId}-handoffBanner`);
+      if (handoffBanner && !handoffBanner.innerText.includes('Complete')) {
+        handoffBanner.innerText = 'Research execution stopped';
+        handoffBanner.classList.add('text-slate-500');
+      }
+
+      // 7. Strip any remaining animate-spin or animate-pulse inside the entire turn container
+      const turnEl = document.getElementById(`turn-${turnId}`);
+      if (turnEl) {
+        const animatedEls = turnEl.querySelectorAll('.animate-spin, .animate-pulse');
+        animatedEls.forEach(el => {
+          el.classList.remove('animate-spin', 'animate-pulse');
+        });
+      }
+    }
+
     function abortActiveResearch() {
-      if (!isResearchRunning) return;
+      if (!isResearchRunning && !currentEventSource) return;
       if (currentEventSource) {
         try { currentEventSource.close(); } catch (e) {}
         currentEventSource = null;
       }
-      if (activeTurnId && turnsData[activeTurnId] && turnsData[activeTurnId].streamer) {
-        turnsData[activeTurnId].streamer.complete();
-      }
       if (activeTurnId) {
-        const pill = document.getElementById(`turn-${activeTurnId}-statusPill`);
-        if (pill) {
-          pill.innerText = 'Stopped ⏹';
-          pill.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 font-semibold border border-red-500/30';
-        }
+        cleanupTurnStoppedState(activeTurnId);
       }
       if (thinkingSpinner) thinkingSpinner.classList.add('hidden');
       if (statusTimerBadge) statusTimerBadge.innerHTML = '<span class="text-red-400 font-semibold">⏹ Stopped</span>';
