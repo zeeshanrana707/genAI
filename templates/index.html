@@ -318,61 +318,6 @@
         </div>
       </div>
 
-      <!-- Feature 2: Send Research Brief to Receiver Tool (Moved to Sidebar!) -->
-      <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2.5">
-        <div class="flex items-center justify-between text-xs font-semibold">
-          <span class="flex items-center space-x-1.5 text-cyan-400">
-            <span>✉️</span>
-            <span>Send Research Brief</span>
-          </span>
-          <span class="text-[9px] font-mono text-pplx-muted">Email Dispatch</span>
-        </div>
-        <p class="text-[11px] text-pplx-muted leading-relaxed">
-          Summarizes core themes & key takeaways, then dispatches to receiver.
-        </p>
-
-        <div class="space-y-1.5">
-          <input
-            id="briefReceiverEmail"
-            type="email"
-            placeholder="Receiver email (e.g. colleague@co.com)"
-            class="w-full bg-[#080a0f] border border-pplx-border rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
-          />
-          <input
-            id="briefReceiverName"
-            type="text"
-            placeholder="Receiver name (optional)"
-            class="w-full bg-[#080a0f] border border-pplx-border rounded-lg px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
-          />
-          <input
-            id="briefCustomNote"
-            type="text"
-            placeholder="Optional custom note"
-            class="w-full bg-[#080a0f] border border-pplx-border/70 rounded-lg px-2.5 py-1 text-[11px] text-slate-300 placeholder-slate-600 focus:outline-none focus:border-cyan-400/70"
-          />
-          <button
-            id="sendBriefBtn"
-            onclick="dispatchExecutiveBrief()"
-            class="w-full py-1.5 rounded-lg text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center space-x-1.5 shadow-sm"
-          >
-            <span id="sendBriefIcon">🚀</span>
-            <span id="sendBriefBtnText">Send Brief</span>
-          </button>
-        </div>
-
-        <!-- Sidebar Delivery Confirmation Box -->
-        <div id="briefDeliveryCard" class="hidden pt-2 border-t border-pplx-border space-y-1.5 text-[11px] font-mono">
-          <div class="text-emerald-400 font-semibold" id="briefDeliveryStatusText">✓ Brief dispatched!</div>
-          <div class="flex items-center space-x-1.5 pt-1">
-            <button onclick="copyGeneratedBrief()" class="px-2 py-0.5 rounded bg-[#090b10] border border-pplx-border text-slate-300 hover:text-white text-[10px]">
-              📋 Copy
-            </button>
-            <a id="briefMailtoLink" href="#" target="_blank" class="px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px]">
-              ✉️ Open Mail
-            </a>
-          </div>
-        </div>
-      </div>
 
       <!-- Feature 3: Calendar Logistics -->
       <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 flex items-center justify-between">
