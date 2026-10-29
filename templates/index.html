@@ -1465,42 +1465,6 @@
 
         <!-- The Conversational Research Answer Card (Front & Center) -->
         <div class="rounded-2xl border border-pplx-border bg-pplx-card p-5 sm:p-7 space-y-4 shadow-xl">
-          <!-- Toolbar: Co-Pilot Title, Draft Switcher, Quick Action Buttons -->
-          <div class="flex flex-wrap items-center justify-between pb-3 border-b border-pplx-border/60 gap-2">
-            <div class="flex items-center space-x-2 font-mono text-xs">
-              <span class="font-bold text-cyan-400 flex items-center space-x-1.5">
-                <span>🤖</span><span>Research Co-Pilot</span>
-              </span>
-              <span class="text-slate-600">•</span>
-              <span class="text-slate-400 text-[11px]">Synthesized & Fact-Checked</span>
-            </div>
-
-            <div class="flex items-center space-x-1.5 font-mono text-xs">
-              <!-- Draft Version Switcher -->
-              <div class="flex items-center space-x-1 bg-[#0a0d14] p-0.5 rounded-lg border border-pplx-border text-[10px]">
-                <button id="turn-${turnId}-draftBtn-v1" onclick="switchPaperDraft('${turnId}', 'v1')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition-all">v1 Raw</button>
-                <button id="turn-${turnId}-draftBtn-v2" onclick="switchPaperDraft('${turnId}', 'v2')" class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40 transition-all">v2 Synthesized</button>
-                <button id="turn-${turnId}-draftBtn-diff" onclick="switchPaperDraft('${turnId}', 'diff')" class="px-2 py-0.5 rounded text-purple-400 hover:text-purple-300 border border-purple-500/30 transition-all">Diff +/-</button>
-              </div>
-
-              <!-- Quick Action Buttons -->
-              <button onclick="copyTurnPaper('${turnId}')" class="px-2.5 py-1 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-[11px] text-cyan-400 hover:text-cyan-300 transition-colors flex items-center space-x-1" title="Copy response">
-                <span>📋</span><span id="turn-${turnId}-copyBtnText">Copy</span>
-              </button>
-              <button onclick="openExecutiveBriefModal('${turnId}')" class="px-2.5 py-1 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-[11px] text-slate-300 hover:text-white transition-colors flex items-center space-x-1" title="Executive Voice Briefing & Memo">
-                <span>✉️</span><span>Brief</span>
-              </button>
-              <button onclick="openLogisticsModal('${turnId}')" class="px-2.5 py-1 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-[11px] text-slate-300 hover:text-white transition-colors flex items-center space-x-1" title="Schedule Review & .ICS">
-                <span>📅</span><span>Meeting</span>
-              </button>
-              <button onclick="toggleTurnToc('${turnId}')" class="px-2.5 py-1 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-[11px] text-slate-300 hover:text-white transition-colors flex items-center space-x-1" title="Table of Contents">
-                <span>📑</span><span>TOC</span>
-              </button>
-              <button onclick="exportTurnPaper('${turnId}')" class="px-2.5 py-1 rounded-lg bg-pplx-bg hover:bg-slate-800 border border-pplx-border text-[11px] text-slate-300 hover:text-white transition-colors flex items-center space-x-1" title="Export Markdown">
-                <span>⬇️</span><span>Export</span>
-              </button>
-            </div>
-          </div>
 
           <!-- Reading Progress Bar -->
           <div class="w-full bg-slate-800/60 h-0.5 rounded-full overflow-hidden">
