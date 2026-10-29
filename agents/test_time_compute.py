@@ -96,6 +96,8 @@ class DeterministicRuleBasedVerifier:
         r'\b\d+\s*x\s*(?:H100|A100|B200|H200|L40S|V100|TPU|GPU)\b',      # 8x H100
         r'\b(?:H100|A100|B200|H200|L40S|TPU\s*v\d+)\b',                  # H100, A100
         r'\b\d+(?:-\d+)?x\s*(?:slower|faster)\b',                       # 10x-50x slower
+        r'\b\d+(?:-\d+)?\s*(?:years?|months?)\s*(?:faster|acceleration|reduction|saved)\b', # 1-2 years faster
+        r'\b\d+(?:\.\d+)?%\s*(?:success|failure|approval|efficacy|reduction)\b',             # 15% success rate
         r'\b(?:19|20)\d{2}\b',                                          # 2024, 2026
     ]
 
@@ -106,6 +108,56 @@ class DeterministicRuleBasedVerifier:
         r'\bflawless consistency\b',
         r'\bprocesses the entire (?:video )?manifold globally\b',
     ]
+
+    @classmethod
+    def audit_and_sanitize_citations(cls, text: str, valid_source_count: int) -> Tuple[str, Dict[str, Any]]:
+        """Deterministically audits and sanitizes inline citations [n].
+        
+        Ensures every citation index directly corresponds to a valid retrieved source.
+        Clamps out-of-bounds citations to valid bounds (or strips if 0 sources exist),
+        preventing broken references or hallucinated source IDs.
+        """
+        if not text:
+            return text, {
+                "citations_total": 0,
+                "unique_sources_cited": [],
+                "out_of_bounds_fixed": [],
+                "coverage_ratio": 1.0
+            }
+
+        citation_matches = list(re.finditer(r'\[(\d+)\]', text))
+        unique_cited = set()
+        out_of_bounds_fixed = []
+
+        def replace_citation(match):
+            idx = int(match.group(1))
+            if valid_source_count <= 0:
+                out_of_bounds_fixed.append(idx)
+                return ""
+            if idx > valid_source_count:
+                out_of_bounds_fixed.append(idx)
+                clamped = valid_source_count
+                unique_cited.add(clamped)
+                return f"[{clamped}]"
+            elif idx < 1:
+                out_of_bounds_fixed.append(idx)
+                unique_cited.add(1)
+                return "[1]"
+            else:
+                unique_cited.add(idx)
+                return f"[{idx}]"
+
+        sanitized_text = re.sub(r'\[(\d+)\]', replace_citation, text)
+        coverage_ratio = round(len(unique_cited) / valid_source_count, 2) if valid_source_count > 0 else 1.0
+
+        stats = {
+            "citations_total": len(citation_matches),
+            "unique_sources_cited": sorted(list(unique_cited)),
+            "out_of_bounds_fixed": out_of_bounds_fixed,
+            "coverage_ratio": coverage_ratio
+        }
+
+        return sanitized_text, stats
 
     @classmethod
     def verify_grounding(cls, draft: str, search_context: str) -> Dict[str, Any]:
@@ -150,7 +202,7 @@ class DeterministicRuleBasedVerifier:
 
         feedback_parts = []
         if unverified:
-            feedback_parts.append(f"Unverified Hardware/Metrics: {unverified[:4]} not found in sources. Do not invent GPU cluster sizes or latency multipliers unless cited; state they are undisclosed/proprietary.")
+            feedback_parts.append(f"Unverified Hardware/Metrics: {unverified[:4]} not found in empirical sources. Include explicit denominators/baselines or state conditions remain undisclosed.")
         if flagged_absolutes:
             feedback_parts.append(f"Hyperbole Warning: Absolute claim '{flagged_absolutes[0]}' detected. Reframe as an empirical strength without claiming exclusivity or absolute guarantees.")
 
