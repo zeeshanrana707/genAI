@@ -1217,7 +1217,7 @@
         if (this.timer) return;
         this.timer = setInterval(() => {
           this.tick();
-        }, 18); // ~55-60 fps smooth fluid typewriter
+        }, 10); // High-frequency 100fps typewriter (DeepSeek / Kimi level fluidity)
       }
 
       pushChunk(chunk) {
@@ -1236,10 +1236,12 @@
           return;
         }
 
-        // Adaptive pacing: smooth single-word typing, burst slightly if queue backs up
+        // Adaptive pacing matching Kimi / DeepSeek-R1 throughput
         let count = 1;
-        if (this.queue.length > 30) count = 4;
-        else if (this.queue.length > 14) count = 2;
+        if (this.queue.length > 60) count = 15;
+        else if (this.queue.length > 30) count = 8;
+        else if (this.queue.length > 15) count = 4;
+        else if (this.queue.length > 6) count = 2;
 
         for (let i = 0; i < count && this.queue.length > 0; i++) {
           this.displayedTokens.push(this.queue.shift());

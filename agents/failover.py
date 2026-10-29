@@ -8,7 +8,7 @@ Tier 3: Dynamic context-aware synthesis engine (offline resilient)
 import re
 import json
 import requests
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Optional, Tuple, List, Generator
 from google import genai
 from google.genai import errors as google_errors
 
@@ -199,3 +199,89 @@ class SafeHandAgentRunner:
         self.log("[Safe-Hand] Using Dynamic Local Synthesis Engine.")
         local_output = local_dynamic_synthesize(prompt, search_context)
         return local_output, self.active_provider
+
+    def generate_stream(
+        self,
+        prompt: str,
+        system_instruction: str = "",
+        search_context: str = "",
+        engine: str = "auto"
+    ) -> Generator[Tuple[str, str], None, None]:
+        """Stream chunks in real-time via Google Gemini generate_content_stream with Safe-Hand fallback.
+
+        Yields:
+            Tuple of (chunk_text, provider_name)
+        """
+        self.last_reasoning_trace = ""
+
+        # Build effective system instruction
+        effective_system = system_instruction
+        if engine == "deepseek-r1":
+            cot_addon = (
+                "\n\nDEEP REASONING PROTOCOL:\n"
+                "Think step-by-step and exhaustively before writing the final synthesis. "
+                "Write your internal reasoning process inside <think>...</think> tags first, "
+                "then after </think>, provide only the clean, finished research output."
+            )
+            effective_system = (system_instruction + cot_addon) if system_instruction else cot_addon.strip()
+
+        keys_to_try = []
+        is_explicit_free_mode = bool(self.custom_api_key and self.custom_api_key.lower().strip() in ("free", "none", "zero_cost"))
+        if not is_explicit_free_mode:
+            if self.custom_api_key and len(self.custom_api_key.strip()) >= 20:
+                keys_to_try.append(self.custom_api_key.strip())
+            if GEMINI_API_KEY and GEMINI_API_KEY not in keys_to_try:
+                keys_to_try.append(GEMINI_API_KEY)
+
+        candidate_models = [self.gemini_model] + [
+            m for m in GEMINI_MODELS_PRIORITY if m != self.gemini_model
+        ]
+        full_prompt = f"{effective_system}\n\n{prompt}" if effective_system else prompt
+
+        streamed_any = False
+        for active_key in keys_to_try:
+            try:
+                from google.genai import types
+                client = genai.Client(api_key=active_key, http_options=types.HttpOptions(timeout=15000))
+            except Exception:
+                client = genai.Client(api_key=active_key)
+
+            for model_name in candidate_models:
+                try:
+                    response_stream = client.models.generate_content_stream(
+                        model=model_name,
+                        contents=full_prompt
+                    )
+                    label = "Deep Reasoning (R1 CoT)" if engine == "deepseek-r1" else model_name
+                    self.active_provider = f"Google Gemini ({label})"
+
+                    for chunk in response_stream:
+                        if chunk and chunk.text:
+                            streamed_any = True
+                            yield chunk.text, self.active_provider
+
+                    if streamed_any:
+                        return
+                except Exception as e:
+                    err_msg = str(e)
+                    self.log(f"[Safe-Hand Stream] Gemini on {model_name} noticed ({err_msg[:60]}), trying next...")
+                    continue
+
+            self.failover_triggered = True
+            self.failover_reason = "Gemini quota limit reached during stream — switching to fallback."
+
+        # Fallback to standard generate and yield in natural batches
+        fallback_text, provider = self.generate(
+            prompt=prompt,
+            system_instruction=system_instruction,
+            search_context=search_context,
+            engine=engine
+        )
+        if fallback_text:
+            words = fallback_text.split(" ")
+            batch = []
+            for i, w in enumerate(words):
+                batch.append(w + (" " if i < len(words) - 1 else ""))
+                if len(batch) >= 4 or i == len(words) - 1:
+                    yield "".join(batch), provider
+                    batch = []

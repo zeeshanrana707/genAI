@@ -372,43 +372,22 @@ def run_numerical_verification(equations_context: str, topic: str, api_key: Opti
 
 
 # -------------------------------------------------------------------------
-# Multi-Query Literature Expansion (Deep Research Snowballing)
+# Multi-Query Literature Expansion (Deep Research Snowballing - Zero-Latency)
 # -------------------------------------------------------------------------
 
 def expand_research_queries(topic: str, api_key: Optional[str] = None) -> List[str]:
-    """Decompose research inquiry into 3 orthogonal sub-queries for parallel literature indexing."""
-    effective_key = (api_key.strip() if api_key and len(api_key.strip()) >= 20 else "") or GEMINI_API_KEY
-    if not effective_key:
-        return [
-            f"{topic} official documentation architecture technical report",
-            f"{topic} empirical benchmarks comparative evaluation",
-            f"{topic} engineering trade-offs limitations deployment"
-        ]
-
-    try:
-        from google import genai as _genai
-        from config.settings import RESEARCHER_MODEL
-        client = _genai.Client(api_key=effective_key)
-        prompt = (
-            f"Topic: {topic}\n\n"
-            "Decompose this research topic into exactly 3 orthogonal, highly targeted search queries for arXiv and web literature indexing:\n"
-            "1. Core technical architecture, official specifications, and current release documentation\n"
-            "2. Verified empirical benchmarks, comparative evaluations, and standardized test metrics\n"
-            "3. Engineering trade-offs, practical constraints, and known limitations\n\n"
-            "Return ONLY the 3 queries, one per line, no numbering, no preamble."
-        )
-        res = client.models.generate_content(model=RESEARCHER_MODEL, contents=prompt)
-        if res and res.text:
-            lines = [l.strip().lstrip("123456789.-* ") for l in res.text.strip().split("\n") if l.strip()]
-            if len(lines) >= 3:
-                return lines[:3]
-    except Exception as e:
-        print(f"[MultiQueryExpander] Notice: {e}")
+    """Decompose research inquiry into 3 orthogonal sub-queries for parallel literature indexing (<1ms)."""
+    # Clean topic and extract core keywords
+    clean_topic = re.sub(r'[^\w\s\-\.\+]', ' ', topic).strip()
+    words = [w for w in clean_topic.split() if len(w) > 2]
+    core = " ".join(words[:8]) if len(words) > 8 else clean_topic
+    if not core:
+        core = topic.strip()
 
     return [
-        f"{topic} official documentation architecture technical report",
-        f"{topic} empirical benchmarks comparative evaluation",
-        f"{topic} engineering trade-offs limitations deployment"
+        f"{core} official architecture documentation technical report",
+        f"{core} empirical benchmarks comparative evaluation performance",
+        f"{core} engineering trade-offs practical constraints limitations"
     ]
 
 
@@ -417,14 +396,14 @@ def expand_research_queries(topic: str, api_key: Optional[str] = None) -> List[s
 # -------------------------------------------------------------------------
 
 def scrape_page_body(url: str, max_chars: int = 750) -> str:
-    """Fetch and extract clean paragraph text from a web article."""
+    """Fetch and extract clean paragraph text from a web article with strict timeout."""
     if not url or not url.startswith("http") or BeautifulSoup is None:
         return ""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
         }
-        resp = requests.get(url, headers=headers, timeout=4, verify=False)
+        resp = requests.get(url, headers=headers, timeout=1.5, verify=False)
         if resp.status_code == 200 and resp.text:
             soup = BeautifulSoup(resp.text, "html.parser")
             for element in soup(["script", "style", "nav", "footer", "header", "aside", "form"]):
@@ -533,28 +512,19 @@ class WebSearchTool(BaseTool):
                 }
             ]
 
-        # 4. Deep content extraction
-        for idx, item in enumerate(items[:3]):
+        # 4. Deep content extraction (High-throughput zero-latency mapping)
+        for idx, item in enumerate(items):
             url = item.get("url", "")
-            if "deep_content" not in item and url:
-                # ArXiv full-text ingestion
-                if "arxiv.org" in url:
+            if not item.get("deep_content"):
+                item["deep_content"] = item.get("snippet", "")
+            # Only if arXiv preprint and math sections needed, fetch preprint metadata
+            if url and "arxiv.org" in url and idx == 0 and len(item.get("snippet", "")) < 60:
+                try:
                     full_data = fetch_arxiv_full_text(url)
-                    if full_data:
-                        item["full_arxiv_content"] = full_data
-                        # Build enriched deep_content from math sections + abstract
-                        parts = []
-                        if full_data.get("abstract"):
-                            parts.append(f"ABSTRACT: {full_data['abstract'][:400]}")
-                        if full_data.get("math_sections"):
-                            parts.append("MATHEMATICAL SECTIONS:\n" + "\n\n".join(full_data["math_sections"][:3]))
-                        if full_data.get("hardware_constraints"):
-                            parts.append("HARDWARE/PARAMETER CONSTRAINTS:\n" + "; ".join(full_data["hardware_constraints"][:4]))
-                        item["deep_content"] = "\n\n".join(parts)[:1200]
-                else:
-                    deep_text = scrape_page_body(url, max_chars=700)
-                    if deep_text:
-                        item["deep_content"] = deep_text
+                    if full_data and full_data.get("abstract"):
+                        item["deep_content"] = full_data["abstract"][:800]
+                except Exception:
+                    pass
 
         return items[:max_results]
 
@@ -570,8 +540,9 @@ class WebSearchTool(BaseTool):
                 print(f"[MultiQuery] Sub-query notice for '{q}': {e}")
                 return []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, max(1, len(queries)))) as executor:
-            future_to_query = {executor.submit(fetch_for_query, q): q for q in queries}
+        active_queries = queries[:2] if len(queries) > 2 else queries
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(active_queries) or 1) as executor:
+            future_to_query = {executor.submit(fetch_for_query, q): q for q in active_queries}
             for future in concurrent.futures.as_completed(future_to_query):
                 res = future.result()
                 for item in res:
