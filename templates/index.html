@@ -297,28 +297,6 @@
       </button>
 
 
-      <!-- Upload Research Papers Section (PDF Ingestion) -->
-      <div class="rounded-xl border border-pplx-border bg-pplx-card p-3 space-y-2.5">
-        <div class="flex items-center justify-between text-xs font-semibold">
-          <span class="flex items-center space-x-1.5 text-cyan-400">
-            <span>📑</span>
-            <span>Reference Papers</span>
-          </span>
-          <span class="text-[9px] font-mono text-pplx-muted">PDF Upload</span>
-        </div>
-        <p class="text-[11px] text-pplx-muted leading-relaxed">
-          Upload PDF research papers to extract equations and ground research findings.
-        </p>
-        <label class="w-full py-1.5 px-2 rounded-lg text-xs font-semibold bg-[#090b10] hover:bg-cyan-500/10 text-cyan-300 border border-pplx-border hover:border-cyan-400/50 flex items-center justify-center space-x-1.5 cursor-pointer transition-all">
-          <span id="uploadSpinner" class="hidden animate-spin text-cyan-400 text-xs">✦</span>
-          <span id="uploadIcon">📤</span>
-          <span id="uploadBtnLabel">Upload PDF Paper</span>
-          <input type="file" id="paperUploadInput" accept=".pdf" class="hidden" onchange="handlePaperUpload(this)" />
-        </label>
-        <div id="uploadedPapersList" class="space-y-1 max-h-36 overflow-y-auto custom-scrollbar text-xs">
-          <div class="text-[10px] text-pplx-muted italic px-1" id="noPapersNotice">No reference papers uploaded</div>
-        </div>
-      </div>
 
 
       <!-- Feature 1: Search Focus Modes -->
@@ -592,14 +570,29 @@
     <!-- FLOATING BOTTOM INPUT BAR (Exact ChatGPT / Perplexity Style) -->
     <!-- ========================================================================= -->
     <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0c0e12] via-[#0c0e12]/95 to-transparent pt-6 pb-4 px-4 sm:px-8 z-20 pointer-events-none">
-      <div class="max-w-4xl mx-auto pointer-events-auto">
+      <div class="max-w-4xl mx-auto pointer-events-auto space-y-1.5">
+        <!-- Attached Documents / Papers Chips (Displays directly above input box) -->
+        <div id="uploadedPapersList" class="hidden flex items-center space-x-2 overflow-x-auto custom-scrollbar pb-1 text-xs">
+        </div>
+
         <div id="searchBarContainer" class="glass-search rounded-2xl p-2 sm:p-2.5 shadow-2xl flex items-center space-x-2 transition-all border border-pplx-border">
           
+          <!-- Upload PDF / Attachment Button inside Input Box (Paperclip Icon) -->
+          <label id="uploadPaperBtn" class="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all border border-pplx-border hover:border-slate-600 bg-pplx-card/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 active:scale-95 flex-shrink-0" title="Attach & upload PDF paper or document">
+            <span id="uploadSpinner" class="hidden animate-spin text-cyan-400 text-xs">✦</span>
+            <span id="uploadIcon" class="flex items-center justify-center">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </span>
+            <input type="file" id="paperUploadInput" accept=".pdf" class="hidden" onchange="handlePaperUpload(this)" />
+          </label>
+
           <input
             id="promptInput"
             type="text"
             placeholder="Ask anything... (Fast Chat like ChatGPT / DeepSeek)"
-            class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-3 font-sans"
+            class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-2 font-sans"
           />
 
           <!-- Professional Deep Search Button (Entirely Distinct Cosmic Violet/Indigo Theme) -->
@@ -2907,11 +2900,14 @@
       if (!file) return;
       const uploadSpinner = document.getElementById('uploadSpinner');
       const uploadIcon = document.getElementById('uploadIcon');
-      const uploadLabel = document.getElementById('uploadBtnLabel');
+      const uploadBtn = document.getElementById('uploadPaperBtn');
 
       if (uploadSpinner) uploadSpinner.classList.remove('hidden');
       if (uploadIcon) uploadIcon.classList.add('hidden');
-      if (uploadLabel) uploadLabel.innerText = 'Extracting PDF...';
+      if (uploadBtn) {
+        uploadBtn.title = 'Uploading & extracting PDF...';
+        uploadBtn.classList.add('border-cyan-400', 'text-cyan-300');
+      }
 
       const formData = new FormData();
       formData.append('file', file);
@@ -2935,7 +2931,10 @@
       } finally {
         if (uploadSpinner) uploadSpinner.classList.add('hidden');
         if (uploadIcon) uploadIcon.classList.remove('hidden');
-        if (uploadLabel) uploadLabel.innerText = 'Upload PDF Paper';
+        if (uploadBtn) {
+          uploadBtn.title = 'Attach & upload PDF paper or document';
+          uploadBtn.classList.remove('border-cyan-400', 'text-cyan-300');
+        }
         input.value = '';
       }
     }
@@ -2964,21 +2963,19 @@
       const list = document.getElementById('uploadedPapersList');
       if (!list) return;
       if (!uploadedPapers.length) {
-        list.innerHTML = '<div class="text-[10px] text-pplx-muted italic px-1" id="noPapersNotice">No reference papers uploaded</div>';
+        list.classList.add('hidden');
+        list.innerHTML = '';
         return;
       }
+      list.classList.remove('hidden');
       list.innerHTML = uploadedPapers.map(p => {
         const isChecked = selectedPaperIds.has(p.id);
         return `
-          <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#080a0f] border border-pplx-border hover:border-cyan-400/40 text-[11px] group">
-            <label class="flex items-center space-x-1.5 cursor-pointer truncate flex-1 mr-1">
-              <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="togglePaperSelection('${p.id}')" class="rounded border-slate-700 text-cyan-500 focus:ring-0 text-xs" />
-              <span class="truncate text-slate-200 group-hover:text-cyan-300 font-medium">${escapeHtml(p.filename)}</span>
-            </label>
-            <div class="flex items-center space-x-1 flex-shrink-0">
-              <span class="text-[9px] font-mono text-pplx-muted">${p.page_count}p</span>
-              <button onclick="deletePaper('${p.id}')" class="text-slate-500 hover:text-red-400 px-1 py-0.5 rounded transition-colors" title="Delete paper">✕</button>
-            </div>
+          <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-pplx-card/95 border border-pplx-border hover:border-cyan-400/50 text-xs text-slate-200 shadow-md flex-shrink-0 transition-all backdrop-blur-sm">
+            <span class="text-xs">📑</span>
+            <span class="font-medium text-[11px] truncate max-w-[150px] text-slate-200" title="${escapeHtml(p.filename)}">${escapeHtml(p.filename)}</span>
+            <span class="text-[9px] font-mono text-cyan-400">(${p.page_count}p)</span>
+            <button onclick="deletePaper('${p.id}')" class="text-slate-500 hover:text-red-400 ml-1 p-0.5 rounded transition-colors text-xs font-bold leading-none" title="Remove attachment">✕</button>
           </div>
         `;
       }).join('');
