@@ -220,29 +220,71 @@
         overflow-y: auto !important;
       }
     }
+
+    /* Responsive Collapsible Sidebar (Hamburger Navigation) */
+    #mainSidebar {
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease-in-out;
+    }
+    @media (max-width: 767px) {
+      #mainSidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 50;
+        transform: translateX(-100%);
+      }
+      #mainSidebar.sidebar-mobile-open {
+        transform: translateX(0);
+      }
+    }
+    @media (min-width: 768px) {
+      #mainSidebar.sidebar-desktop-collapsed {
+        margin-left: -20rem; /* -w-80 (-320px) */
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
   </style>
 </head>
 <body class="h-screen w-screen flex bg-pplx-bg text-slate-100 antialiased selection:bg-pplx-accent selection:text-black">
 
   <!-- ========================================================================= -->
+  <!-- BACKDROP FOR MOBILE SIDEBAR DRAWER -->
+  <!-- ========================================================================= -->
+  <div id="sidebarBackdrop" onclick="closeSidebarMobile()" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm hidden md:hidden transition-opacity"></div>
+
+  <!-- ========================================================================= -->
   <!-- LEFT SIDEBAR: Holds ALL Features, Navigation, Tools & Settings (ChatGPT / Perplexity Style) -->
   <!-- ========================================================================= -->
-  <aside class="w-80 border-r border-pplx-border bg-pplx-sidebar hidden md:flex flex-col justify-between p-4 flex-shrink-0 h-full overflow-y-auto custom-scrollbar space-y-4">
+  <aside id="mainSidebar" class="w-80 border-r border-pplx-border bg-pplx-sidebar flex flex-col justify-between p-4 flex-shrink-0 h-full overflow-y-auto custom-scrollbar space-y-4 shadow-2xl md:shadow-none">
     
     <div class="space-y-4">
       
-      <!-- Brand Logo -->
-      <div class="flex items-center space-x-3 px-1">
-        <div class="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-500 to-blue-600 flex items-center justify-center font-black text-black text-base shadow-lg shadow-cyan-500/20">
-          ✦
-        </div>
-        <div>
-          <div class="font-bold tracking-tight text-white text-sm flex items-center space-x-1.5">
-            <span>Perplexity</span>
-            <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-semibold">PRO</span>
+      <!-- Brand Logo & Sidebar Close Button -->
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center space-x-3">
+          <div class="h-8 w-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-500 to-blue-600 flex items-center justify-center font-black text-black text-base shadow-lg shadow-cyan-500/20">
+            ✦
           </div>
-          <p class="text-[10px] text-pplx-muted">Epistemic Research Engine</p>
+          <div>
+            <div class="font-bold tracking-tight text-white text-sm flex items-center space-x-1.5">
+              <span>Perplexity</span>
+              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-semibold">PRO</span>
+            </div>
+            <p class="text-[10px] text-pplx-muted">Epistemic Research Engine</p>
+          </div>
         </div>
+        <button
+          type="button"
+          onclick="toggleSidebar()"
+          class="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-pplx-card border border-transparent hover:border-pplx-border transition-colors flex items-center justify-center"
+          title="Collapse Sidebar (Ctrl + B)"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <!-- Action Button: New Research Thread -->
@@ -499,13 +541,27 @@
   <div class="flex-1 flex flex-col h-full overflow-hidden bg-pplx-bg relative">
 
     <!-- Top Header Navigation -->
-    <header class="border-b border-pplx-border bg-pplx-bg/95 sticky top-0 z-30 backdrop-blur-xl px-6 h-12 flex items-center justify-between flex-shrink-0">
-      <div class="flex items-center space-x-3">
-        <div class="md:hidden flex items-center space-x-2">
+    <header class="border-b border-pplx-border bg-pplx-bg/95 sticky top-0 z-30 backdrop-blur-xl px-4 sm:px-6 h-12 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center space-x-2.5 min-w-0">
+        <!-- Hamburger Menu Button (Three Lines) -->
+        <button
+          id="sidebarBurgerBtn"
+          type="button"
+          onclick="toggleSidebar()"
+          class="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-pplx-card border border-pplx-border/70 hover:border-cyan-500/50 transition-colors flex items-center justify-center flex-shrink-0 group"
+          title="Toggle Navigation Sidebar (Ctrl + B)"
+          aria-label="Toggle Navigation Sidebar"
+        >
+          <svg class="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <div class="md:hidden flex items-center space-x-1.5 flex-shrink-0">
           <div class="h-6 w-6 rounded-lg bg-cyan-500 flex items-center justify-center font-bold text-black text-xs">✦</div>
           <span class="font-bold text-white text-xs">Perplexity</span>
         </div>
-        <div class="text-xs text-pplx-muted truncate max-w-lg">
+        <div class="text-xs text-pplx-muted truncate max-w-xs sm:max-w-md">
           <span id="activeThreadTitle" class="text-slate-200 font-medium">New Epistemic Thread</span>
         </div>
       </div>
@@ -1043,6 +1099,57 @@
       `).join('');
     }
 
+    // =========================================================================
+    // Sidebar Navigation & Hamburger Menu Controller
+    // =========================================================================
+    function toggleSidebar() {
+      const sidebar = document.getElementById('mainSidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (!sidebar) return;
+
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        const isOpen = sidebar.classList.contains('sidebar-mobile-open');
+        if (isOpen) {
+          sidebar.classList.remove('sidebar-mobile-open');
+          if (backdrop) backdrop.classList.add('hidden');
+        } else {
+          sidebar.classList.add('sidebar-mobile-open');
+          if (backdrop) backdrop.classList.remove('hidden');
+        }
+      } else {
+        const isCollapsed = sidebar.classList.contains('sidebar-desktop-collapsed');
+        if (isCollapsed) {
+          sidebar.classList.remove('sidebar-desktop-collapsed');
+          localStorage.setItem('sidebar_collapsed', 'false');
+        } else {
+          sidebar.classList.add('sidebar-desktop-collapsed');
+          localStorage.setItem('sidebar_collapsed', 'true');
+        }
+      }
+    }
+
+    function closeSidebarMobile() {
+      const sidebar = document.getElementById('mainSidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      if (sidebar) sidebar.classList.remove('sidebar-mobile-open');
+      if (backdrop) backdrop.classList.add('hidden');
+    }
+
+    function initSidebarState() {
+      const sidebar = document.getElementById('mainSidebar');
+      if (!sidebar) return;
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile) {
+        const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (isCollapsed) {
+          sidebar.classList.add('sidebar-desktop-collapsed');
+        } else {
+          sidebar.classList.remove('sidebar-desktop-collapsed');
+        }
+      }
+    }
+
     // Auto-focus input on load & rehydrate persistent SQLite session
     window.addEventListener('DOMContentLoaded', () => {
       promptInput.focus();
@@ -1051,6 +1158,7 @@
         keyInput.value = customGeminiKey;
       }
       setApiEngineMode(activeEngineMode);
+      initSidebarState();
       renderFreshRandomTopics();
       loadRecentHistory();
       loadActiveSessionFromDb();
@@ -1070,6 +1178,17 @@
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         resetToNewSearch();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) {
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (backdrop) backdrop.classList.add('hidden');
       }
     });
 
