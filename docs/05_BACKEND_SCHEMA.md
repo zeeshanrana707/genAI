@@ -161,7 +161,52 @@ class TurnRecord(BaseModel):
 - **Route:** `GET /api/papers` -> Returns array of uploaded papers.
 - **Route:** `DELETE /api/papers/{paper_id}` -> Deletes PDF from disk and database.
 
-### 3.4 Session State Rehydration
+### 3.4 Interactive Canvas Inline Refinement
+- **Route:** `POST /api/canvas/refine`
+- **Request Body (JSON):**
+```json
+{
+  "turn_id": "turn_1793261050",
+  "full_markdown": "# Full current report...",
+  "selected_text": "Diffusion transformers process the entire video manifold globally.",
+  "instruction": "Fortify with mathematical windowed attention formulation and Google W.A.L.T. citation."
+}
+```
+- **Response Contract (JSON):**
+```json
+{
+  "success": true,
+  "updated_markdown": "# Fortified report with amsmath formulation...",
+  "instruction": "Fortify with mathematical windowed attention formulation..."
+}
+```
+
+### 3.5 Live Simulation Parameter Rerun
+- **Route:** `POST /api/simulation/rerun`
+- **Request Body (JSON):**
+```json
+{
+  "turn_id": "turn_1793261050",
+  "topic": "Damped driven pendulum chaos",
+  "params": {
+    "gamma": 0.5,
+    "F_0": 1.2,
+    "omega": 0.666
+  }
+}
+```
+- **Response Contract (JSON):**
+```json
+{
+  "success": true,
+  "plot_path": "/output/plots/sim_1793262751_79ec3c.png",
+  "plot_base64": "data:image/png;base64,iVBORw0KGgo...",
+  "output": "Solved ODE over t=[0, 100]. Lyapunov exponent = 0.31",
+  "metrics": ["Lyapunov exponent: 0.31", "Attractor Dimension: 2.38"]
+}
+```
+
+### 3.6 Session State Rehydration
 - **Route:** `GET /api/session/{session_id}`
 - **Response Contract (JSON):**
 ```json

@@ -74,7 +74,11 @@ Current generative search systems suffer from two systemic failures:
   │     ├── SQLite WAL Multi-Turn Conversational Memory
   │     └── Unified Document Chips Carousel
   │
-  └── EPIC 6: Scientific Artifact Deliverables
+  ├── EPIC 6: Interactive Research Canvas & Simulation Workbench
+  │     ├── Inline Section Refinement (OpenAI Canvas style)
+  │     └── Dynamic Parameter Regime Tuning & Real-Time ODE Rerun
+  │
+  └── EPIC 7: Scientific Artifact Deliverables
         ├── LaTeX (.tex with amsmath) Export
         ├── BibTeX (.bib) Citation Export
         ├── Markdown (.md) Knowledge Export
@@ -83,7 +87,36 @@ Current generative search systems suffer from two systemic failures:
 
 ---
 
-## 4. Detailed Feature Specifications
+## 4. Benchmark Case Studies (Origin Problem & Validation)
+
+genAI was specifically designed and tested against real failure modes found in frontier LLM research models. Two benchmark cases define the platform's verification criteria:
+
+### Benchmark Case A: AI Video Generation Architectures (2026)
+- **The Failure in Generic Search Models:**
+  - Claimed *Sora 2* was available despite OpenAI discontinuing the Sora web/API experiences in 2026.
+  - Made unsupported hardware claims: asserting that *Sora 2 and Wan 2.5 require >8x H100 GPUs* while *Runway Gen-4 runs on a single A100*.
+  - Claimed *Diffusion Transformers (DiTs)* are "the only architecture capable of temporal consistency."
+  - Invented arbitrary generation speed benchmarks: *"10–50x slower than real time."*
+  - Generated phantom citations `[1, 5]`, `[2, 3]` without matching bibliography entries.
+- **How genAI Solves It:**
+  - **Temporal & Deprecation Validation:** Live DuckDuckGo / arXiv verification retrieves current availability notices.
+  - **Hardware Spec Sanitization:** Critic forces model to state: *"Official hardware requirements for closed-source models have not been publicly disclosed by vendors."*
+  - **Empirical Reframing:** Strips absolute terms ("the only architecture"), framing DiTs as empirical state-of-the-art across published benchmarks.
+  - **Deterministic Citation Clamping:** Automatically maps inline citations to verified sources and forces a verbatim `### 📚 Sources & References` catalog.
+
+### Benchmark Case B: AI-Driven Drug Discovery & Clinical Transition
+- **The Failure in Generic Search Models:**
+  - Cited unconditioned statistics: *"Clinical success rate is 15%"* without specifying whether this represents Phase I, Phase II, or Phase I-to-approval transition.
+  - Extrapolated computational ADMET prediction improvements into proven clinical failure reductions without clinical trial data.
+  - Claimed generalized development acceleration: *"reduces timeline by 1–2 years"* without study cohorts.
+- **How genAI Solves It:**
+  - **Denominator Enforcement:** Enforces strict population baselines (e.g., *"10–15% transition from Phase I to FDA approval in oncology cohorts"*).
+  - **Evidence Stratification:** Clearly separates computational (*in-silico*), *in-vitro*, preclinical animal, and human clinical trial evidence.
+  - **Epistemic Uncertainty Callout:** When empirical data is limited, explicitly wraps claims in `> ⚠️ Epistemic Note: [Limitation disclosed]`.
+
+---
+
+## 5. Detailed Feature Specifications
 
 ### 4.1 Epic 1: Dual-Speed Research Modes
 - **FR-1.1 Fast Chat Mode (Default):**
@@ -120,16 +153,29 @@ Current generative search systems suffer from two systemic failures:
   - When technical literature is inconclusive or proprietary, formats claims with blockquote notices:
     `> ⚠️ Epistemic Note: [Specific unverified conditions disclosed]`.
 
-### 4.4 Epic 4: Computational Sandbox & Visual Artifacts
+### 5.4 Epic 4: Computational Sandbox & Visual Artifacts
 - **FR-4.1 Python ODE Execution:**
   - Identifies differential equations or dynamic trajectories in prompts.
   - Executes isolated NumPy/SciPy simulations with a self-healing loop for runtime syntax errors.
 - **FR-4.2 Visual Artifact Rendering:**
   - Produces 300 DPI Matplotlib phase portrait figures encoded as base64 images and disk-persisted `.png` files.
 
+### 5.5 Epic 5: Interactive Canvas & Simulation Workbench
+- **FR-5.1 Inline Section Refinement (Canvas Mode):**
+  - Users can highlight specific sections or paragraphs in the research report and provide a natural language prompt (e.g., *"fortify with amsmath equations"*, *"simplify explanation"*).
+  - Backend executes targeted revision via `POST /api/canvas/refine` and generates `v3 Refined` draft without re-running the entire pipeline.
+- **FR-5.2 Live Simulation Parameter Rerun:**
+  - Users can adjust parameters (e.g., dissipation coefficient $\gamma$, drive amplitude $F_0$) via `POST /api/simulation/rerun`.
+  - Re-executes the ODE numerical integration in real time ($< 1.5\text{s}$) and updates the embedded figure dynamically.
+
+### 5.6 Epic 6: Multi-Format Scientific Deliverables
+- **FR-6.1 LaTeX Export:** Exports research reports as publication-grade `.tex` documents with `\usepackage{amsmath,amssymb,hyperref}`.
+- **FR-6.2 BibTeX Export:** Generates standardized `.bib` entries for all cited sources with DOIs and URLs.
+- **FR-6.3 Calendar Logistics:** Exports RFC-5545 `.ics` meeting invites with proposed debriefing slots.
+
 ---
 
-## 5. Non-Functional Requirements (NFRs)
+## 6. Non-Functional Requirements (NFRs)
 
 | ID | Category | Requirement Description | Target Metric |
 | :--- | :--- | :--- | :--- |
@@ -144,7 +190,7 @@ Current generative search systems suffer from two systemic failures:
 
 ---
 
-## 6. Success Metrics & Key Performance Indicators (KPIs)
+## 7. Success Metrics & Key Performance Indicators (KPIs)
 
 1. **Factual Grounding Ratio:** $\ge 95\%$ of quantitative assertions directly traced to indexed catalog sources.
 2. **Zero Citation Error Rate:** $100\%$ of rendered inline citation pills `[n]` link to valid, active source domains.
