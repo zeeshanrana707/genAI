@@ -697,7 +697,13 @@ def stream_multi_agent_pipeline(
         "12. INDUSTRY & PHYSICS ACCURACY: Verify company chemistries against cited sources (e.g. Solid Power = sulfide argyrodite with BMW/Ford, QuantumScape = ceramic/oxide garnet separator with VW/PowerCo, ProLogium = oxide/silicon hybrid). In dendrite analyses, do not rely solely on the Monroe-Newman shear modulus model; acknowledge grain boundary propagation in LLZO and required stack pressure ($1\\text{--}5+\\text{ MPa}$) in sulfides.\n"
         "13. MANDATORY BIBLIOGRAPHY: You MUST conclude your response with a dedicated section:\n"
         "   ### 📚 Sources & References\n"
-        "   listing each cited [1], [2] with its Title and URL/Domain verbatim from the catalog."
+        "   listing each cited [1], [2] with its Title and URL/Domain verbatim from the catalog.\n"
+        "14. NEUROMORPHIC COMPUTING & HARDWARE INTEGRITY: When discussing neuromorphic systems, ensure precise historical and hardware attribution:\n"
+        "   - SynSense was founded in Zurich in 2017 as aiCTX by Giacomo Indiveri & Ning Qiao (rebranded in 2020). iniLabs was an earlier spinoff (2009) that pioneered DVS and spun out iniVation (later acquired by Prophesee).\n"
+        "   - Intel Loihi 2 is fabricated on the Intel 4 EUV process node (formerly Intel 7nm EUV). Do not conflate the Intel 4 marketing brand with physical 4nm gate dimensions. Highlight its programmable microcode execution engine and integer graded spikes.\n"
+        "   - Quantify synaptic Accumulate (AC) vs Multiply-Accumulate (MAC) ($0.1\\text{ pJ}$ for INT32 add vs $\\sim 3.7\\text{ pJ}$ for FP32 multiply). Disambiguate power regimes: standby/sparse sensing ($10\\text{--}500\\ \\mu\\text{W}$) vs active dynamic perception ($0.5\\text{--}15\\text{ mW}$).\n"
+        "   - Emphasize that Poisson rate-coding conventional RGB frames destroys temporal precision and dynamic range; contrast with native asynchronous event cameras (DVS).\n"
+        "15. STRUCTURAL CONTINUITY & NO RESTART GLITCHES: Ensure unbroken prose flow. Never concatenate fragmented sentences across unpunctuated commas, and never duplicate or restart introductory overviews midway through the draft."
     )
     if is_referential_followup:
         editor_system_instruction += (

@@ -160,6 +160,60 @@ class DeterministicRuleBasedVerifier:
         return sanitized_text, stats
 
     @classmethod
+    def audit_and_sanitize_factual_and_structural_integrity(cls, text: str) -> Tuple[str, List[str]]:
+        """Deterministically audits and auto-repairs structural copy-paste collisions,
+        sentence fracturing, company lineage misattributions, and node naming conflations.
+        
+        Returns:
+            Tuple of (sanitized_text, list_of_fixes_applied)
+        """
+        if not text:
+            return text, []
+
+        fixes: List[str] = []
+
+        # 1. Structural Repair: Comma collision with new sentence (e.g. "...time,Neuromorphic hardware...")
+        def fix_comma_collision(m):
+            fixes.append(f"Fixed comma sentence fracture: '{m.group(1)},{m.group(2)}'")
+            return f"{m.group(1)}.\n\n{m.group(2)}"
+
+        text = re.sub(r'([a-z0-9\)])\s*,\s*([A-Z][a-z]+(?:\s+[a-z]+){2,})', fix_comma_collision, text)
+
+        # 2. Structural Repair: Missing space sentence collision (e.g. "...electrodeAs of 2026...")
+        def fix_word_collision(m):
+            fixes.append(f"Fixed fused word boundary: '{m.group(1)}' + '{m.group(2)}'")
+            return f"{m.group(1)}. {m.group(2)}"
+
+        text = re.sub(r'([a-z]{3,})([A-Z][a-z]*(?:\s+[a-zA-Z0-9_\-]+){2,})', fix_word_collision, text)
+
+        # 3. Neuromorphic Company Lineage Repair: SynSense vs iniLabs/iniVation
+        def fix_synsense_lineage(m):
+            fixes.append("Corrected SynSense historical lineage (aiCTX vs iniLabs/iniVation)")
+            return (
+                "SynSense (founded as aiCTX in Zurich in 2017 by Giacomo Indiveri and Ning Qiao, "
+                "rebranded to SynSense in 2020; iniLabs was the separate earlier spinoff that pioneered DVS "
+                "and spun out iniVation, later acquired by Prophesee)"
+            )
+
+        text = re.sub(r'\bSynSense\s*\(\s*(?:formerly|previously)\s+iniLabs\s*\)', fix_synsense_lineage, text, flags=re.IGNORECASE)
+        text = re.sub(r'\bSynSense\s*(?:was\s+)?formerly\s+iniLabs\b', fix_synsense_lineage, text, flags=re.IGNORECASE)
+
+        # 4. Process Node Repair: Intel Loihi 2 (Intel 4 EUV node vs 4nm literal geometry)
+        def fix_loihi_node(m):
+            fixes.append("Clarified Intel 4 EUV process node vs literal 4nm gate geometry for Loihi 2")
+            return "Loihi 2 (fabricated on the Intel 4 EUV process node, previously designated Intel 7nm EUV)"
+
+        text = re.sub(r'\bLoihi\s*2\b.*?\b(?:built\s+on\s+a\s+4\s*nm\s+process|on\s+a\s+4\s*nm\s+node)\b', fix_loihi_node, text, flags=re.IGNORECASE)
+
+        # 5. Electrochemistry Company Alignment: QuantumScape vs Solid Power
+        if re.search(r'QuantumScape\b.*?\bsulfide\b', text, re.IGNORECASE) and re.search(r'Solid\s*Power\b.*?\boxide\b', text, re.IGNORECASE):
+            fixes.append("Corrected Solid Power (sulfide) and QuantumScape (oxide/ceramic) electrolyte alignment")
+            text = re.sub(r'(QuantumScape\b[^\n]*?)(sulfide)', r'\1oxide/ceramic', text, flags=re.IGNORECASE)
+            text = re.sub(r'(Solid\s*Power\b[^\n]*?)(oxide)', r'\1sulfide', text, flags=re.IGNORECASE)
+
+        return text, fixes
+
+    @classmethod
     def audit_and_sanitize_latex_and_chemistry(cls, text: str) -> Tuple[str, List[str]]:
         """Sanitizes chemical formulas, fixes broken LaTeX math subscripts and delimiters,
         and eliminates accidental adjacent duplicated formula tokens.
@@ -171,6 +225,10 @@ class DeterministicRuleBasedVerifier:
             return text, []
 
         fixes: List[str] = []
+
+        # Run factual and structural integrity audit first
+        text, struct_fixes = cls.audit_and_sanitize_factual_and_structural_integrity(text)
+        fixes.extend(struct_fixes)
 
         # 1. Eliminate accidental duplicated formula names like LGPS(),LGPS(...) or andLPS(),andLPS(...)
         def dedupe_func(m):
@@ -338,7 +396,9 @@ class ProcessGroundingVerifier:
             "Assess:\n"
             "1. Grounding & Citations: Are factual claims supported by references [1], [2]?\n"
             "2. Depth & Specificity: Did it explain concrete mechanisms rather than vague summaries?\n"
-            "3. Logical Consistency: Are there unsupported assumptions or leaps?\n\n"
+            "3. Structural Continuity: Are there mid-sentence cuts, copy-paste collisions, or duplicated overview headers?\n"
+            "4. Factual Precision: Check corporate lineages (e.g. SynSense/aiCTX vs iniLabs; Solid Power vs QuantumScape), process nodes (Intel 4 EUV vs literal 4nm gate), and mathematical units (AC vs MAC energy in pJ).\n"
+            "5. Logical Consistency: Are there unsupported assumptions or leaps?\n\n"
             "Output your critique in this exact format:\n"
             "SCORE: <integer 0-100>\n"
             "CRITIQUE:\n"
