@@ -126,31 +126,12 @@
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     .searching-active-container {
-      background: transparent !important;
-      border-color: transparent !important;
-      border-bottom: 1px solid var(--border-subtle) !important;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
-      border-radius: 0.75rem !important;
-      padding-left: 0.25rem !important;
-      padding-right: 0.25rem !important;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-      --tw-ring-shadow: 0 0 #0000 !important;
-      --tw-ring-offset-shadow: 0 0 #0000 !important;
+      box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.45) !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     .searching-active-container:focus-within {
-      border-color: transparent !important;
-      border-bottom-color: var(--accent) !important;
-      box-shadow: 0 4px 14px -4px var(--accent-glow) !important;
-    }
-    .searching-active-container #uploadPaperBtn {
-      border-color: transparent !important;
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-    .searching-active-container #uploadPaperBtn:hover {
-      background: var(--btn-hover) !important;
-      color: var(--text-main) !important;
+      border-color: var(--accent) !important;
+      box-shadow: 0 0 25px -4px var(--accent-glow) !important;
     }
     .bottom-fade-gradient {
       background: linear-gradient(to top, var(--bg-main) 0%, var(--bg-main-fade) 70%, transparent 100%) !important;
@@ -289,6 +270,45 @@
     [data-theme="light"] #searchBtn, .light #searchBtn {
       background-color: #0284c7 !important;
       color: #ffffff !important;
+    }
+    [data-theme="light"] .input-toolbar-divider, .light .input-toolbar-divider {
+      border-color: #e2e8f0 !important;
+    }
+    [data-theme="light"] #clearPromptBtn, .light #clearPromptBtn {
+      color: #64748b !important;
+    }
+    [data-theme="light"] #clearPromptBtn:hover, .light #clearPromptBtn:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] #enhancePromptBtn, .light #enhancePromptBtn {
+      color: #0284c7 !important;
+    }
+    [data-theme="light"] #enhancePromptBtn:hover, .light #enhancePromptBtn:hover {
+      background-color: #e0f2fe !important;
+      color: #0369a1 !important;
+    }
+    [data-theme="light"] #voiceInputBtn, .light #voiceInputBtn {
+      color: #64748b !important;
+    }
+    [data-theme="light"] #voiceInputBtn:hover, .light #voiceInputBtn:hover {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    [data-theme="light"] #webSearchToggleBtn, .light #webSearchToggleBtn {
+      background-color: #f0fdf4 !important;
+      border-color: #bbf7d0 !important;
+      color: #15803d !important;
+    }
+    [data-theme="light"] #slashCommandsMenu, .light #slashCommandsMenu {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15) !important;
+    }
+    [data-theme="light"] #dropzoneOverlay, .light #dropzoneOverlay {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border-color: #0284c7 !important;
+      color: #0369a1 !important;
     }
 
     /* Markdown prose & typography in Light Mode - Deep Ink & High Contrast */
@@ -897,58 +917,155 @@
         <div id="uploadedPapersList" class="hidden flex items-center space-x-2 overflow-x-auto custom-scrollbar pb-1 text-xs">
         </div>
 
-        <div id="searchBarContainer" class="glass-search rounded-2xl p-2 sm:p-2.5 shadow-2xl flex items-center space-x-2 transition-all border border-pplx-border">
+        <!-- Slash Commands Popover Menu -->
+        <div id="slashCommandsMenu" class="hidden absolute bottom-full left-0 right-0 mb-2 p-1.5 rounded-2xl glass-search border border-pplx-border shadow-2xl z-40 backdrop-blur-xl transition-all">
+          <div class="px-2.5 py-1 text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between border-b border-pplx-border/60 pb-1 mb-1">
+            <span class="flex items-center space-x-1.5">
+              <span class="text-cyan-400">⚡</span>
+              <span>Epistemic Actions &amp; Slash Commands</span>
+            </span>
+            <span class="text-[9px] text-slate-500 font-mono">↑↓ to navigate • Enter to select • Esc to dismiss</span>
+          </div>
+          <div id="slashCommandsList" class="space-y-0.5 max-h-56 overflow-y-auto custom-scrollbar p-0.5">
+          </div>
+        </div>
+
+        <!-- Main Antigravity Input Box Container -->
+        <div id="searchBarContainer" class="relative glass-search rounded-2xl shadow-2xl transition-all border border-pplx-border overflow-hidden">
           
-          <!-- Upload PDF / Attachment Button inside Input Box (Paperclip Icon) -->
-          <label id="uploadPaperBtn" class="w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all border border-pplx-border hover:border-slate-600 bg-pplx-card/80 hover:bg-slate-800 text-slate-400 hover:text-slate-200 active:scale-95 flex-shrink-0" title="Attach & upload PDF paper or document">
-            <span id="uploadSpinner" class="hidden animate-spin text-cyan-400 text-xs">✦</span>
-            <span id="uploadIcon" class="flex items-center justify-center">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
-            </span>
-            <input type="file" id="paperUploadInput" accept=".pdf" class="hidden" onchange="handlePaperUpload(this)" />
-          </label>
+          <!-- Drag & Drop Dropzone Overlay -->
+          <div id="dropzoneOverlay" class="hidden absolute inset-0 z-30 bg-slate-900/90 dark:bg-slate-950/95 border-2 border-dashed border-cyan-400 rounded-2xl flex items-center justify-center space-x-2 text-cyan-300 backdrop-blur-md pointer-events-none transition-all">
+            <span class="text-xl animate-bounce">📑</span>
+            <span class="font-medium text-xs sm:text-sm">Drop PDF research papers here to ground query in local context</span>
+          </div>
 
-          <input
-            id="promptInput"
-            type="text"
-            placeholder="Ask anything... (Fast Chat like ChatGPT / DeepSeek)"
-            class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-2 font-sans"
-          />
+          <!-- Tier 1: Auto-Expanding Multiline Prompt Area -->
+          <div class="relative px-3 pt-2.5 pb-1 flex items-start">
+            <textarea
+              id="promptInput"
+              rows="1"
+              placeholder="Ask anything, test a hypothesis, or type / for commands..."
+              class="w-full bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-400/70 focus:outline-none resize-none overflow-y-auto leading-relaxed custom-scrollbar py-1 pr-16 min-h-[42px] max-h-[220px] font-sans"
+              oninput="autoResizePromptInput()"
+            ></textarea>
 
-          <!-- Professional Deep Search Button (Icon-Only Planetary / Star Radar) -->
-          <button
-            id="deepResearchToggleBtn"
-            type="button"
-            onclick="toggleDeepResearchMode()"
-            class="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-purple-950/30 hover:bg-purple-900/40 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 shadow-sm"
-            title="Toggle Deep Search (OFF: Fast Chat | ON: 5-Agent Literature Mining & Epistemic Audit)"
-          >
-            <span id="deepResearchIcon" class="flex items-center justify-center text-purple-400 group-hover:text-purple-300 transition-colors">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="7"></circle>
-                <path d="M21 21l-4.35-4.35"></path>
-                <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="currentColor" stroke="none"></polygon>
-              </svg>
-            </span>
-          </button>
+            <!-- Quick Inline Text Actions (Clear & Prompt Enhancer) -->
+            <div class="absolute right-3 top-2.5 flex items-center space-x-1">
+              <!-- Clear Button (Visible only when text is entered) -->
+              <button
+                id="clearPromptBtn"
+                type="button"
+                onclick="clearPromptInput()"
+                class="hidden w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all text-xs cursor-pointer"
+                title="Clear input (Esc)"
+              >
+                ✕
+              </button>
 
+              <!-- Prompt Enhancer Magic Sparkle -->
+              <button
+                id="enhancePromptBtn"
+                type="button"
+                onclick="enhanceCurrentPrompt()"
+                class="w-6 h-6 rounded-lg flex items-center justify-center text-cyan-400 hover:text-cyan-200 hover:bg-cyan-950/40 transition-all text-xs cursor-pointer group"
+                title="Enhance prompt with rigorous scientific phrasing"
+              >
+                <span class="group-hover:scale-110 transition-transform">✦</span>
+              </button>
+            </div>
+          </div>
 
-          <!-- Submit / Stop Action Button (Icon-Only: Send Arrow or Pulsing Red Block) -->
-          <button
-            id="searchBtn"
-            onclick="handleSearchBtnClick()"
-            type="button"
-            class="w-9 h-9 rounded-xl font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer"
-            title="Send prompt"
-          >
-            <span id="searchBtnIcon" class="flex items-center justify-center">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-              </svg>
-            </span>
-          </button>
+          <!-- Tier 2: Bottom Utility Toolbar -->
+          <div class="input-toolbar-divider border-t border-slate-700/30 px-3 py-1.5 flex items-center justify-between gap-2 select-none">
+            
+            <!-- Left Controls: Attach, Deep Search Pill, Web Toggle -->
+            <div class="flex items-center space-x-1.5 sm:space-x-2 overflow-x-auto custom-scrollbar py-0.5">
+              
+              <!-- Paperclip / Upload Attachment -->
+              <label id="uploadPaperBtn" class="h-7 px-2 rounded-lg flex items-center space-x-1.5 cursor-pointer transition-all border border-pplx-border hover:border-slate-500 bg-pplx-card/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs select-none flex-shrink-0" title="Attach &amp; index PDF paper">
+                <span id="uploadSpinner" class="hidden animate-spin text-cyan-400 text-[10px]">✦</span>
+                <span id="uploadIcon" class="flex items-center justify-center">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </span>
+                <span class="text-[11px] hidden sm:inline font-medium">Attach</span>
+                <span id="paperBadgeCount" class="hidden text-[10px] bg-cyan-500/20 text-cyan-300 font-mono px-1 rounded-full">0</span>
+                <input type="file" id="paperUploadInput" accept=".pdf" multiple class="hidden" onchange="handlePaperUpload(this)" />
+              </label>
+
+              <!-- Deep Research Pill Toggle -->
+              <button
+                id="deepResearchToggleBtn"
+                type="button"
+                onclick="toggleDeepResearchMode()"
+                class="h-7 px-2.5 rounded-lg flex items-center space-x-1.5 transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-purple-950/30 hover:bg-purple-900/40 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 text-xs shadow-sm"
+                title="Toggle Deep Search (OFF: Fast Chat | ON: 5-Agent Literature Mining &amp; Epistemic Audit)"
+              >
+                <span id="deepResearchDot" class="w-1.5 h-1.5 rounded-full bg-purple-400 transition-all"></span>
+                <span id="deepResearchIcon" class="flex items-center justify-center">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                    <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="currentColor" stroke="none"></polygon>
+                  </svg>
+                </span>
+                <span id="deepResearchLabel" class="text-[11px] font-medium tracking-tight">Deep Audit: OFF</span>
+              </button>
+
+              <!-- Web / arXiv Grounding Toggle -->
+              <button
+                id="webSearchToggleBtn"
+                type="button"
+                onclick="toggleWebSearchMode()"
+                class="h-7 px-2 rounded-lg flex items-center space-x-1 transition-all border flex-shrink-0 cursor-pointer select-none bg-cyan-950/20 hover:bg-cyan-900/30 text-cyan-300 hover:text-cyan-100 border-cyan-500/20 hover:border-cyan-400/40 text-xs"
+                title="Toggle Live Web &amp; arXiv Grounding"
+              >
+                <span class="text-xs">🌐</span>
+                <span id="webSearchLabel" class="text-[11px] font-medium hidden sm:inline">Web: ON</span>
+              </button>
+
+            </div>
+
+            <!-- Right Controls: Word/Token Counter, Mic Dictation, Send/Stop -->
+            <div class="flex items-center space-x-2 flex-shrink-0">
+              
+              <!-- Word & Token Live Counter -->
+              <span id="inputStatsBadge" class="hidden md:inline-block text-[10px] font-mono text-slate-500 tracking-tight select-none">
+                0 words • ~0 tok
+              </span>
+
+              <!-- Voice Input Dictation Button -->
+              <button
+                id="voiceInputBtn"
+                type="button"
+                onclick="toggleVoiceDictation()"
+                class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700"
+                title="Voice dictation (Click to speak)"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+              </button>
+
+              <!-- Submit / Stop Action Button -->
+              <button
+                id="searchBtn"
+                onclick="handleSearchBtnClick()"
+                type="button"
+                class="w-8 h-8 rounded-xl font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer"
+                title="Send prompt (Enter)"
+              >
+                <span id="searchBtnIcon" class="flex items-center justify-center">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                </span>
+              </button>
+
+            </div>
+
+          </div>
 
         </div>
       </div>
@@ -1645,46 +1762,30 @@
 
     function updateDeepResearchUI() {
       const btn = document.getElementById('deepResearchToggleBtn');
+      const dot = document.getElementById('deepResearchDot');
+      const label = document.getElementById('deepResearchLabel');
       const icon = document.getElementById('deepResearchIcon');
       const input = document.getElementById('promptInput');
       const bar = document.getElementById('searchBarContainer');
       if (!btn) return;
 
       if (isDeepResearchActive) {
-        btn.className = 'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white font-bold border-violet-300/70 shadow-[0_0_20px_rgba(168,85,247,0.55)] ring-2 ring-violet-400/50 scale-105';
+        btn.className = 'h-7 px-2.5 rounded-lg flex items-center space-x-1.5 transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white font-bold border-violet-300/70 shadow-[0_0_15px_rgba(168,85,247,0.45)] ring-1 ring-violet-400/50 text-xs';
         btn.title = 'Deep Search: ON (5-Agent Literature Mining, arXiv indexing & Epistemic Audit) — Click for Fast Chat';
-        if (icon) {
-          icon.className = 'flex items-center justify-center text-white';
-          icon.innerHTML = `
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="7"></circle>
-              <path d="M21 21l-4.35-4.35"></path>
-              <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="white" stroke="none"></polygon>
-            </svg>
-          `;
-        }
-        if (input) input.placeholder = 'Deep Search active: Enter any research inquiry, complex hypothesis, or technical question...';
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-white animate-pulse';
+        if (label) label.innerText = 'Deep Audit: ON';
+        if (input) input.placeholder = 'Deep Search active: Test a scientific claim, derivation, or complex hypothesis...';
         if (bar) {
-          bar.classList.add('border-purple-500/50', 'shadow-[0_0_30px_rgba(147,51,234,0.22)]', 'ring-1', 'ring-purple-500/30');
-          bar.classList.remove('border-pplx-border');
+          bar.classList.add('border-purple-500/50', 'shadow-[0_0_25px_rgba(147,51,234,0.18)]');
         }
       } else {
-        btn.className = 'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-purple-950/30 hover:bg-purple-900/40 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 shadow-sm';
-        btn.title = 'Deep Search: OFF (Instant Fast Chat like ChatGPT / DeepSeek) — Click to activate Deep Search';
-        if (icon) {
-          icon.className = 'flex items-center justify-center text-purple-400 group-hover:text-purple-300 transition-colors';
-          icon.innerHTML = `
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="7"></circle>
-              <path d="M21 21l-4.35-4.35"></path>
-              <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="currentColor" stroke="none"></polygon>
-            </svg>
-          `;
-        }
-        if (input) input.placeholder = 'Ask anything... (Fast Chat like ChatGPT / DeepSeek)';
+        btn.className = 'h-7 px-2.5 rounded-lg flex items-center space-x-1.5 transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-purple-950/30 hover:bg-purple-900/40 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 text-xs shadow-sm';
+        btn.title = 'Deep Search: OFF (Fast Chat like ChatGPT / DeepSeek) — Click to activate Deep Search';
+        if (dot) dot.className = 'w-1.5 h-1.5 rounded-full bg-purple-400';
+        if (label) label.innerText = 'Deep Audit: OFF';
+        if (input) input.placeholder = 'Ask anything, test a hypothesis, or type / for commands...';
         if (bar) {
-          bar.classList.remove('border-purple-500/50', 'shadow-[0_0_30px_rgba(147,51,234,0.22)]', 'ring-1', 'ring-purple-500/30');
-          bar.classList.add('border-pplx-border');
+          bar.classList.remove('border-purple-500/50', 'shadow-[0_0_25px_rgba(147,51,234,0.18)]');
         }
       }
 
@@ -1695,11 +1796,328 @@
       if (isResearchRunning) return;
       if (!searchBtn) return;
       if (isDeepResearchActive) {
-        searchBtn.className = 'w-9 h-9 rounded-xl font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-purple-500/35 border border-violet-300/40 flex-shrink-0 cursor-pointer';
+        searchBtn.className = 'w-8 h-8 rounded-xl font-bold text-white bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-purple-500/35 border border-violet-300/40 flex-shrink-0 cursor-pointer';
       } else {
-        searchBtn.className = 'w-9 h-9 rounded-xl font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer';
+        searchBtn.className = 'w-8 h-8 rounded-xl font-bold text-black bg-cyan-400 hover:bg-cyan-300 active:scale-95 transition-all flex items-center justify-center shadow-md shadow-cyan-400/20 flex-shrink-0 cursor-pointer';
       }
     }
+
+    // =========================================================================
+    // Antigravity Input Engine (Auto-Resize, Stats, Voice, Slash Commands, History)
+    // =========================================================================
+    let isWebSearchActive = true;
+    function toggleWebSearchMode() {
+      isWebSearchActive = !isWebSearchActive;
+      const btn = document.getElementById('webSearchToggleBtn');
+      const label = document.getElementById('webSearchLabel');
+      if (!btn) return;
+      if (isWebSearchActive) {
+        btn.className = 'h-7 px-2 rounded-lg flex items-center space-x-1 transition-all border flex-shrink-0 cursor-pointer select-none bg-cyan-950/20 hover:bg-cyan-900/30 text-cyan-300 hover:text-cyan-100 border-cyan-500/20 hover:border-cyan-400/40 text-xs';
+        if (label) label.innerText = 'Web: ON';
+        btn.title = 'Web & arXiv Grounding: ON';
+      } else {
+        btn.className = 'h-7 px-2 rounded-lg flex items-center space-x-1 transition-all border flex-shrink-0 cursor-pointer select-none bg-slate-800/40 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700/50 text-xs';
+        if (label) label.innerText = 'Web: OFF';
+        btn.title = 'Web & arXiv Grounding: OFF (Local context only)';
+      }
+    }
+
+    function autoResizePromptInput() {
+      const input = document.getElementById('promptInput');
+      const stats = document.getElementById('inputStatsBadge');
+      const clearBtn = document.getElementById('clearPromptBtn');
+      if (!input) return;
+
+      input.style.height = 'auto';
+      const newHeight = Math.min(Math.max(input.scrollHeight, 42), 220);
+      input.style.height = newHeight + 'px';
+
+      const val = input.value;
+      if (clearBtn) {
+        clearBtn.classList.toggle('hidden', val.length === 0);
+      }
+
+      if (stats) {
+        const trimmed = val.trim();
+        const words = trimmed ? trimmed.split(/\s+/).length : 0;
+        const approxTok = Math.round(val.length / 3.8);
+        stats.innerText = `${words} word${words === 1 ? '' : 's'} • ~${approxTok} tok`;
+      }
+
+      checkSlashCommandTrigger(val);
+    }
+
+    function clearPromptInput() {
+      const input = document.getElementById('promptInput');
+      if (!input) return;
+      input.value = '';
+      autoResizePromptInput();
+      closeSlashCommandsMenu();
+      input.focus();
+    }
+
+    function enhanceCurrentPrompt() {
+      const input = document.getElementById('promptInput');
+      if (!input) return;
+      const current = input.value.trim();
+      if (!current) {
+        input.value = "Conduct an epistemic synthesis on: [Topic]. Formulate the null hypothesis, derive the governing equations, and evaluate empirical boundary conditions.";
+      } else {
+        if (!current.toLowerCase().startsWith('critically evaluate') && !current.toLowerCase().startsWith('rigorously derive')) {
+          input.value = `Critically evaluate and derive the underlying physical mechanisms, empirical benchmarks, and edge cases for: ${current}. Include governing formulas, stoichiometry/units, and counterarguments.`;
+        }
+      }
+      autoResizePromptInput();
+      input.focus();
+    }
+
+    // Voice Dictation via Web Speech API
+    let speechRecognitionInstance = null;
+    let isVoiceRecording = false;
+
+    function toggleVoiceDictation() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const btn = document.getElementById('voiceInputBtn');
+      const input = document.getElementById('promptInput');
+      if (!SpeechRecognition) {
+        alert('Voice dictation is not supported by your current browser. Supported in Chrome, Edge, Safari.');
+        return;
+      }
+
+      if (isVoiceRecording && speechRecognitionInstance) {
+        speechRecognitionInstance.stop();
+        return;
+      }
+
+      try {
+        speechRecognitionInstance = new SpeechRecognition();
+        speechRecognitionInstance.continuous = false;
+        speechRecognitionInstance.interimResults = false;
+        speechRecognitionInstance.lang = 'en-US';
+
+        speechRecognitionInstance.onstart = () => {
+          isVoiceRecording = true;
+          if (btn) {
+            btn.className = 'w-7 h-7 rounded-lg flex items-center justify-center bg-red-500/20 text-red-400 border border-red-500/50 animate-pulse transition-all cursor-pointer';
+            btn.title = 'Listening... Speak clearly (Click to stop)';
+          }
+        };
+
+        speechRecognitionInstance.onresult = (e) => {
+          const transcript = e.results[0][0].transcript;
+          if (input && transcript) {
+            input.value = (input.value ? input.value + ' ' : '') + transcript;
+            autoResizePromptInput();
+            input.focus();
+          }
+        };
+
+        speechRecognitionInstance.onerror = (e) => {
+          console.warn('Voice recognition error:', e.error);
+          stopVoiceRecordingUI();
+        };
+
+        speechRecognitionInstance.onend = () => {
+          stopVoiceRecordingUI();
+        };
+
+        speechRecognitionInstance.start();
+      } catch (err) {
+        console.error('Failed to start voice recognition:', err);
+        stopVoiceRecordingUI();
+      }
+    }
+
+    function stopVoiceRecordingUI() {
+      isVoiceRecording = false;
+      const btn = document.getElementById('voiceInputBtn');
+      if (btn) {
+        btn.className = 'w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-all cursor-pointer border border-transparent hover:border-slate-700';
+        btn.title = 'Voice dictation (Click to speak)';
+      }
+    }
+
+    // Drag-and-Drop Ingestion for Reference Papers
+    function initInputDragAndDrop() {
+      const container = document.getElementById('searchBarContainer');
+      const overlay = document.getElementById('dropzoneOverlay');
+      if (!container || !overlay) return;
+
+      let dragCounter = 0;
+
+      container.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragCounter++;
+        overlay.classList.remove('hidden');
+      });
+
+      container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      });
+
+      container.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter <= 0) {
+          dragCounter = 0;
+          overlay.classList.add('hidden');
+        }
+      });
+
+      container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        overlay.classList.add('hidden');
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          const fileInput = document.getElementById('paperUploadInput');
+          if (fileInput) {
+            fileInput.files = files;
+            handlePaperUpload(fileInput);
+          }
+        }
+      });
+    }
+
+    // Slash Commands Popover Engine
+    const SLASH_COMMANDS = [
+      {
+        command: '/audit',
+        label: 'Adversarial Claim Audit (5 Agents)',
+        desc: 'Decompose claims into verifiable premises and perform deep scientific verification.',
+        icon: '🔬',
+        action: (input) => {
+          input.value = 'Rigorously audit the stoichiometric, thermodynamic, and mechanical claims in the following analysis: ';
+          if (!isDeepResearchActive) toggleDeepResearchMode();
+        }
+      },
+      {
+        command: '/synthesize',
+        label: 'Literature Consensus Matrix',
+        desc: 'Cross-synthesize findings, extract consensus vs contention, and outline open gaps.',
+        icon: '📊',
+        action: (input) => {
+          input.value = 'Synthesize recent high-impact empirical literature and state-of-the-art benchmarks on: ';
+          if (!isDeepResearchActive) toggleDeepResearchMode();
+        }
+      },
+      {
+        command: '/canvas',
+        label: 'OpenAI Canvas Refinement',
+        desc: 'Direct drafting mode to revise equations, code, or technical sections.',
+        icon: '📝',
+        action: (input) => {
+          input.value = 'Refine and formalize the theoretical derivation for: ';
+        }
+      },
+      {
+        command: '/latex',
+        label: 'LaTeX Equation Derivation Scaffold',
+        desc: 'Derive governing equations with explicit boundary conditions and dimensional checks.',
+        icon: '∑',
+        action: (input) => {
+          input.value = 'Derive the analytical governing equations and check dimensional consistency for: ';
+        }
+      },
+      {
+        command: '/code',
+        label: 'Python Simulation Benchmark',
+        desc: 'Generate runnable Python benchmark code with NumPy, SciPy, and Matplotlib.',
+        icon: '💻',
+        action: (input) => {
+          input.value = 'Develop a runnable Python numerical simulation script to model and visualize: ';
+        }
+      },
+      {
+        command: '/deep',
+        label: 'Toggle Deep Search Mode',
+        desc: 'Switch between Fast Chat and 5-Agent Literature Mining mode.',
+        icon: '🪐',
+        action: (input) => {
+          toggleDeepResearchMode();
+          input.value = '';
+        }
+      },
+      {
+        command: '/clear',
+        label: 'Clear Thread History',
+        desc: 'Reset active conversation and clear memory context.',
+        icon: '🧹',
+        action: () => {
+          resetToNewSearch();
+        }
+      }
+    ];
+
+    let activeSlashIndex = 0;
+    let filteredSlashCommands = [];
+
+    function checkSlashCommandTrigger(text) {
+      const menu = document.getElementById('slashCommandsMenu');
+      if (!menu) return;
+
+      if (text.startsWith('/')) {
+        const query = text.slice(1).toLowerCase().trim();
+        filteredSlashCommands = SLASH_COMMANDS.filter(c => 
+          c.command.toLowerCase().includes(query) || 
+          c.label.toLowerCase().includes(query)
+        );
+        if (filteredSlashCommands.length > 0) {
+          renderSlashCommandsMenu();
+          menu.classList.remove('hidden');
+          return;
+        }
+      }
+      closeSlashCommandsMenu();
+    }
+
+    function closeSlashCommandsMenu() {
+      const menu = document.getElementById('slashCommandsMenu');
+      if (menu) menu.classList.add('hidden');
+      activeSlashIndex = 0;
+    }
+
+    function renderSlashCommandsMenu() {
+      const list = document.getElementById('slashCommandsList');
+      if (!list) return;
+
+      if (activeSlashIndex >= filteredSlashCommands.length) {
+        activeSlashIndex = 0;
+      }
+
+      list.innerHTML = filteredSlashCommands.map((cmd, idx) => `
+        <div 
+          onclick="executeSlashCommand(${idx})"
+          class="flex items-center space-x-2.5 px-2.5 py-1.5 rounded-xl cursor-pointer transition-colors ${idx === activeSlashIndex ? 'bg-cyan-500/15 border border-cyan-500/30 text-white' : 'hover:bg-slate-800/50 text-slate-300'}"
+        >
+          <span class="w-6 h-6 rounded-lg flex items-center justify-center bg-slate-800/80 text-cyan-400 font-mono text-xs flex-shrink-0">${cmd.icon}</span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center space-x-2">
+              <span class="font-mono font-semibold text-xs text-cyan-300">${cmd.command}</span>
+              <span class="text-xs font-medium text-slate-200 truncate">${cmd.label}</span>
+            </div>
+            <div class="text-[10px] text-slate-400 truncate">${cmd.desc}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function executeSlashCommand(idx) {
+      const cmd = filteredSlashCommands[idx];
+      const input = document.getElementById('promptInput');
+      if (cmd && input) {
+        cmd.action(input);
+        autoResizePromptInput();
+        closeSlashCommandsMenu();
+        input.focus();
+      }
+    }
+
+    // Prompt History Traversal Engine (ArrowUp / ArrowDown)
+    const promptHistory = [];
+    let promptHistoryIndex = -1;
+    let savedCurrentInput = '';
 
     // Session Context Persistence
     let sessionId = localStorage.getItem('genai_session_id');
@@ -1968,21 +2386,105 @@
       loadActiveSessionFromDb();
       loadUploadedPapers();
       checkBackendHealth();
+      initInputDragAndDrop();
+      autoResizePromptInput();
     });
 
-    // Keyboard Shortcuts (Enter or Ctrl/Cmd + Enter)
+    // Advanced Keyboard Ergonomics (Enter, Shift+Enter, Slash Navigation, History)
     promptInput.addEventListener('keydown', (e) => {
+      const menu = document.getElementById('slashCommandsMenu');
+      const isMenuOpen = menu && !menu.classList.contains('hidden');
+
       if (e.key === 'Enter') {
+        if (e.shiftKey) {
+          // Allow newline insertion with Shift+Enter
+          setTimeout(autoResizePromptInput, 0);
+          return;
+        }
         e.preventDefault();
+
+        if (isMenuOpen && filteredSlashCommands.length > 0) {
+          executeSlashCommand(activeSlashIndex);
+          return;
+        }
+
         if (isResearchRunning) return;
         triggerDeepResearch();
+        return;
+      }
+
+      if (e.key === 'ArrowUp') {
+        if (isMenuOpen) {
+          e.preventDefault();
+          activeSlashIndex = (activeSlashIndex - 1 + filteredSlashCommands.length) % filteredSlashCommands.length;
+          renderSlashCommandsMenu();
+          return;
+        }
+        // Cycle backwards through prompt history if textarea is empty or cursor at start
+        if (promptInput.selectionStart === 0 && promptHistory.length > 0) {
+          e.preventDefault();
+          if (promptHistoryIndex === -1) {
+            savedCurrentInput = promptInput.value;
+            promptHistoryIndex = promptHistory.length - 1;
+          } else if (promptHistoryIndex > 0) {
+            promptHistoryIndex--;
+          }
+          promptInput.value = promptHistory[promptHistoryIndex];
+          autoResizePromptInput();
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        if (isMenuOpen) {
+          e.preventDefault();
+          activeSlashIndex = (activeSlashIndex + 1) % filteredSlashCommands.length;
+          renderSlashCommandsMenu();
+          return;
+        }
+        // Cycle forward through prompt history
+        if (promptHistoryIndex !== -1) {
+          e.preventDefault();
+          if (promptHistoryIndex < promptHistory.length - 1) {
+            promptHistoryIndex++;
+            promptInput.value = promptHistory[promptHistoryIndex];
+          } else {
+            promptHistoryIndex = -1;
+            promptInput.value = savedCurrentInput;
+          }
+          autoResizePromptInput();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (isMenuOpen) {
+          e.preventDefault();
+          closeSlashCommandsMenu();
+          return;
+        }
+        if (promptInput.value) {
+          e.preventDefault();
+          clearPromptInput();
+          return;
+        }
+        promptInput.blur();
+        return;
+      }
+
+      if (e.key === 'Tab' && isMenuOpen) {
+        e.preventDefault();
+        executeSlashCommand(activeSlashIndex);
+        return;
       }
     });
 
     document.addEventListener('keydown', (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // Global shortcut: Ctrl+/ or Cmd+K to focus promptInput
+      if ((e.metaKey || e.ctrlKey) && (e.key === '/' || e.key === 'k')) {
         e.preventDefault();
-        resetToNewSearch();
+        promptInput.focus();
+        promptInput.select();
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault();
@@ -2654,6 +3156,10 @@
       }
 
       activePrompt = prompt;
+      if (prompt && (promptHistory.length === 0 || promptHistory[promptHistory.length - 1] !== prompt)) {
+        promptHistory.push(prompt);
+      }
+      promptHistoryIndex = -1;
       const turnId = 'turn_' + Date.now();
       activeTurnId = turnId;
 
@@ -3911,6 +4417,15 @@
 
     function renderUploadedPapersList() {
       const list = document.getElementById('uploadedPapersList');
+      const badge = document.getElementById('paperBadgeCount');
+      if (badge) {
+        if (uploadedPapers.length > 0) {
+          badge.innerText = uploadedPapers.length;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+      }
       if (!list) return;
       if (!uploadedPapers.length) {
         list.classList.add('hidden');
