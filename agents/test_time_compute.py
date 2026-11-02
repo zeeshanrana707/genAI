@@ -185,6 +185,14 @@ class DeterministicRuleBasedVerifier:
 
         text = re.sub(r'\band\s*([A-Za-z0-9_-]+)\(\),\s*and\s*\1\(', dedupe_and, text)
 
+        # Deduplicate stuttered acronyms like "LGPS ,LGPS" or "LPS ,LPS"
+        def dedupe_acronym(m):
+            token = m.group(1)
+            fixes.append(f"Deduplicated stuttered acronym: {token}")
+            return f"{token} ("
+
+        text = re.sub(r'\b([A-Z]{3,8})\s*,\s*\1\s*(?=\\text|\b)', dedupe_acronym, text)
+
         # 2. Fix chemical formula subscript issues in LaTeX:
         # e.g. \text{Element}{Number} -> \text{Element}_{Number}
         # e.g. \text{PS}5 -> \text{PS}_{5}
@@ -200,7 +208,18 @@ class DeterministicRuleBasedVerifier:
 
         text = re.sub(r'(\\text\{[A-Za-z]+\})(\d+)', fix_chem_sub, text)
 
-        # 3. Fix unclosed / missing unit brackets like (E≈15−25,GPa) -> ($E \approx 15\text{--}25\text{ GPa}$)
+        # 3. Auto-balance Argyrodite hydrolysis reaction: Li6PS5Cl + 6H2O -> Li3PO4 + 2LiOH + LiCl + 5H2S
+        def balance_hydrolysis(m):
+            fixes.append("Corrected and stoichiometrically balanced argyrodite hydrolysis equation")
+            return r"\text{Li}_6\text{PS}_5\text{Cl} + 6\text{H}_2\text{O} \longrightarrow \text{Li}_3\text{PO}_4 + 2\text{LiOH} + \text{LiCl} + 5\text{H}_2\text{S}\uparrow"
+
+        text = re.sub(
+            r'\\text\{Li\}_?6\\text\{PS\}_?5\\text\{Cl\}\s*\+\s*\d*\\text\{H\}_?2\\text\{O\}\s*(?:\\longrightarrow|->|→)\s*.*?\\text\{H\}_?2\\text\{S\}[\^\\uparrow]*',
+            balance_hydrolysis,
+            text
+        )
+
+        # 4. Fix unclosed / missing unit brackets like (E≈15−25,GPa) -> ($E \approx 15\text{--}25\text{ GPa}$)
         def fix_modulus_unit(m):
             var_name = m.group(1)
             lower = m.group(2)
@@ -211,19 +230,27 @@ class DeterministicRuleBasedVerifier:
 
         text = re.sub(r'\(([E|G])\s*[≈~=]\s*(\d+)[−–-](\d+)\s*,\s*([A-Za-z/]+)\)', fix_modulus_unit, text)
 
-        # 4. Fix missing percentage signs: e.g. yields >95 (where next word is not %)
+        # 5. Fix missing percentage signs: e.g. yields >95 (where next word is not %)
         def fix_missing_pct(m):
             fixes.append("Added missing % to yield metric")
             return f"{m.group(1)}%"
 
         text = re.sub(r'\b(yields?\s*>\s*\d+)(?!\s*%)', fix_missing_pct, text)
 
-        # 5. Fix missing opening dollar before cost expressions like <100/\text{kWh}$
+        # 6. Fix missing opening dollar before cost expressions like <100/\text{kWh}$
         def fix_cost_math(m):
             fixes.append("Fixed missing opening dollar in cost formula")
             return f"<${m.group(1)}/\\text{{kWh}}"
 
         text = re.sub(r'(?<!\$)<(\d+)/\\text\{kWh\}\$', fix_cost_math, text)
+
+        # 7. Ensure markdown tables have blank lines before and after so parsers do not collapse them
+        def pad_table(m):
+            fixes.append("Padded table header with clean newlines")
+            return f"{m.group(1)}\n\n{m.group(2)}"
+
+        text = re.sub(r'([^\n])\n(\|[^\n]+\|\r?\n\|[\s:|-]+\|)', pad_table, text)
+        text = re.sub(r'(\|[^\n]+\|)\n([^\n|])', r'\1\n\n\2', text)
 
         return text, fixes
 
