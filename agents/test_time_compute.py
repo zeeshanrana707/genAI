@@ -228,6 +228,16 @@ class DeterministicRuleBasedVerifier:
             flags=re.IGNORECASE
         )
 
+        # 8. Reasoning Model Architecture & DeepSeek-R1 / R1-Zero Integrity
+        if re.search(r'DeepSeek-R1\b.*?\b(?:process\s*reward|rewarded.*?process)', text, re.IGNORECASE) and not re.search(r'avoided\s*Process\s*Reward', text, re.IGNORECASE):
+            fixes.append("Clarified DeepSeek-R1 reward mechanism (rule-based outcome/format reward, avoided PRMs)")
+            text = re.sub(
+                r'rewarded\s*(?:not\s*just\s*for\s*the\s*correct\s*final\s*answer,\s*but\s*for\s*the\s*process|for\s*the\s*process\s*via\s*process\s*rewards?)',
+                'guided by rule-based outcome rewards (accuracy verification) and format rewards (enclosing thought traces in <think> tags), explicitly avoiding Process Reward Models (PRMs) due to reward hacking',
+                text,
+                flags=re.IGNORECASE
+            )
+
         return text, fixes
 
     @classmethod
@@ -318,6 +328,13 @@ class DeterministicRuleBasedVerifier:
             return f"<${m.group(1)}/\\text{{kWh}}"
 
         text = re.sub(r'(?<!\$)<(\d+)/\\text\{kWh\}\$', fix_cost_math, text)
+
+        # 6b. Fix missing curly braces in power-of-10 exponents: e.g. 10^26 -> 10^{26}
+        def fix_exponent_braces(m):
+            fixes.append(f"Added curly braces to scientific exponent: 10^{{{m.group(1)}}}")
+            return f"10^{{{m.group(1)}}}"
+
+        text = re.sub(r'10\^(\d{2,})\b', fix_exponent_braces, text)
 
         # 7. Ensure markdown tables have blank lines before and after so parsers do not collapse them
         def pad_table(m):

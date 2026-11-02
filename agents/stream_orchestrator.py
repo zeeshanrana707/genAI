@@ -708,7 +708,12 @@ def stream_multi_agent_pipeline(
         "   - Preclinical Timelines: Accurately distinguish the broader Preclinical Discovery arc (Target ID -> Screening -> Hit-to-Lead -> Lead Optimization -> Candidate Nomination: 4–6 years traditional, compressed to 12–24 months by AI) from the isolated Hit-to-Lead (H2L) phase (1–2 years).\n"
         "   - Phase I Trial Metrics: Cite Phase I success rates (~60%–70%) and failure/attrition rates (~30%–40%). Explicitly state that Phase I failures are driven not only by off-target toxicity, but substantially by unfavorable pharmacokinetics (ADMET, low bioavailability, rapid hepatic clearance) and commercial reprioritizations.\n"
         "   - The Phase II Efficacy Wall: Highlight that computational binding optimization (Kd, IC50) cannot prevent Phase II failure if the biological target hypothesis itself is flawed.\n"
-        "   - Dynamic Physiology vs Static Docking: Emphasize hepatic CYP450 clearance, in vivo systemic dynamics, and conformational flexibility in biologics—specifically antibody CDR-H3 loops which static AlphaFold and crystal structures fail to capture."
+        "   - Dynamic Physiology vs Static Docking: Emphasize hepatic CYP450 clearance, in vivo systemic dynamics, and conformational flexibility in biologics—specifically antibody CDR-H3 loops which static AlphaFold and crystal structures fail to capture.\n"
+        "17. TEST-TIME COMPUTE & REASONING MODELS RIGOR: When analyzing System 2 reasoning models (OpenAI o1, DeepSeek-R1, test-time compute):\n"
+        "   - Differentiate DeepSeek-R1-Zero (pure RL directly on base model with zero cold-start data) from DeepSeek-R1 (cold-start CoT seed -> large-scale RL with outcome/format rewards -> rejection sampling -> 2nd SFT).\n"
+        "   - Clarify that DeepSeek-R1 avoided Process Reward Models (PRMs) due to reward hacking; it relied on rule-based outcome verification (accuracy check) and format rewards (<think> tags).\n"
+        "   - Runtime inference runs linearly and autoregressively in a single token stream; backtracking and self-correction occur within generated tokens, NOT as an explicit runtime tree search (MCTS) executed by the serving engine.\n"
+        "   - Compute cost scales linearly: Cost ~ T_reasoning + T_completion. Always format scientific exponents with braces (e.g. $10^{26}+$, never $10^26$)."
     )
     if is_referential_followup:
         editor_system_instruction += (
