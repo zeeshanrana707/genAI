@@ -9,4 +9,7 @@ from database.db import (
     get_all_uploaded_papers,
     get_uploaded_paper_texts,
     delete_uploaded_paper,
+    create_user,
+    authenticate_user,
+    get_user_by_id,
 )

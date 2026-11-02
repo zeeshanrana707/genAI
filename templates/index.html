@@ -156,108 +156,223 @@
       background: linear-gradient(to top, var(--bg-main) 0%, var(--bg-main-fade) 70%, transparent 100%) !important;
     }
 
-    /* Antigravity Light Mode Theme Adaptations */
+    /* Antigravity Light Mode Theme Adaptations - High Contrast & Deep Ink */
+    [data-theme="light"], .light {
+      --bg-main: #f8fafc;
+      --bg-main-fade: rgba(248, 250, 252, 0.98);
+      --bg-sidebar: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f1f5f9;
+      --border-color: #cbd5e1;
+      --border-subtle: rgba(0, 0, 0, 0.16);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.25);
+      --input-glass: #ffffff;
+      --btn-hover: rgba(0, 0, 0, 0.05);
+      --code-bg: #f1f5f9;
+    }
+
     [data-theme="light"] body, .light body {
-      background-color: var(--bg-main);
-      color: var(--text-main);
-    }
-    [data-theme="light"] .text-white, .light .text-white {
+      background-color: #f8fafc !important;
       color: #0f172a !important;
     }
-    [data-theme="light"] .text-slate-100, .light .text-slate-100 {
-      color: #0f172a !important;
-    }
-    [data-theme="light"] .text-slate-200, .light .text-slate-200 {
-      color: #1e293b !important;
-    }
-    [data-theme="light"] .text-slate-300, .light .text-slate-300 {
-      color: #334155 !important;
-    }
-    [data-theme="light"] .text-slate-400, .light .text-slate-400 {
-      color: #64748b !important;
-    }
+
+    /* High contrast text overrides */
+    [data-theme="light"] .text-white, .light .text-white { color: #0f172a !important; }
+    [data-theme="light"] .text-slate-100, .light .text-slate-100 { color: #0f172a !important; }
+    [data-theme="light"] .text-slate-200, .light .text-slate-200 { color: #1e293b !important; }
+    [data-theme="light"] .text-slate-300, .light .text-slate-300 { color: #1e293b !important; }
+    [data-theme="light"] .text-slate-400, .light .text-slate-400 { color: #334155 !important; }
+    [data-theme="light"] .text-slate-500, .light .text-slate-500 { color: #475569 !important; }
+    [data-theme="light"] .text-pplx-muted, .light .text-pplx-muted { color: #475569 !important; }
+
+    /* Surface backgrounds & borders */
     [data-theme="light"] .bg-pplx-bg, .light .bg-pplx-bg {
-      background-color: var(--bg-main) !important;
+      background-color: #f8fafc !important;
     }
     [data-theme="light"] .bg-pplx-sidebar, .light .bg-pplx-sidebar {
-      background-color: var(--bg-sidebar) !important;
-      border-color: var(--border-color) !important;
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
     }
     [data-theme="light"] .bg-pplx-card, .light .bg-pplx-card {
-      background-color: var(--bg-card) !important;
-      border-color: var(--border-color) !important;
-      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05) !important;
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
     }
-    [data-theme="light"] .bg-pplx-card\/60, .light .bg-pplx-card\/60 {
-      background-color: rgba(255, 255, 255, 0.9) !important;
+    [data-theme="light"] .bg-pplx-card\/85, .light .bg-pplx-card\/85,
+    [data-theme="light"] .bg-pplx-card\/80, .light .bg-pplx-card\/80,
+    [data-theme="light"] .bg-pplx-card\/70, .light .bg-pplx-card\/70,
+    [data-theme="light"] .bg-pplx-card\/60, .light .bg-pplx-card\/60,
+    [data-theme="light"] .bg-pplx-card\/50, .light .bg-pplx-card\/50 {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
     }
-    [data-theme="light"] .border-pplx-border, .light .border-pplx-border {
-      border-color: var(--border-color) !important;
+    [data-theme="light"] .border-pplx-border, .light .border-pplx-border,
+    [data-theme="light"] .border-pplx-border\/80, .light .border-pplx-border\/80,
+    [data-theme="light"] .border-pplx-border\/70, .light .border-pplx-border\/70,
+    [data-theme="light"] .border-pplx-border\/60, .light .border-pplx-border\/60,
+    [data-theme="light"] .border-pplx-border\/50, .light .border-pplx-border\/50,
+    [data-theme="light"] .border-pplx-border\/40, .light .border-pplx-border\/40 {
+      border-color: #cbd5e1 !important;
     }
     [data-theme="light"] header, .light header {
-      background-color: var(--bg-main-fade) !important;
-      border-color: var(--border-color) !important;
-    }
-    [data-theme="light"] .glass-search, .light .glass-search {
-      background: var(--input-glass) !important;
+      background-color: rgba(255, 255, 255, 0.96) !important;
       border-color: #cbd5e1 !important;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Convert hardcoded dark containers into clean white/slate cards in light mode */
+    [data-theme="light"] .bg-\[\#0e0f1a\], .light .bg-\[\#0e0f1a\],
+    [data-theme="light"] .bg-\[\#0d1117\], .light .bg-\[\#0d1117\],
+    [data-theme="light"] .bg-\[\#090c13\], .light .bg-\[\#090c13\],
+    [data-theme="light"] .bg-\[\#090b10\], .light .bg-\[\#090b10\],
+    [data-theme="light"] .bg-\[\#0c0e14\], .light .bg-\[\#0c0e14\],
+    [data-theme="light"] .bg-\[\#0c0e12\], .light .bg-\[\#0c0e12\],
+    [data-theme="light"] .bg-\[\#0a0d14\], .light .bg-\[\#0a0d14\],
+    [data-theme="light"] .bg-\[\#090a0f\], .light .bg-\[\#090a0f\],
+    [data-theme="light"] .bg-\[\#161922\], .light .bg-\[\#161922\],
+    [data-theme="light"] .bg-\[\#131722\], .light .bg-\[\#131722\] {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    /* Badges & Pills */
+    [data-theme="light"] .bg-slate-800, .light .bg-slate-800,
+    [data-theme="light"] .bg-slate-800\/80, .light .bg-slate-800\/80,
+    [data-theme="light"] .bg-slate-800\/40, .light .bg-slate-800\/40 {
+      background-color: #f1f5f9 !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    [data-theme="light"] .bg-cyan-950\/20, .light .bg-cyan-950\/20,
+    [data-theme="light"] .bg-cyan-950\/30, .light .bg-cyan-950\/30,
+    [data-theme="light"] .bg-cyan-950\/40, .light .bg-cyan-950\/40 {
+      background-color: rgba(2, 132, 199, 0.1) !important;
+      color: #0284c7 !important;
+      border-color: rgba(2, 132, 199, 0.3) !important;
+    }
+    [data-theme="light"] .bg-purple-950\/20, .light .bg-purple-950\/20,
+    [data-theme="light"] .bg-purple-950\/30, .light .bg-purple-950\/30,
+    [data-theme="light"] .bg-purple-950\/40, .light .bg-purple-950\/40,
+    [data-theme="light"] .bg-purple-950\/80, .light .bg-purple-950\/80 {
+      background-color: rgba(147, 51, 234, 0.1) !important;
+      color: #7e22ce !important;
+      border-color: rgba(147, 51, 234, 0.3) !important;
+    }
+
+    /* Search input & bottom bar */
+    [data-theme="light"] .glass-search, .light .glass-search {
+      background: #ffffff !important;
+      border-color: #94a3b8 !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
     }
     [data-theme="light"] #promptInput, .light #promptInput {
       color: #0f172a !important;
+      font-weight: 500;
     }
     [data-theme="light"] #promptInput::placeholder, .light #promptInput::placeholder {
-      color: #94a3b8 !important;
-    }
-    [data-theme="light"] .markdown-content, .light .markdown-content {
-      color: #1e293b !important;
-    }
-    [data-theme="light"] .markdown-content h1, .light .markdown-content h1,
-    [data-theme="light"] .markdown-content h2, .light .markdown-content h2,
-    [data-theme="light"] .markdown-content h3, .light .markdown-content h3 {
-      color: #0f172a !important;
-    }
-    [data-theme="light"] .markdown-content code:not(pre code), .light .markdown-content code:not(pre code) {
-      background: #f1f5f9 !important;
-      color: #0369a1 !important;
-      border: 1px solid #e2e8f0 !important;
-    }
-    [data-theme="light"] .markdown-content pre, .light .markdown-content pre {
-      background: #f8fafc !important;
-      border: 1px solid #e2e8f0 !important;
-    }
-    [data-theme="light"] .markdown-content pre code, .light .markdown-content pre code {
-      color: #0f172a !important;
-    }
-    [data-theme="light"] .markdown-content table, .light .markdown-content table {
-      border-color: #e2e8f0 !important;
-    }
-    [data-theme="light"] .markdown-content th, .light .markdown-content th {
-      background: #f1f5f9 !important;
-      color: #0f172a !important;
-      border-color: #e2e8f0 !important;
-    }
-    [data-theme="light"] .markdown-content td, .light .markdown-content td {
-      border-color: #e2e8f0 !important;
-    }
-    [data-theme="light"] .markdown-content blockquote, .light .markdown-content blockquote {
-      border-left-color: #0284c7 !important;
-      background: rgba(2, 132, 199, 0.06) !important;
-      color: #334155 !important;
-    }
-    [data-theme="light"] .citation-badge, .light .citation-badge {
-      background: rgba(2, 132, 199, 0.12) !important;
-      color: #0284c7 !important;
-      border-color: rgba(2, 132, 199, 0.25) !important;
+      color: #64748b !important;
     }
     [data-theme="light"] #uploadPaperBtn, .light #uploadPaperBtn {
-      background-color: #f1f5f9 !important;
-      border-color: #e2e8f0 !important;
-      color: #64748b !important;
+      background-color: #f8fafc !important;
+      border-color: #cbd5e1 !important;
+      color: #334155 !important;
+    }
+    [data-theme="light"] #uploadPaperBtn:hover, .light #uploadPaperBtn:hover {
+      background-color: #e2e8f0 !important;
+      color: #0f172a !important;
     }
     [data-theme="light"] #searchBtn, .light #searchBtn {
       background-color: #0284c7 !important;
       color: #ffffff !important;
+    }
+
+    /* Markdown prose & typography in Light Mode - Deep Ink & High Contrast */
+    [data-theme="light"] .markdown-content, .light .markdown-content {
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .markdown-content p, .light .markdown-content p {
+      color: #1e293b !important;
+      line-height: 1.75 !important;
+      font-weight: 400 !important;
+    }
+    [data-theme="light"] .markdown-content ul, .light .markdown-content ul,
+    [data-theme="light"] .markdown-content ol, .light .markdown-content ol {
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .markdown-content li, .light .markdown-content li {
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .markdown-content h1, .light .markdown-content h1 {
+      color: #0f172a !important;
+      font-weight: 800 !important;
+      border-bottom: 2px solid #cbd5e1 !important;
+    }
+    [data-theme="light"] .markdown-content h2, .light .markdown-content h2 {
+      color: #0369a1 !important;
+      font-weight: 700 !important;
+    }
+    [data-theme="light"] .markdown-content h3, .light .markdown-content h3 {
+      color: #0f172a !important;
+      font-weight: 700 !important;
+    }
+    [data-theme="light"] .markdown-content h4, .light .markdown-content h4 {
+      color: #1e293b !important;
+      font-weight: 600 !important;
+    }
+    [data-theme="light"] .markdown-content code:not(pre code), .light .markdown-content code:not(pre code) {
+      background: #e2e8f0 !important;
+      color: #0369a1 !important;
+      border: 1px solid #cbd5e1 !important;
+      font-weight: 600;
+    }
+    [data-theme="light"] .markdown-content pre, .light .markdown-content pre {
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    [data-theme="light"] .markdown-content pre code, .light .markdown-content pre code {
+      background: transparent !important;
+      color: #0f172a !important;
+      border: 0 !important;
+    }
+    [data-theme="light"] .markdown-content table, .light .markdown-content table {
+      border: 1px solid #cbd5e1 !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+    [data-theme="light"] .markdown-content th, .light .markdown-content th {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      font-weight: 700 !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    [data-theme="light"] .markdown-content td, .light .markdown-content td {
+      background: #ffffff !important;
+      color: #1e293b !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    [data-theme="light"] .markdown-content tr:nth-child(even) td, .light .markdown-content tr:nth-child(even) td {
+      background: #f8fafc !important;
+    }
+    [data-theme="light"] .markdown-content blockquote, .light .markdown-content blockquote {
+      border-left: 4px solid #0284c7 !important;
+      background: rgba(2, 132, 199, 0.06) !important;
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .markdown-content hr, .light .markdown-content hr {
+      background: #cbd5e1 !important;
+    }
+    [data-theme="light"] .citation-badge, .light .citation-badge {
+      background: rgba(2, 132, 199, 0.12) !important;
+      color: #0284c7 !important;
+      border-color: rgba(2, 132, 199, 0.3) !important;
+    }
+    [data-theme="light"] .katex, .light .katex {
+      color: #0f172a !important;
     }
     .citation-badge {
       display: inline-flex;
@@ -1063,6 +1178,12 @@
           <p id="authFormSubtitle" class="text-xs text-pplx-muted">Access dual-speed multi-agent research and cloud thread sync.</p>
         </div>
 
+        <!-- Error Alert Container -->
+        <div id="authErrorAlert" class="hidden p-3 rounded-xl bg-red-950/40 border border-red-500/40 text-red-300 text-xs font-mono flex items-center space-x-2">
+          <span class="text-base flex-shrink-0">⚠️</span>
+          <span id="authErrorMsg" class="leading-tight"></span>
+        </div>
+
         <!-- Mode Toggle Tabs (Log In vs Sign Up) -->
         <div class="grid grid-cols-2 p-1 rounded-xl bg-pplx-bg border border-pplx-border text-xs font-semibold">
           <button type="button" id="authTabLogin" onclick="switchAuthTab('login')" class="py-1.5 rounded-lg text-center transition-all bg-pplx-card text-white shadow-sm cursor-pointer">
@@ -1218,7 +1339,7 @@
 
   <script>
     // =========================================================================
-    // Antigravity Identity & Account Controller
+    // Antigravity Identity & Account Controller (SQLite Backed)
     // =========================================================================
     let currentAuthUser = null;
 
@@ -1228,14 +1349,8 @@
         if (stored) {
           currentAuthUser = JSON.parse(stored);
         } else {
-          // Default active user state
-          currentAuthUser = {
-            name: 'Zeeshan Rana',
-            email: 'zeeshan@example.com',
-            plan: 'Pro',
-            initial: 'Z'
-          };
-          localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
+          // If no stored session, stay as Guest!
+          currentAuthUser = null;
         }
       } catch (e) {
         currentAuthUser = null;
@@ -1252,14 +1367,14 @@
       const sidebarInitial = document.getElementById('sidebarAccountInitial');
       const sidebarStatus = document.getElementById('sidebarAccountStatus');
 
-      if (currentAuthUser && currentAuthUser.name) {
+      if (currentAuthUser && currentAuthUser.email) {
         if (guestGroup) guestGroup.classList.add('hidden');
         if (userGroup) userGroup.classList.remove('hidden');
-        if (headerName) headerName.innerText = currentAuthUser.name.split(' ')[0];
-        const initial = currentAuthUser.initial || currentAuthUser.name[0].toUpperCase();
+        if (headerName) headerName.innerText = (currentAuthUser.name || 'User').split(' ')[0];
+        const initial = currentAuthUser.initial || (currentAuthUser.name || currentAuthUser.email)[0].toUpperCase();
         if (headerAvatar) headerAvatar.innerText = initial;
         if (sidebarInitial) sidebarInitial.innerText = initial;
-        if (sidebarName) sidebarName.innerText = currentAuthUser.name;
+        if (sidebarName) sidebarName.innerText = currentAuthUser.name || currentAuthUser.email;
         if (sidebarStatus) sidebarStatus.innerText = (currentAuthUser.plan || 'Pro') + ' Tier • Settings';
       } else {
         if (guestGroup) guestGroup.classList.remove('hidden');
@@ -1272,10 +1387,23 @@
 
     let activeAuthTab = 'login'; // 'login' | 'signup'
 
+    function showAuthError(msg) {
+      const alertBox = document.getElementById('authErrorAlert');
+      const msgBox = document.getElementById('authErrorMsg');
+      if (msgBox) msgBox.innerText = msg;
+      if (alertBox) alertBox.classList.remove('hidden');
+    }
+
+    function clearAuthError() {
+      const alertBox = document.getElementById('authErrorAlert');
+      if (alertBox) alertBox.classList.add('hidden');
+    }
+
     function openAuthModal(tab = 'login') {
       const modal = document.getElementById('authAccountModal');
       const formView = document.getElementById('authFormView');
       const profileView = document.getElementById('accountProfileView');
+      clearAuthError();
       if (!modal) return;
 
       if (formView) formView.classList.remove('hidden');
@@ -1288,6 +1416,7 @@
       const modal = document.getElementById('authAccountModal');
       const formView = document.getElementById('authFormView');
       const profileView = document.getElementById('accountProfileView');
+      clearAuthError();
       if (!modal) return;
 
       if (!currentAuthUser) {
@@ -1304,9 +1433,9 @@
       const modalHeaderTitle = document.getElementById('authModalHeaderTitle');
 
       if (modalHeaderTitle) modalHeaderTitle.innerText = 'Antigravity Account Profile';
-      if (modalName) modalName.innerText = currentAuthUser.name;
+      if (modalName) modalName.innerText = currentAuthUser.name || 'User';
       if (modalEmail) modalEmail.innerText = currentAuthUser.email;
-      if (modalAvatar) modalAvatar.innerText = currentAuthUser.initial || currentAuthUser.name[0].toUpperCase();
+      if (modalAvatar) modalAvatar.innerText = currentAuthUser.initial || (currentAuthUser.name || currentAuthUser.email)[0].toUpperCase();
 
       modal.classList.remove('hidden');
     }
@@ -1314,10 +1443,12 @@
     function closeAuthModal() {
       const modal = document.getElementById('authAccountModal');
       if (modal) modal.classList.add('hidden');
+      clearAuthError();
     }
 
     function switchAuthTab(tab) {
       activeAuthTab = tab;
+      clearAuthError();
       const tabLogin = document.getElementById('authTabLogin');
       const tabSignup = document.getElementById('authTabSignup');
       const nameGroup = document.getElementById('authNameFieldGroup');
@@ -1332,7 +1463,7 @@
         if (nameGroup) nameGroup.classList.remove('hidden');
         if (submitBtn) submitBtn.innerText = 'Create Free Account';
         if (formTitle) formTitle.innerText = 'Create your account';
-        if (formSubtitle) formSubtitle.innerText = 'Join frontier multi-agent research with deep literature synthesis.';
+        if (formSubtitle) formSubtitle.innerText = 'Register credentials to persist research threads in SQLite.';
         if (modalHeaderTitle) modalHeaderTitle.innerText = 'Create Antigravity Account';
       } else {
         if (tabLogin) tabLogin.className = 'py-1.5 rounded-lg text-center transition-all bg-pplx-card text-white shadow-sm cursor-pointer';
@@ -1340,43 +1471,113 @@
         if (nameGroup) nameGroup.classList.add('hidden');
         if (submitBtn) submitBtn.innerText = 'Log In';
         if (formTitle) formTitle.innerText = 'Sign in to your account';
-        if (formSubtitle) formSubtitle.innerText = 'Access dual-speed multi-agent research and cloud thread sync.';
+        if (formSubtitle) formSubtitle.innerText = 'Authenticate with your verified email and password.';
         if (modalHeaderTitle) modalHeaderTitle.innerText = 'Antigravity Sign In';
       }
     }
 
-    function handleAuthSubmit(e) {
+    async function handleAuthSubmit(e) {
       if (e) e.preventDefault();
-      const email = document.getElementById('authInputEmail')?.value || 'user@antigravity.ai';
-      let name = document.getElementById('authInputName')?.value;
-      if (!name) {
-        name = email.split('@')[0];
-        name = name.charAt(0).toUpperCase() + name.slice(1);
+      clearAuthError();
+
+      const emailInput = document.getElementById('authInputEmail');
+      const passwordInput = document.getElementById('authInputPassword');
+      const nameInput = document.getElementById('authInputName');
+      const submitBtn = document.getElementById('authSubmitBtn');
+
+      const email = (emailInput?.value || '').trim();
+      const password = passwordInput?.value || '';
+      const name = (nameInput?.value || '').trim();
+
+      if (!email || !password) {
+        showAuthError('Email and password are required.');
+        return;
       }
 
-      currentAuthUser = {
-        name: name,
-        email: email,
-        plan: 'Pro',
-        initial: name.charAt(0).toUpperCase()
-      };
-      localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
-      renderAuthUI();
-      closeAuthModal();
+      const isSignup = (activeAuthTab === 'signup');
+      const endpoint = isSignup ? '/api/auth/signup' : '/api/auth/login';
+      const payload = isSignup
+        ? { name: name || email.split('@')[0], email: email, password: password }
+        : { email: email, password: password };
+
+      const origBtnText = submitBtn ? submitBtn.innerText : 'Submit';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = isSignup ? 'Creating Account...' : 'Verifying...';
+      }
+
+      try {
+        const resp = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok || !data.success) {
+          showAuthError(data.error || 'Authentication rejected. Please check your credentials.');
+          return;
+        }
+
+        // Successfully authenticated / registered!
+        currentAuthUser = data.user;
+        currentAuthUser.initial = (currentAuthUser.name || currentAuthUser.email)[0].toUpperCase();
+        localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
+
+        renderAuthUI();
+        closeAuthModal();
+
+        // Clear input values
+        if (passwordInput) passwordInput.value = '';
+      } catch (err) {
+        showAuthError('Network error contacting authentication service.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = origBtnText;
+        }
+      }
     }
 
-    function handleQuickDemoAuth(provider) {
-      const name = provider === 'Google' ? 'Google Scholar User' : 'Zeeshan Rana';
+    async function handleQuickDemoAuth(provider) {
+      clearAuthError();
       const email = provider === 'Google' ? 'scholar.user@gmail.com' : 'zeeshan@example.com';
-      currentAuthUser = {
-        name: name,
-        email: email,
-        plan: 'Pro',
-        initial: name.charAt(0).toUpperCase()
-      };
-      localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
-      renderAuthUI();
-      closeAuthModal();
+      const password = provider === 'Google' ? 'scholarpass' : 'antigravity';
+      const name = provider === 'Google' ? 'Google Scholar' : 'Zeeshan Rana';
+
+      try {
+        // Try login first
+        let resp = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password })
+        });
+        let data = await resp.json();
+
+        // If not found, create it
+        if (!resp.ok && data.error && data.error.includes('not found')) {
+          resp = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, email: email, password: password })
+          });
+          data = await resp.json();
+        }
+
+        if (!resp.ok || !data.success) {
+          showAuthError(data.error || 'Demo sign in failed.');
+          return;
+        }
+
+        currentAuthUser = data.user;
+        currentAuthUser.initial = (currentAuthUser.name || currentAuthUser.email)[0].toUpperCase();
+        localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
+        renderAuthUI();
+        closeAuthModal();
+      } catch (err) {
+        showAuthError('Network error initiating demo auth.');
+      }
     }
 
     function handleSignOut() {

@@ -442,6 +442,45 @@ async def reset_session(session_id: str):
     return {"success": True, "message": "Session research memory reset."}
 
 
+# =====================================================================
+# Identity & Authentication Routes
+# =====================================================================
+
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/api/auth/signup")
+async def auth_signup(req: SignupRequest):
+    """Register a new user account with secure SQLite persistence."""
+    try:
+        user = database.create_user(req.name, req.email, req.password)
+        return {"success": True, "user": user}
+    except ValueError as ve:
+        return JSONResponse(status_code=400, content={"success": False, "error": str(ve)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": f"Registration error: {str(e)}"})
+
+
+@app.post("/api/auth/login")
+async def auth_login(req: LoginRequest):
+    """Authenticate existing credentials against salted sha256 hash in SQLite."""
+    try:
+        user = database.authenticate_user(req.email, req.password)
+        return {"success": True, "user": user}
+    except ValueError as ve:
+        return JSONResponse(status_code=401, content={"success": False, "error": str(ve)})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": f"Authentication error: {str(e)}"})
+
+
 class PipelineRequest(BaseModel):
     prompt: str
     client_name: Optional[str] = None

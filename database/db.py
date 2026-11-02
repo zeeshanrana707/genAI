@@ -5,6 +5,9 @@ Replaces volatile in-memory state with ACID-compliant, crash-resilient disk stor
 
 import sqlite3
 import json
+import hashlib
+import secrets
+import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -55,7 +58,19 @@ def init_db():
                 text TEXT NOT NULL,
                 uploaded_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS users (
+                user_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                plan TEXT NOT NULL DEFAULT 'Pro',
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
         """)
+        seed_default_users(conn)
 
 
 # =====================================================================
@@ -243,6 +258,105 @@ def delete_uploaded_paper(paper_id: str) -> bool:
     with get_connection() as conn:
         res = conn.execute("DELETE FROM uploaded_papers WHERE paper_id = ?", (paper_id,))
         return res.rowcount > 0
+
+
+# =====================================================================
+# User Authentication & Account Management
+# =====================================================================
+
+def hash_password(password: str, salt: Optional[str] = None) -> str:
+    """Hash password with sha256 and unique 16-byte cryptographic salt."""
+    if not salt:
+        salt = secrets.token_hex(16)
+    hashed = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
+    return f"{salt}${hashed}"
+
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    """Verify password against stored salt$hash string."""
+    try:
+        salt, _ = stored_hash.split("$", 1)
+        return hash_password(password, salt) == stored_hash
+    except Exception:
+        return False
+
+
+def seed_default_users(conn: sqlite3.Connection):
+    """Seed initial demo account if table is empty or account missing."""
+    row = conn.execute("SELECT user_id FROM users WHERE LOWER(email) = 'zeeshan@example.com'").fetchone()
+    if not row:
+        user_id = str(uuid.uuid4())
+        pwd_hash = hash_password("antigravity")
+        now = datetime.now().isoformat()
+        conn.execute("""
+            INSERT INTO users (user_id, name, email, password_hash, plan, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, "Zeeshan Rana", "zeeshan@example.com", pwd_hash, "Pro", now))
+
+
+def create_user(name: str, email: str, password: str, plan: str = "Pro") -> Dict[str, Any]:
+    """Register and persist a new user account with hashed password."""
+    name_clean = name.strip()
+    email_clean = email.strip().lower()
+
+    if not name_clean:
+        raise ValueError("Full name is required.")
+    if not email_clean or "@" not in email_clean:
+        raise ValueError("A valid email address is required.")
+    if not password or len(password) < 4:
+        raise ValueError("Password must be at least 4 characters long.")
+
+    with get_connection() as conn:
+        existing = conn.execute("SELECT user_id FROM users WHERE LOWER(email) = ?", (email_clean,)).fetchone()
+        if existing:
+            raise ValueError("An account with this email address already exists.")
+
+        user_id = str(uuid.uuid4())
+        pwd_hash = hash_password(password)
+        now = datetime.now().isoformat()
+
+        conn.execute("""
+            INSERT INTO users (user_id, name, email, password_hash, plan, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, name_clean, email_clean, pwd_hash, plan, now))
+
+        return {
+            "user_id": user_id,
+            "name": name_clean,
+            "email": email_clean,
+            "plan": plan
+        }
+
+
+def authenticate_user(email: str, password: str) -> Dict[str, Any]:
+    """Authenticate user credentials against stored hash in SQLite."""
+    email_clean = email.strip().lower()
+    if not email_clean or not password:
+        raise ValueError("Email and password are required.")
+
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM users WHERE LOWER(email) = ?", (email_clean,)).fetchone()
+        if not row:
+            raise ValueError("Account not found. Please check your email or sign up first.")
+
+        if not verify_password(password, row["password_hash"]):
+            raise ValueError("Incorrect password. Please try again.")
+
+        return {
+            "user_id": row["user_id"],
+            "name": row["name"],
+            "email": row["email"],
+            "plan": row["plan"]
+        }
+
+
+def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieve user public details by ID."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT user_id, name, email, plan, created_at FROM users WHERE user_id = ?", (user_id,)).fetchone()
+        if not row:
+            return None
+        return dict(row)
 
 
 # Initialize on import
