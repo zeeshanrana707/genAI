@@ -589,6 +589,32 @@
           <span id="sidebarThemeText">Dark</span>
         </button>
       </div>
+
+      <!-- Account Button in Sidebar -->
+      <div class="pt-2 border-t border-pplx-border/60">
+        <button
+          type="button"
+          onclick="openAccountModal()"
+          id="sidebarAccountBtn"
+          class="w-full p-2 rounded-xl bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-left flex items-center justify-between transition-all group cursor-pointer shadow-sm"
+          title="Manage Antigravity Account"
+        >
+          <div class="flex items-center space-x-2.5 min-w-0">
+            <div id="sidebarAccountAvatar" class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-500 to-blue-600 flex items-center justify-center font-black text-black text-xs flex-shrink-0 shadow-md shadow-cyan-500/20">
+              <span id="sidebarAccountInitial">Z</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div id="sidebarAccountName" class="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
+                Zeeshan Rana
+              </div>
+              <div id="sidebarAccountStatus" class="text-[10px] text-pplx-muted font-mono truncate">
+                Pro Tier • Settings
+              </div>
+            </div>
+          </div>
+          <span class="text-slate-400 group-hover:text-white transition-colors text-xs font-mono pl-1">⚙️</span>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -672,6 +698,48 @@
         <button onclick="copyFullReport()" class="w-8 h-8 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-semibold text-cyan-400 flex items-center justify-center transition-all cursor-pointer" title="Copy Latest Report to Clipboard">
           <span id="copyReportIcon">📋</span>
         </button>
+
+        <!-- Header Separator -->
+        <div class="h-4 w-[1px] bg-pplx-border mx-0.5 hidden sm:block"></div>
+
+        <!-- Top Right Corner: Signup and Login Buttons (Guest State) -->
+        <div id="authHeaderGuestGroup" class="flex items-center space-x-1.5">
+          <button
+            id="headerLoginBtn"
+            type="button"
+            onclick="openAuthModal('login')"
+            class="px-2.5 sm:px-3 py-1 rounded-xl border border-pplx-border bg-pplx-card hover:bg-pplx-cardHover text-xs font-semibold text-slate-300 hover:text-white transition-all shadow-sm cursor-pointer whitespace-nowrap"
+            title="Log in to your account"
+          >
+            Log in
+          </button>
+          <button
+            id="headerSignupBtn"
+            type="button"
+            onclick="openAuthModal('signup')"
+            class="px-2.5 sm:px-3 py-1 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-black font-bold text-xs shadow-md shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+            title="Create a free account"
+          >
+            Sign up
+          </button>
+        </div>
+
+        <!-- Top Right Corner: Account Avatar Chip (Logged In State) -->
+        <div id="authHeaderUserGroup" class="hidden flex items-center space-x-1.5">
+          <button
+            type="button"
+            onclick="openAccountModal()"
+            class="flex items-center space-x-2 px-2.5 py-1 rounded-xl border border-pplx-border bg-pplx-card hover:bg-pplx-cardHover text-xs text-slate-200 transition-all cursor-pointer group"
+            title="Manage Antigravity Account"
+          >
+            <div id="headerUserAvatar" class="w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 text-black font-extrabold text-[10px] flex items-center justify-center flex-shrink-0 shadow-sm">
+              Z
+            </div>
+            <span id="headerUserName" class="hidden sm:inline font-semibold text-xs text-slate-200 group-hover:text-cyan-400 transition-colors">
+              Zeeshan
+            </span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -968,12 +1036,356 @@
     </div>
   </div>
 
+  <!-- ========================================================================= -->
+  <!-- ANTIGRAVITY AUTH & ACCOUNT MANAGEMENT MODAL (Sign Up / Log In / Account)  -->
+  <!-- ========================================================================= -->
+  <div id="authAccountModal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="relative max-w-md w-full bg-pplx-card border border-pplx-border rounded-2xl p-6 sm:p-7 space-y-5 shadow-2xl transition-all">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-pplx-border">
+        <div class="flex items-center space-x-2">
+          <div class="h-6 w-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-black text-black text-xs shadow-md">
+            ✦
+          </div>
+          <span id="authModalHeaderTitle" class="font-bold text-sm text-white tracking-tight">Antigravity Identity</span>
+        </div>
+        <button type="button" onclick="closeAuthModal()" class="text-slate-400 hover:text-white text-xs font-mono px-2 py-1 rounded-lg hover:bg-pplx-cardHover transition-colors cursor-pointer">
+          ✕ Close
+        </button>
+      </div>
+
+      <!-- VIEW 1: AUTH FORM (Login / Signup) -->
+      <div id="authFormView" class="space-y-4">
+        <!-- Subheading -->
+        <div class="text-left space-y-1">
+          <h2 id="authFormTitle" class="text-lg font-bold text-white tracking-tight">Sign in to your account</h2>
+          <p id="authFormSubtitle" class="text-xs text-pplx-muted">Access dual-speed multi-agent research and cloud thread sync.</p>
+        </div>
+
+        <!-- Mode Toggle Tabs (Log In vs Sign Up) -->
+        <div class="grid grid-cols-2 p-1 rounded-xl bg-pplx-bg border border-pplx-border text-xs font-semibold">
+          <button type="button" id="authTabLogin" onclick="switchAuthTab('login')" class="py-1.5 rounded-lg text-center transition-all bg-pplx-card text-white shadow-sm cursor-pointer">
+            Log In
+          </button>
+          <button type="button" id="authTabSignup" onclick="switchAuthTab('signup')" class="py-1.5 rounded-lg text-center transition-all text-slate-400 hover:text-white cursor-pointer">
+            Sign Up
+          </button>
+        </div>
+
+        <!-- Inputs Form -->
+        <form onsubmit="handleAuthSubmit(event)" class="space-y-3">
+          <!-- Full Name (Only for signup) -->
+          <div id="authNameFieldGroup" class="hidden space-y-1">
+            <label class="block text-[11px] font-mono text-pplx-muted font-medium">Full Name</label>
+            <input
+              id="authInputName"
+              type="text"
+              placeholder="e.g. Zeeshan Rana"
+              class="w-full px-3 py-2 rounded-xl bg-pplx-bg border border-pplx-border text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+            />
+          </div>
+
+          <!-- Email Field -->
+          <div class="space-y-1">
+            <label class="block text-[11px] font-mono text-pplx-muted font-medium">Email Address</label>
+            <input
+              id="authInputEmail"
+              type="email"
+              required
+              placeholder="name@organization.com"
+              class="w-full px-3 py-2 rounded-xl bg-pplx-bg border border-pplx-border text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+            />
+          </div>
+
+          <!-- Password Field -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between">
+              <label class="block text-[11px] font-mono text-pplx-muted font-medium">Password</label>
+              <a href="javascript:void(0)" onclick="alert('Password reset instructions dispatched to your email.')" id="authForgotPasswordLink" class="text-[10px] text-cyan-400 hover:underline">Forgot?</a>
+            </div>
+            <input
+              id="authInputPassword"
+              type="password"
+              required
+              placeholder="••••••••••••"
+              class="w-full px-3 py-2 rounded-xl bg-pplx-bg border border-pplx-border text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-colors"
+            />
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            id="authSubmitBtn"
+            class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-black font-bold text-xs shadow-lg shadow-cyan-500/20 active:scale-[0.98] transition-all cursor-pointer"
+          >
+            Log In
+          </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="flex items-center space-x-2 text-pplx-muted text-[11px] font-mono my-2">
+          <div class="flex-1 h-[1px] bg-pplx-border"></div>
+          <span>or continue with</span>
+          <div class="flex-1 h-[1px] bg-pplx-border"></div>
+        </div>
+
+        <!-- Social OAuth / Fast Demo Sign In -->
+        <div class="space-y-2">
+          <button
+            type="button"
+            onclick="handleQuickDemoAuth('Google')"
+            class="w-full py-2 px-3 rounded-xl bg-pplx-bg hover:bg-pplx-cardHover border border-pplx-border text-xs font-semibold text-slate-200 hover:text-white flex items-center justify-center space-x-2 transition-all cursor-pointer"
+          >
+            <span>🌐</span>
+            <span>Continue with Google</span>
+          </button>
+          
+          <button
+            type="button"
+            onclick="handleQuickDemoAuth('Demo')"
+            class="w-full py-2 px-3 rounded-xl bg-cyan-950/30 hover:bg-cyan-900/40 border border-cyan-500/30 text-xs font-mono text-cyan-300 hover:text-cyan-200 flex items-center justify-center space-x-2 transition-all cursor-pointer"
+          >
+            <span>⚡</span>
+            <span>Fast Sign In as Zeeshan (Pro)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- VIEW 2: ACCOUNT OVERVIEW / PROFILE VIEW (When User is Logged In) -->
+      <div id="accountProfileView" class="hidden space-y-4">
+        <!-- User Badge & Initial -->
+        <div class="p-4 rounded-xl bg-pplx-bg border border-pplx-border flex items-center space-x-3.5">
+          <div id="accountModalAvatar" class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-500 to-blue-600 flex items-center justify-center font-black text-black text-lg shadow-md shadow-cyan-500/25 flex-shrink-0">
+            Z
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center space-x-2">
+              <span id="accountModalName" class="font-bold text-white text-sm truncate">Zeeshan Rana</span>
+              <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/40">PRO</span>
+            </div>
+            <p id="accountModalEmail" class="text-xs text-pplx-muted truncate">zeeshan@example.com</p>
+          </div>
+        </div>
+
+        <!-- Tier Plan Details & Quotas -->
+        <div class="p-3.5 rounded-xl bg-pplx-bg border border-pplx-border space-y-2.5 text-xs font-mono">
+          <div class="flex items-center justify-between text-slate-300">
+            <span class="text-pplx-muted">Active Tier:</span>
+            <span class="text-cyan-300 font-bold">✦ Antigravity Frontier Pro</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-300">
+            <span class="text-pplx-muted">Multi-Agent Deep Search:</span>
+            <span class="text-emerald-400 font-medium">Unlimited Access</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-300">
+            <span class="text-pplx-muted">SQLite Session Persistence:</span>
+            <span class="text-slate-200 font-medium">Connected (Local)</span>
+          </div>
+          <div class="flex items-center justify-between text-slate-300">
+            <span class="text-pplx-muted">Inference Latency:</span>
+            <span class="text-cyan-400 font-medium">Fast Sub-second TTFT</span>
+          </div>
+        </div>
+
+        <!-- Actions: Sign out or Close -->
+        <div class="flex items-center justify-between pt-2 border-t border-pplx-border text-xs">
+          <button
+            type="button"
+            onclick="handleSignOut()"
+            class="px-3 py-1.5 rounded-xl border border-red-500/30 bg-red-950/20 hover:bg-red-900/30 text-red-400 hover:text-red-300 transition-all font-mono cursor-pointer flex items-center space-x-1"
+          >
+            <span>🚪</span>
+            <span>Log Out</span>
+          </button>
+          <button
+            type="button"
+            onclick="closeAuthModal()"
+            class="px-4 py-1.5 rounded-xl bg-pplx-card hover:bg-pplx-cardHover border border-pplx-border text-slate-200 hover:text-white font-semibold transition-all cursor-pointer"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Hidden bridge for Drawer if needed -->
   <div id="briefBodyPreview" class="hidden"></div>
   <div id="briefSubjectPreview" class="hidden"></div>
   <div id="briefRecipientPreview" class="hidden"></div>
 
   <script>
+    // =========================================================================
+    // Antigravity Identity & Account Controller
+    // =========================================================================
+    let currentAuthUser = null;
+
+    function initAuthUser() {
+      try {
+        const stored = localStorage.getItem('antigravity_user');
+        if (stored) {
+          currentAuthUser = JSON.parse(stored);
+        } else {
+          // Default active user state
+          currentAuthUser = {
+            name: 'Zeeshan Rana',
+            email: 'zeeshan@example.com',
+            plan: 'Pro',
+            initial: 'Z'
+          };
+          localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
+        }
+      } catch (e) {
+        currentAuthUser = null;
+      }
+      renderAuthUI();
+    }
+
+    function renderAuthUI() {
+      const guestGroup = document.getElementById('authHeaderGuestGroup');
+      const userGroup = document.getElementById('authHeaderUserGroup');
+      const headerName = document.getElementById('headerUserName');
+      const headerAvatar = document.getElementById('headerUserAvatar');
+      const sidebarName = document.getElementById('sidebarAccountName');
+      const sidebarInitial = document.getElementById('sidebarAccountInitial');
+      const sidebarStatus = document.getElementById('sidebarAccountStatus');
+
+      if (currentAuthUser && currentAuthUser.name) {
+        if (guestGroup) guestGroup.classList.add('hidden');
+        if (userGroup) userGroup.classList.remove('hidden');
+        if (headerName) headerName.innerText = currentAuthUser.name.split(' ')[0];
+        const initial = currentAuthUser.initial || currentAuthUser.name[0].toUpperCase();
+        if (headerAvatar) headerAvatar.innerText = initial;
+        if (sidebarInitial) sidebarInitial.innerText = initial;
+        if (sidebarName) sidebarName.innerText = currentAuthUser.name;
+        if (sidebarStatus) sidebarStatus.innerText = (currentAuthUser.plan || 'Pro') + ' Tier • Settings';
+      } else {
+        if (guestGroup) guestGroup.classList.remove('hidden');
+        if (userGroup) userGroup.classList.add('hidden');
+        if (sidebarInitial) sidebarInitial.innerText = '?';
+        if (sidebarName) sidebarName.innerText = 'Guest Account';
+        if (sidebarStatus) sidebarStatus.innerText = 'Log In / Sign Up';
+      }
+    }
+
+    let activeAuthTab = 'login'; // 'login' | 'signup'
+
+    function openAuthModal(tab = 'login') {
+      const modal = document.getElementById('authAccountModal');
+      const formView = document.getElementById('authFormView');
+      const profileView = document.getElementById('accountProfileView');
+      if (!modal) return;
+
+      if (formView) formView.classList.remove('hidden');
+      if (profileView) profileView.classList.add('hidden');
+      switchAuthTab(tab);
+      modal.classList.remove('hidden');
+    }
+
+    function openAccountModal() {
+      const modal = document.getElementById('authAccountModal');
+      const formView = document.getElementById('authFormView');
+      const profileView = document.getElementById('accountProfileView');
+      if (!modal) return;
+
+      if (!currentAuthUser) {
+        openAuthModal('login');
+        return;
+      }
+
+      if (formView) formView.classList.add('hidden');
+      if (profileView) profileView.classList.remove('hidden');
+
+      const modalName = document.getElementById('accountModalName');
+      const modalEmail = document.getElementById('accountModalEmail');
+      const modalAvatar = document.getElementById('accountModalAvatar');
+      const modalHeaderTitle = document.getElementById('authModalHeaderTitle');
+
+      if (modalHeaderTitle) modalHeaderTitle.innerText = 'Antigravity Account Profile';
+      if (modalName) modalName.innerText = currentAuthUser.name;
+      if (modalEmail) modalEmail.innerText = currentAuthUser.email;
+      if (modalAvatar) modalAvatar.innerText = currentAuthUser.initial || currentAuthUser.name[0].toUpperCase();
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById('authAccountModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function switchAuthTab(tab) {
+      activeAuthTab = tab;
+      const tabLogin = document.getElementById('authTabLogin');
+      const tabSignup = document.getElementById('authTabSignup');
+      const nameGroup = document.getElementById('authNameFieldGroup');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const formTitle = document.getElementById('authFormTitle');
+      const formSubtitle = document.getElementById('authFormSubtitle');
+      const modalHeaderTitle = document.getElementById('authModalHeaderTitle');
+
+      if (tab === 'signup') {
+        if (tabSignup) tabSignup.className = 'py-1.5 rounded-lg text-center transition-all bg-pplx-card text-white shadow-sm cursor-pointer';
+        if (tabLogin) tabLogin.className = 'py-1.5 rounded-lg text-center transition-all text-slate-400 hover:text-white cursor-pointer';
+        if (nameGroup) nameGroup.classList.remove('hidden');
+        if (submitBtn) submitBtn.innerText = 'Create Free Account';
+        if (formTitle) formTitle.innerText = 'Create your account';
+        if (formSubtitle) formSubtitle.innerText = 'Join frontier multi-agent research with deep literature synthesis.';
+        if (modalHeaderTitle) modalHeaderTitle.innerText = 'Create Antigravity Account';
+      } else {
+        if (tabLogin) tabLogin.className = 'py-1.5 rounded-lg text-center transition-all bg-pplx-card text-white shadow-sm cursor-pointer';
+        if (tabSignup) tabSignup.className = 'py-1.5 rounded-lg text-center transition-all text-slate-400 hover:text-white cursor-pointer';
+        if (nameGroup) nameGroup.classList.add('hidden');
+        if (submitBtn) submitBtn.innerText = 'Log In';
+        if (formTitle) formTitle.innerText = 'Sign in to your account';
+        if (formSubtitle) formSubtitle.innerText = 'Access dual-speed multi-agent research and cloud thread sync.';
+        if (modalHeaderTitle) modalHeaderTitle.innerText = 'Antigravity Sign In';
+      }
+    }
+
+    function handleAuthSubmit(e) {
+      if (e) e.preventDefault();
+      const email = document.getElementById('authInputEmail')?.value || 'user@antigravity.ai';
+      let name = document.getElementById('authInputName')?.value;
+      if (!name) {
+        name = email.split('@')[0];
+        name = name.charAt(0).toUpperCase() + name.slice(1);
+      }
+
+      currentAuthUser = {
+        name: name,
+        email: email,
+        plan: 'Pro',
+        initial: name.charAt(0).toUpperCase()
+      };
+      localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
+      renderAuthUI();
+      closeAuthModal();
+    }
+
+    function handleQuickDemoAuth(provider) {
+      const name = provider === 'Google' ? 'Google Scholar User' : 'Zeeshan Rana';
+      const email = provider === 'Google' ? 'scholar.user@gmail.com' : 'zeeshan@example.com';
+      currentAuthUser = {
+        name: name,
+        email: email,
+        plan: 'Pro',
+        initial: name.charAt(0).toUpperCase()
+      };
+      localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
+      renderAuthUI();
+      closeAuthModal();
+    }
+
+    function handleSignOut() {
+      currentAuthUser = null;
+      localStorage.removeItem('antigravity_user');
+      renderAuthUI();
+      closeAuthModal();
+    }
+
     // Theme Engine (Antigravity Light & Dark Mode)
     function applyTheme(theme) {
       document.documentElement.setAttribute('data-theme', theme);
@@ -1328,6 +1740,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       const savedTheme = localStorage.getItem('antigravity_theme') || 'dark';
       applyTheme(savedTheme);
+      initAuthUser();
       promptInput.focus();
       const keyInput = document.getElementById('customGeminiKeyInput');
       if (keyInput && customGeminiKey) {
