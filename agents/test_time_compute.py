@@ -238,6 +238,58 @@ class DeterministicRuleBasedVerifier:
                 flags=re.IGNORECASE
             )
 
+        # 9. Two-Compartment Pharmacokinetic Half-Life Repair:
+        # Prevent t_{1/2} = ln(2)/k10 conflation with terminal macro constant beta
+        if re.search(r'two-compartment\b', text, re.IGNORECASE) and re.search(r't_\{?1/2\}?\s*=\s*(?:\\frac\{\\ln\(2\)\}\{k_\{?10\}?\}|\\ln\(2\)\s*/\s*k_\{?10\}?)', text, re.IGNORECASE):
+            fixes.append("Corrected two-compartment half-life: replaced micro-rate constant k10 with terminal hybrid constant beta")
+            text = re.sub(
+                r't_\{?1/2\}?\s*=\s*(?:\\frac\{\\ln\(2\)\}\{k_\{?10\}?\}|\\ln\(2\)\s*/\s*k_\{?10\}?)',
+                r't_{1/2, \beta} = \frac{\ln(2)}{\beta} \quad \text{(where } \beta \text{ is the terminal macro-rate constant derived from characteristic roots, } \beta < k_{10}\text{)}',
+                text,
+                flags=re.IGNORECASE
+            )
+
+        # 10. IV Bolus vs. First-Pass Metabolism Disambiguation:
+        # First-pass only occurs orally via portal vein; IV administration directly enters systemic circulation
+        if re.search(r'\b(?:IV|intravenous)\b', text, re.IGNORECASE) and re.search(r'first-pass\s+metabolism\b', text, re.IGNORECASE):
+            fixes.append("Clarified IV clearance mechanism: systemic hepatic clearance (bypassing first-pass oral metabolism)")
+            text = re.sub(
+                r'\bhigh\s+first-pass\s+metabolism\b',
+                'rapid systemic hepatic clearance (high hepatic extraction ratio $E_H$, bypassing first-pass oral metabolism due to IV delivery)',
+                text,
+                flags=re.IGNORECASE
+            )
+            text = re.sub(
+                r'\bfirst-pass\s+metabolism\b',
+                'systemic hepatic clearance (bypassing first-pass oral metabolism)',
+                text,
+                flags=re.IGNORECASE
+            )
+
+        # 11. Phase I Clinical Cohort Precision:
+        # Healthy adult volunteers vs disease-bearing patients
+        def fix_p1_cohort_a(m):
+            fixes.append("Clarified Phase I study cohort (healthy adult volunteers)")
+            return f"{m.group(1)}healthy volunteer cohort (or patient cohorts in oncology){m.group(2)}"
+
+        text = re.sub(
+            r'(\bPhase\s*I\b[^\n.]*?\b)(?:human\s+)?patient\s+cohort(s?)(\b)',
+            fix_p1_cohort_a,
+            text,
+            flags=re.IGNORECASE
+        )
+
+        def fix_p1_cohort_b(m):
+            fixes.append("Clarified Phase I study cohort (healthy adult volunteers)")
+            return f"healthy volunteer cohort (or patient cohorts in oncology) in {m.group(1)}"
+
+        text = re.sub(
+            r'(?:human\s+)?patient\s+cohorts?\s+(?:in|across|during)\s+(Phase\s*I\b)',
+            fix_p1_cohort_b,
+            text,
+            flags=re.IGNORECASE
+        )
+
         return text, fixes
 
     @classmethod

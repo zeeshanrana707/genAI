@@ -713,7 +713,12 @@ def stream_multi_agent_pipeline(
         "   - Differentiate DeepSeek-R1-Zero (pure RL directly on base model with zero cold-start data) from DeepSeek-R1 (cold-start CoT seed -> large-scale RL with outcome/format rewards -> rejection sampling -> 2nd SFT).\n"
         "   - Clarify that DeepSeek-R1 avoided Process Reward Models (PRMs) due to reward hacking; it relied on rule-based outcome verification (accuracy check) and format rewards (<think> tags).\n"
         "   - Runtime inference runs linearly and autoregressively in a single token stream; backtracking and self-correction occur within generated tokens, NOT as an explicit runtime tree search (MCTS) executed by the serving engine.\n"
-        "   - Compute cost scales linearly: Cost ~ T_reasoning + T_completion. Always format scientific exponents with braces (e.g. $10^{26}+$, never $10^26$)."
+        "   - Compute cost scales linearly: Cost ~ T_reasoning + T_completion. Always format scientific exponents with braces (e.g. $10^{26}+$, never $10^26$).\n"
+        "18. PHARMACOKINETICS & PHYSIOLOGICAL RIGOR: When analyzing pharmacokinetic (PK) compartment models:\n"
+        "   - Multi-Compartment Half-Life: In a two-compartment model, NEVER equate terminal half-life to ln(2)/k10. k10 is solely a micro-rate constant for central elimination. Terminal elimination half-life is t_{1/2, beta} = ln(2)/beta, where beta is the hybrid macro-rate constant from the characteristic roots (beta < k10), accounting for continuous redistribution from the peripheral compartment.\n"
+        "   - Administration Route vs Clearance: Never attribute clearance in intravenous (IV bolus or IV infusion) simulations to 'first-pass metabolism' (which only occurs after oral/portal administration). Characterize IV clearance as systemic hepatic clearance (high hepatic extraction ratio E_H) or renal excretion.\n"
+        "   - Phase I Cohort Precision: Accurately specify that standard Phase I clinical trials are conducted in healthy adult volunteers (except in cytotoxic oncology), whereas Phase II tests disease-bearing patient populations.\n"
+        "   - SciPy Code Design: Prefer scipy.integrate.solve_ivp over legacy odeint."
     )
     if is_referential_followup:
         editor_system_instruction += (
