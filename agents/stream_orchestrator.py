@@ -703,7 +703,12 @@ def stream_multi_agent_pipeline(
         "   - Intel Loihi 2 is fabricated on the Intel 4 EUV process node (formerly Intel 7nm EUV). Do not conflate the Intel 4 marketing brand with physical 4nm gate dimensions. Highlight its programmable microcode execution engine and integer graded spikes.\n"
         "   - Quantify synaptic Accumulate (AC) vs Multiply-Accumulate (MAC) ($0.1\\text{ pJ}$ for INT32 add vs $\\sim 3.7\\text{ pJ}$ for FP32 multiply). Disambiguate power regimes: standby/sparse sensing ($10\\text{--}500\\ \\mu\\text{W}$) vs active dynamic perception ($0.5\\text{--}15\\text{ mW}$).\n"
         "   - Emphasize that Poisson rate-coding conventional RGB frames destroys temporal precision and dynamic range; contrast with native asynchronous event cameras (DVS).\n"
-        "15. STRUCTURAL CONTINUITY & NO RESTART GLITCHES: Ensure unbroken prose flow. Never concatenate fragmented sentences across unpunctuated commas, and never duplicate or restart introductory overviews midway through the draft."
+        "15. STRUCTURAL CONTINUITY & NO RESTART GLITCHES: Ensure unbroken prose flow. Never concatenate fragmented sentences across unpunctuated commas, and never duplicate or restart introductory overviews midway through the draft.\n"
+        "16. BIOPHARMA & DRUG DISCOVERY RIGOR: When analyzing AI in drug development:\n"
+        "   - Preclinical Timelines: Accurately distinguish the broader Preclinical Discovery arc (Target ID -> Screening -> Hit-to-Lead -> Lead Optimization -> Candidate Nomination: 4–6 years traditional, compressed to 12–24 months by AI) from the isolated Hit-to-Lead (H2L) phase (1–2 years).\n"
+        "   - Phase I Trial Metrics: Cite Phase I success rates (~60%–70%) and failure/attrition rates (~30%–40%). Explicitly state that Phase I failures are driven not only by off-target toxicity, but substantially by unfavorable pharmacokinetics (ADMET, low bioavailability, rapid hepatic clearance) and commercial reprioritizations.\n"
+        "   - The Phase II Efficacy Wall: Highlight that computational binding optimization (Kd, IC50) cannot prevent Phase II failure if the biological target hypothesis itself is flawed.\n"
+        "   - Dynamic Physiology vs Static Docking: Emphasize hepatic CYP450 clearance, in vivo systemic dynamics, and conformational flexibility in biologics—specifically antibody CDR-H3 loops which static AlphaFold and crystal structures fail to capture."
     )
     if is_referential_followup:
         editor_system_instruction += (

@@ -211,6 +211,23 @@ class DeterministicRuleBasedVerifier:
             text = re.sub(r'(QuantumScape\b[^\n]*?)(sulfide)', r'\1oxide/ceramic', text, flags=re.IGNORECASE)
             text = re.sub(r'(Solid\s*Power\b[^\n]*?)(oxide)', r'\1sulfide', text, flags=re.IGNORECASE)
 
+        # 6. Biopharma Pipeline Timeline Repair: Hit-to-Lead (4-6 years) -> Preclinical Discovery (Target-to-Candidate)
+        if re.search(r'\bHit-to-Lead\b', text, re.IGNORECASE) and re.search(r'\b4[-–]6\s*years?\b', text, re.IGNORECASE):
+            fixes.append("Corrected Hit-to-Lead label to full Preclinical Discovery (Target-to-Candidate) for 4-6 year window")
+            text = re.sub(r'\bHit-to-Lead(?:\s+Time)?\b', 'Preclinical Discovery (Target-to-Candidate)', text, flags=re.IGNORECASE)
+
+        # 7. Phase I Attrition Mechanism Clarification: toxicity + PK/ADMET + strategic discontinuations
+        def fix_phase1_attrition(m):
+            fixes.append("Clarified Phase I attrition drivers to include pharmacokinetics (ADMET) and commercial discontinuations alongside off-target toxicity")
+            return "Phase I failure rate (industry attrition of ~30%–40%, driven by off-target toxicity, unfavorable pharmacokinetics/rapid clearance, and strategic discontinuations)"
+
+        text = re.sub(
+            r'Phase\s*I\s*(?:fail(?:ure)?\s*rate|attrition)[^.,;\n]*?driven\s*(?:solely|primarily|typically)?\s*by\s*(?:unforeseen\s*)?off-target\s*toxicit(?:y|ies)[^.,;\n]*?(?:industry\s*average\s*of\s*~?30%)?',
+            fix_phase1_attrition,
+            text,
+            flags=re.IGNORECASE
+        )
+
         return text, fixes
 
     @classmethod
