@@ -1,9 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Perplexity Deep Research // Frontier Epistemic Engine</title>
+  <title>Antigravity // Dual-Speed Research & Frontier Reasoning</title>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('antigravity_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -24,15 +37,15 @@
           },
           colors: {
             pplx: {
-              bg: '#0c0e12',
-              sidebar: '#11141a',
-              card: '#161922',
-              cardHover: '#1c202c',
-              border: '#232836',
-              accent: '#20b8cd',
-              accentHover: '#1ca1b4',
-              accentGlow: 'rgba(32, 184, 205, 0.25)',
-              muted: '#8b949e',
+              bg: 'var(--bg-main)',
+              sidebar: 'var(--bg-sidebar)',
+              card: 'var(--bg-card)',
+              cardHover: 'var(--bg-card-hover)',
+              border: 'var(--border-color)',
+              accent: 'var(--accent)',
+              accentHover: 'var(--accent)',
+              accentGlow: 'var(--accent-glow)',
+              muted: 'var(--text-muted)',
             }
           }
         }
@@ -40,34 +53,69 @@
     }
   </script>
   <style>
+    :root {
+      --bg-main: #090a0f;
+      --bg-main-fade: rgba(9, 10, 15, 0.95);
+      --bg-sidebar: #0e1118;
+      --bg-card: #131722;
+      --bg-card-hover: #1b2030;
+      --border-color: #212638;
+      --border-subtle: rgba(255, 255, 255, 0.12);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #20b8cd;
+      --accent-glow: rgba(32, 184, 205, 0.25);
+      --input-glass: rgba(19, 23, 34, 0.95);
+      --btn-hover: rgba(255, 255, 255, 0.08);
+      --code-bg: #0d1017;
+    }
+
+    [data-theme="light"], .light {
+      --bg-main: #f8fafc;
+      --bg-main-fade: rgba(248, 250, 252, 0.96);
+      --bg-sidebar: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --border-color: #e2e8f0;
+      --border-subtle: rgba(0, 0, 0, 0.12);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.2);
+      --input-glass: rgba(255, 255, 255, 0.96);
+      --btn-hover: rgba(0, 0, 0, 0.06);
+      --code-bg: #f1f5f9;
+    }
+
     body {
-      background-color: #0c0e12;
-      color: #e6edf3;
+      background-color: var(--bg-main);
+      color: var(--text-main);
       font-family: 'Plus Jakarta Sans', sans-serif;
       overflow: hidden;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 5px;
       height: 5px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #0e1117;
+      background: var(--bg-sidebar);
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #232836;
+      background: var(--border-color);
       border-radius: 9999px;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-      background: #333a4d;
+      background: #475569;
     }
     .glass-search {
-      background: rgba(22, 25, 34, 0.95);
+      background: var(--input-glass);
       backdrop-filter: blur(20px);
-      border: 1px solid #232836;
+      border: 1px solid var(--border-color);
     }
     .glass-search:focus-within {
-      border-color: #20b8cd;
-      box-shadow: 0 0 25px -5px rgba(32, 184, 205, 0.35);
+      border-color: var(--accent);
+      box-shadow: 0 0 25px -5px var(--accent-glow);
     }
     /* Searching & Active Conversation Mode: Move upward, keep centered with conversation feed, remove surrounding box */
     .searching-active-wrapper {
@@ -80,7 +128,7 @@
     .searching-active-container {
       background: transparent !important;
       border-color: transparent !important;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+      border-bottom: 1px solid var(--border-subtle) !important;
       box-shadow: none !important;
       backdrop-filter: none !important;
       border-radius: 0.75rem !important;
@@ -92,8 +140,8 @@
     }
     .searching-active-container:focus-within {
       border-color: transparent !important;
-      border-bottom-color: rgba(32, 184, 205, 0.75) !important;
-      box-shadow: 0 4px 14px -4px rgba(32, 184, 205, 0.25) !important;
+      border-bottom-color: var(--accent) !important;
+      box-shadow: 0 4px 14px -4px var(--accent-glow) !important;
     }
     .searching-active-container #uploadPaperBtn {
       border-color: transparent !important;
@@ -101,8 +149,115 @@
       box-shadow: none !important;
     }
     .searching-active-container #uploadPaperBtn:hover {
-      background: rgba(255, 255, 255, 0.08) !important;
-      color: #f1f5f9 !important;
+      background: var(--btn-hover) !important;
+      color: var(--text-main) !important;
+    }
+    .bottom-fade-gradient {
+      background: linear-gradient(to top, var(--bg-main) 0%, var(--bg-main-fade) 70%, transparent 100%) !important;
+    }
+
+    /* Antigravity Light Mode Theme Adaptations */
+    [data-theme="light"] body, .light body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+    }
+    [data-theme="light"] .text-white, .light .text-white {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .text-slate-100, .light .text-slate-100 {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .text-slate-200, .light .text-slate-200 {
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .text-slate-300, .light .text-slate-300 {
+      color: #334155 !important;
+    }
+    [data-theme="light"] .text-slate-400, .light .text-slate-400 {
+      color: #64748b !important;
+    }
+    [data-theme="light"] .bg-pplx-bg, .light .bg-pplx-bg {
+      background-color: var(--bg-main) !important;
+    }
+    [data-theme="light"] .bg-pplx-sidebar, .light .bg-pplx-sidebar {
+      background-color: var(--bg-sidebar) !important;
+      border-color: var(--border-color) !important;
+    }
+    [data-theme="light"] .bg-pplx-card, .light .bg-pplx-card {
+      background-color: var(--bg-card) !important;
+      border-color: var(--border-color) !important;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05) !important;
+    }
+    [data-theme="light"] .bg-pplx-card\/60, .light .bg-pplx-card\/60 {
+      background-color: rgba(255, 255, 255, 0.9) !important;
+    }
+    [data-theme="light"] .border-pplx-border, .light .border-pplx-border {
+      border-color: var(--border-color) !important;
+    }
+    [data-theme="light"] header, .light header {
+      background-color: var(--bg-main-fade) !important;
+      border-color: var(--border-color) !important;
+    }
+    [data-theme="light"] .glass-search, .light .glass-search {
+      background: var(--input-glass) !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08) !important;
+    }
+    [data-theme="light"] #promptInput, .light #promptInput {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] #promptInput::placeholder, .light #promptInput::placeholder {
+      color: #94a3b8 !important;
+    }
+    [data-theme="light"] .markdown-content, .light .markdown-content {
+      color: #1e293b !important;
+    }
+    [data-theme="light"] .markdown-content h1, .light .markdown-content h1,
+    [data-theme="light"] .markdown-content h2, .light .markdown-content h2,
+    [data-theme="light"] .markdown-content h3, .light .markdown-content h3 {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .markdown-content code:not(pre code), .light .markdown-content code:not(pre code) {
+      background: #f1f5f9 !important;
+      color: #0369a1 !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    [data-theme="light"] .markdown-content pre, .light .markdown-content pre {
+      background: #f8fafc !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    [data-theme="light"] .markdown-content pre code, .light .markdown-content pre code {
+      color: #0f172a !important;
+    }
+    [data-theme="light"] .markdown-content table, .light .markdown-content table {
+      border-color: #e2e8f0 !important;
+    }
+    [data-theme="light"] .markdown-content th, .light .markdown-content th {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-color: #e2e8f0 !important;
+    }
+    [data-theme="light"] .markdown-content td, .light .markdown-content td {
+      border-color: #e2e8f0 !important;
+    }
+    [data-theme="light"] .markdown-content blockquote, .light .markdown-content blockquote {
+      border-left-color: #0284c7 !important;
+      background: rgba(2, 132, 199, 0.06) !important;
+      color: #334155 !important;
+    }
+    [data-theme="light"] .citation-badge, .light .citation-badge {
+      background: rgba(2, 132, 199, 0.12) !important;
+      color: #0284c7 !important;
+      border-color: rgba(2, 132, 199, 0.25) !important;
+    }
+    [data-theme="light"] #uploadPaperBtn, .light #uploadPaperBtn {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+      color: #64748b !important;
+    }
+    [data-theme="light"] #searchBtn, .light #searchBtn {
+      background-color: #0284c7 !important;
+      color: #ffffff !important;
     }
     .citation-badge {
       display: inline-flex;
@@ -304,10 +459,10 @@
           </div>
           <div>
             <div class="font-bold tracking-tight text-white text-sm flex items-center space-x-1.5">
-              <span>Perplexity</span>
-              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-semibold">PRO</span>
+              <span>Antigravity</span>
+              <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 font-semibold">GENAI</span>
             </div>
-            <p class="text-[10px] text-pplx-muted">Epistemic Research Engine</p>
+            <p class="text-[10px] text-pplx-muted">Frontier Reasoning Engine</p>
           </div>
         </div>
         <button
@@ -420,6 +575,20 @@
           </div>
         </div>
       </details>
+
+      <!-- Theme Switcher in Sidebar Footer -->
+      <div class="pt-3 border-t border-pplx-border/60 flex items-center justify-between text-xs px-1">
+        <span class="font-mono text-[11px] text-pplx-muted">Theme Mode</span>
+        <button
+          type="button"
+          onclick="toggleTheme()"
+          class="px-2.5 py-1 rounded-lg border border-pplx-border bg-pplx-card hover:bg-pplx-cardHover text-xs font-mono flex items-center space-x-1.5 transition-all text-slate-300 hover:text-white cursor-pointer"
+          title="Toggle Light / Dark Mode"
+        >
+          <span id="sidebarThemeIcon">🌙</span>
+          <span id="sidebarThemeText">Dark</span>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -447,7 +616,7 @@
 
         <div class="md:hidden flex items-center space-x-1.5 flex-shrink-0">
           <div class="h-6 w-6 rounded-lg bg-cyan-500 flex items-center justify-center font-bold text-black text-xs">✦</div>
-          <span class="font-bold text-white text-xs">Perplexity</span>
+          <span class="font-bold text-white text-xs">Antigravity</span>
         </div>
         <div class="text-xs text-pplx-muted truncate max-w-xs sm:max-w-md">
           <span id="activeThreadTitle" class="text-slate-200 font-medium">New Epistemic Thread</span>
@@ -456,10 +625,14 @@
 
       <!-- Quick Action Buttons -->
       <div class="flex items-center space-x-2">
-        <!-- Top Engine Mode Quick Switcher -->
-        <button onclick="toggleApiEngineModeQuick()" id="topEngineBadge" class="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-xs font-mono text-cyan-300 hover:bg-cyan-900/40 transition-all">
-          <span>🔑</span>
-          <span id="topEngineLabel">AI Studio Key</span>
+        <!-- Antigravity Theme Switcher (Light / Dark Mode) -->
+        <button
+          id="themeToggleBtn"
+          onclick="toggleTheme()"
+          class="w-8 h-8 rounded-xl flex items-center justify-center border transition-all text-slate-300 hover:text-white border-pplx-border bg-pplx-card hover:bg-pplx-cardHover shadow-sm cursor-pointer"
+          title="Toggle Light / Dark Mode"
+        >
+          <span id="themeToggleIcon" class="text-xs">🌙</span>
         </button>
 
         <!-- Feature 1: Split-Screen Canvas Toggle -->
@@ -496,9 +669,8 @@
           </div>
         </div>
 
-        <button onclick="copyFullReport()" class="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-semibold text-cyan-400 flex items-center space-x-1 transition-all">
+        <button onclick="copyFullReport()" class="w-8 h-8 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-semibold text-cyan-400 flex items-center justify-center transition-all cursor-pointer" title="Copy Latest Report to Clipboard">
           <span id="copyReportIcon">📋</span>
-          <span id="copyReportText">Copy Latest</span>
         </button>
       </div>
     </header>
@@ -510,10 +682,10 @@
         <!-- Initial Hero / Welcome View (Only visible before first search) -->
         <div id="searchHeroSection" class="text-center py-12 space-y-6">
           <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-mono text-cyan-400">
-            <span>✦ MULTI-AGENT RESEARCH & CONVERSATIONAL INTELLIGENCE</span>
+            <span>✦ ANTIGRAVITY // DUAL-SPEED REASONING ENGINE</span>
           </div>
           <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-            Where research begins.
+            Where frontier intelligence begins.
           </h1>
           <p class="text-sm text-pplx-muted max-w-md mx-auto">
             Ask any question to execute live multi-agent research, fact-checked web synthesis, and conversational answers.
@@ -534,9 +706,9 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- FLOATING BOTTOM INPUT BAR (Exact ChatGPT / Perplexity Style) -->
+    <!-- FLOATING BOTTOM INPUT BAR (Antigravity Style) -->
     <!-- ========================================================================= -->
-    <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-[#0c0e12] via-[#0c0e12]/95 to-transparent pt-6 pb-4 px-4 sm:px-8 z-20 pointer-events-none">
+    <div id="bottomGradientFade" class="absolute bottom-0 inset-x-0 bottom-fade-gradient pt-6 pb-4 px-4 sm:px-8 z-20 pointer-events-none">
       <div id="searchBarWrapper" class="max-w-4xl mx-auto pointer-events-auto space-y-1.5 transition-all duration-300">
         <!-- Attached Documents / Papers Chips (Displays directly above input box) -->
         <div id="uploadedPapersList" class="hidden flex items-center space-x-2 overflow-x-auto custom-scrollbar pb-1 text-xs">
@@ -562,22 +734,21 @@
             class="flex-1 bg-transparent border-0 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-2 font-sans"
           />
 
-          <!-- Professional Deep Search Button (Entirely Distinct Cosmic Violet/Indigo Theme) -->
+          <!-- Professional Deep Search Button (Icon-Only Planetary / Star Radar) -->
           <button
             id="deepResearchToggleBtn"
             type="button"
             onclick="toggleDeepResearchMode()"
-            class="group relative flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-mono transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-indigo-950/40 hover:from-purple-900/50 hover:to-indigo-900/50 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 shadow-sm"
-            title="Toggle Deep Search (OFF: Fast Chat | ON: 5-Agent Literature Mining & Grounding Audit)"
+            class="w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-purple-950/30 hover:bg-purple-900/40 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 shadow-sm"
+            title="Toggle Deep Search (OFF: Fast Chat | ON: 5-Agent Literature Mining & Epistemic Audit)"
           >
             <span id="deepResearchIcon" class="flex items-center justify-center text-purple-400 group-hover:text-purple-300 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="7"></circle>
                 <path d="M21 21l-4.35-4.35"></path>
                 <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="currentColor" stroke="none"></polygon>
               </svg>
             </span>
-            <span id="deepResearchLabel" class="hidden sm:inline font-semibold text-[11px] tracking-wide">Deep Search</span>
           </button>
 
 
@@ -803,6 +974,35 @@
   <div id="briefRecipientPreview" class="hidden"></div>
 
   <script>
+    // Theme Engine (Antigravity Light & Dark Mode)
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      if (theme === 'light') {
+        document.documentElement.classList.add('light');
+        document.documentElement.classList.remove('dark');
+      } else {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      }
+      try {
+        localStorage.setItem('antigravity_theme', theme);
+      } catch (e) {}
+
+      // Synchronize icons & labels
+      const topIcon = document.getElementById('themeToggleIcon');
+      if (topIcon) topIcon.innerText = theme === 'light' ? '☀️' : '🌙';
+      const sidebarIcon = document.getElementById('sidebarThemeIcon');
+      if (sidebarIcon) sidebarIcon.innerText = theme === 'light' ? '☀️' : '🌙';
+      const sidebarText = document.getElementById('sidebarThemeText');
+      if (sidebarText) sidebarText.innerText = theme === 'light' ? 'Light' : 'Dark';
+    }
+
+    function toggleTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme);
+    }
+
     // State
     let activePrompt = '';
     let activeFocusMode = 'all';
@@ -820,26 +1020,22 @@
     function updateDeepResearchUI() {
       const btn = document.getElementById('deepResearchToggleBtn');
       const icon = document.getElementById('deepResearchIcon');
-      const label = document.getElementById('deepResearchLabel');
       const input = document.getElementById('promptInput');
       const bar = document.getElementById('searchBarContainer');
       if (!btn) return;
 
       if (isDeepResearchActive) {
-        btn.className = 'group relative flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-mono transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 hover:from-violet-500 hover:via-purple-500 hover:to-indigo-500 text-white font-bold border-violet-300/70 shadow-[0_0_20px_rgba(168,85,247,0.5)] ring-2 ring-violet-400/50 scale-[1.02]';
-        btn.title = 'Deep Search: ON (5-Agent Literature Mining, arXiv indexing & Epistemic Audit)';
+        btn.className = 'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-600 text-white font-bold border-violet-300/70 shadow-[0_0_20px_rgba(168,85,247,0.55)] ring-2 ring-violet-400/50 scale-105';
+        btn.title = 'Deep Search: ON (5-Agent Literature Mining, arXiv indexing & Epistemic Audit) — Click for Fast Chat';
         if (icon) {
           icon.className = 'flex items-center justify-center text-white';
           icon.innerHTML = `
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="7"></circle>
               <path d="M21 21l-4.35-4.35"></path>
               <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="white" stroke="none"></polygon>
             </svg>
           `;
-        }
-        if (label) {
-          label.innerHTML = 'Deep Search <span class="relative flex h-2 w-2 ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-200 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-white"></span></span>';
         }
         if (input) input.placeholder = 'Deep Search active: Enter any research inquiry, complex hypothesis, or technical question...';
         if (bar) {
@@ -847,20 +1043,17 @@
           bar.classList.remove('border-pplx-border');
         }
       } else {
-        btn.className = 'group relative flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-mono transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-indigo-950/40 hover:from-purple-900/50 hover:to-indigo-900/50 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 shadow-sm';
-        btn.title = 'Deep Search: OFF (Instant Fast Chat like ChatGPT / DeepSeek)';
+        btn.className = 'w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 border flex-shrink-0 cursor-pointer select-none bg-purple-950/30 hover:bg-purple-900/40 text-purple-300 hover:text-purple-100 border-purple-500/25 hover:border-purple-400/50 shadow-sm';
+        btn.title = 'Deep Search: OFF (Instant Fast Chat like ChatGPT / DeepSeek) — Click to activate Deep Search';
         if (icon) {
           icon.className = 'flex items-center justify-center text-purple-400 group-hover:text-purple-300 transition-colors';
           icon.innerHTML = `
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="7"></circle>
               <path d="M21 21l-4.35-4.35"></path>
               <polygon points="11,7 12.2,9.8 15,11 12.2,12.2 11,15 9.8,12.2 7,11 9.8,9.8" fill="currentColor" stroke="none"></polygon>
             </svg>
           `;
-        }
-        if (label) {
-          label.innerText = 'Deep Search';
         }
         if (input) input.placeholder = 'Ask anything... (Fast Chat like ChatGPT / DeepSeek)';
         if (bar) {
@@ -919,8 +1112,6 @@
       const keyStatus = document.getElementById('geminiKeyStatus');
       const studioCont = document.getElementById('studioKeyContainer');
       const freeNotice = document.getElementById('freeTierNotice');
-      const topBadge = document.getElementById('topEngineBadge');
-      const topLabel = document.getElementById('topEngineLabel');
       const bottomIcon = document.getElementById('selectedEngineIcon');
       const bottomLabel = document.getElementById('selectedEngineLabel');
 
@@ -933,8 +1124,6 @@
         }
         if (studioCont) studioCont.classList.remove('hidden');
         if (freeNotice) freeNotice.classList.add('hidden');
-        if (topLabel) topLabel.innerText = 'AI Studio Key';
-        if (topBadge) topBadge.className = 'hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-500/30 text-xs font-mono text-cyan-300 hover:bg-cyan-900/40 transition-all';
         if (bottomIcon) bottomIcon.innerText = '🔑';
         if (bottomLabel) bottomLabel.innerText = 'AI Studio Key';
       } else {
@@ -946,8 +1135,6 @@
         }
         if (studioCont) studioCont.classList.add('hidden');
         if (freeNotice) freeNotice.classList.remove('hidden');
-        if (topLabel) topLabel.innerText = 'Free Safe-Hand';
-        if (topBadge) topBadge.className = 'hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-xs font-mono text-emerald-300 hover:bg-emerald-900/40 transition-all';
         if (bottomIcon) bottomIcon.innerText = '⚡';
         if (bottomLabel) bottomLabel.innerText = 'Free Safe-Hand';
       }
@@ -1139,6 +1326,8 @@
 
     // Auto-focus input on load & rehydrate persistent SQLite session
     window.addEventListener('DOMContentLoaded', () => {
+      const savedTheme = localStorage.getItem('antigravity_theme') || 'dark';
+      applyTheme(savedTheme);
       promptInput.focus();
       const keyInput = document.getElementById('customGeminiKeyInput');
       if (keyInput && customGeminiKey) {
@@ -1538,18 +1727,16 @@
           <!-- Bottom Action Bar (ChatGPT-style) -->
           <div id="turn-${turnId}-bottomActionBar" class="pt-3 mt-1 border-t border-pplx-border/50 flex items-center justify-between text-xs">
             <div class="flex items-center space-x-1.5">
-              <button type="button" onclick="copyTurnResponse('${turnId}')" id="turn-${turnId}-copyBtn" class="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all cursor-pointer font-sans" title="Copy response to clipboard">
-                <svg id="turn-${turnId}-copyIcon" class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button type="button" onclick="copyTurnResponse('${turnId}')" id="turn-${turnId}-copyBtn" class="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-pplx-cardHover border border-transparent hover:border-pplx-border transition-all cursor-pointer flex items-center justify-center" title="Copy response to clipboard">
+                <svg id="turn-${turnId}-copyIcon" class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                 </svg>
-                <span id="turn-${turnId}-copyBtnText" class="font-medium">Copy</span>
               </button>
 
-              <button type="button" onclick="exportTurnPaper('${turnId}')" class="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all cursor-pointer font-sans" title="Export as Markdown (.md)">
-                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button type="button" onclick="exportTurnPaper('${turnId}')" class="p-1.5 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-pplx-cardHover border border-transparent hover:border-pplx-border transition-all cursor-pointer flex items-center justify-center" title="Export as Markdown (.md)">
+                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
-                <span class="font-medium">Export</span>
               </button>
             </div>
 
@@ -2314,12 +2501,21 @@
       }
 
       function showCopiedFeedback() {
+        const copyBtn = document.getElementById(`turn-${turnId}-copyBtn`);
         const copyText = document.getElementById(`turn-${turnId}-copyBtnText`);
         const copyIcon = document.getElementById(`turn-${turnId}-copyIcon`);
+        if (copyBtn) {
+          copyBtn.title = 'Copied! ✓';
+          copyBtn.classList.add('text-emerald-400');
+        }
         if (copyText) copyText.innerHTML = '<span class="text-emerald-400 font-semibold">Copied!</span>';
-        if (copyIcon) copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" class="text-emerald-400"></path>';
+        if (copyIcon) copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" class="text-emerald-400"></path>';
 
         setTimeout(() => {
+          if (copyBtn) {
+            copyBtn.title = 'Copy response to clipboard';
+            copyBtn.classList.remove('text-emerald-400');
+          }
           if (copyText) copyText.innerText = 'Copy';
           if (copyIcon) {
             copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
