@@ -1499,6 +1499,29 @@
               <span>Agents researching and compiling response...</span>
             </div>
           </div>
+
+          <!-- Bottom Action Bar (ChatGPT-style) -->
+          <div id="turn-${turnId}-bottomActionBar" class="pt-3 mt-1 border-t border-pplx-border/50 flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-1.5">
+              <button type="button" onclick="copyTurnResponse('${turnId}')" id="turn-${turnId}-copyBtn" class="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all cursor-pointer font-sans" title="Copy response to clipboard">
+                <svg id="turn-${turnId}-copyIcon" class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                </svg>
+                <span id="turn-${turnId}-copyBtnText" class="font-medium">Copy</span>
+              </button>
+
+              <button type="button" onclick="exportTurnPaper('${turnId}')" class="inline-flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all cursor-pointer font-sans" title="Export as Markdown (.md)">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <span class="font-medium">Export</span>
+              </button>
+            </div>
+
+            <div class="flex items-center space-x-2 text-[11px] text-pplx-muted font-mono">
+              <span id="turn-${turnId}-wordCountBadge" class="hidden sm:inline"></span>
+            </div>
+          </div>
         </div>
 
         <!-- Related Questions Section -->
@@ -1731,6 +1754,13 @@
       if (isFinal) {
         buildTurnToc(turnId, rawMd);
         initReadingProgressBar(turnId);
+      }
+
+      // Update word count badge
+      const wcEl = document.getElementById(`turn-${turnId}-wordCountBadge`);
+      if (wcEl && rawMd) {
+        const words = rawMd.trim().split(/\s+/).filter(Boolean).length;
+        wcEl.innerText = `${words} words`;
       }
 
       // Smooth auto-scroll only if user is already near bottom (preserves scroll if reading previous conversation)
@@ -2236,15 +2266,58 @@
       if (src && src.url) window.open(src.url, '_blank', 'noopener,noreferrer');
     }
 
-    function copyTurnPaper(turnId) {
+    function copyTurnResponse(turnId) {
       const t = turnsData[turnId];
-      if (!t || !t.markdown) return;
-      navigator.clipboard.writeText(t.markdown);
-      const text = document.getElementById(`turn-${turnId}-copyBtnText`);
-      if (text) {
-        text.innerText = 'Copied ✓';
-        setTimeout(() => text.innerText = 'Copy Paper', 2000);
+      let textToCopy = (t && t.markdown) || '';
+      if (!textToCopy) {
+        const el = document.getElementById(`turn-${turnId}-markdown`);
+        if (el) textToCopy = el.innerText || '';
       }
+      if (!textToCopy || textToCopy.includes('Agents researching and compiling response...')) {
+        return;
+      }
+
+      function showCopiedFeedback() {
+        const copyText = document.getElementById(`turn-${turnId}-copyBtnText`);
+        const copyIcon = document.getElementById(`turn-${turnId}-copyIcon`);
+        if (copyText) copyText.innerHTML = '<span class="text-emerald-400 font-semibold">Copied!</span>';
+        if (copyIcon) copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" class="text-emerald-400"></path>';
+
+        setTimeout(() => {
+          if (copyText) copyText.innerText = 'Copy';
+          if (copyIcon) {
+            copyIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>';
+          }
+        }, 2000);
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textToCopy).then(showCopiedFeedback).catch(() => {
+          fallbackCopyText(textToCopy);
+          showCopiedFeedback();
+        });
+      } else {
+        fallbackCopyText(textToCopy);
+        showCopiedFeedback();
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+      } catch (err) {}
+      document.body.removeChild(textArea);
+    }
+
+    function copyTurnPaper(turnId) {
+      copyTurnResponse(turnId);
     }
 
     function exportTurnPaper(turnId) {
