@@ -6,3 +6,4 @@ output/
 uploaded_papers/
 data/*.db*
 data/*.sqlite*
+data/users/

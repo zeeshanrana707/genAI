@@ -12,4 +12,6 @@ from database.db import (
     create_user,
     authenticate_user,
     get_user_by_id,
+    get_user_db_path,
+    get_user_profile_from_db,
 )

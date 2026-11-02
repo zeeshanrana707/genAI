@@ -57,6 +57,20 @@ app = FastAPI(title="Perplexity Deep Research & Multi-Agent Enterprise Canvas")
 app.mount("/output/plots", StaticFiles(directory=str(PLOTS_DIR)), name="plots")
 
 
+def resolve_user_id(request: Request, explicit_user_id: Optional[str] = None) -> str:
+    """Extract user_id from explicit argument, header, or query param, falling back to guest."""
+    if explicit_user_id and explicit_user_id.strip() not in ("", "undefined", "null"):
+        return explicit_user_id.strip()
+    header_val = request.headers.get("X-User-Id")
+    if header_val and header_val.strip() not in ("", "undefined", "null"):
+        return header_val.strip()
+    query_val = request.query_params.get("user_id")
+    if query_val and query_val.strip() not in ("", "undefined", "null"):
+        return query_val.strip()
+    return "guest"
+
+
+
 class CanvasRefineRequest(BaseModel):
     selection: str
     instruction: str
@@ -108,8 +122,10 @@ async def stream_agents(
     session_id: Optional[str] = None,
     stream_id: Optional[str] = None,
     paper_ids: Optional[str] = None,
-    gemini_api_key: Optional[str] = None
+    gemini_api_key: Optional[str] = None,
+    user_id: Optional[str] = None
 ):
+    active_user_id = resolve_user_id(request, user_id)
     """Server-Sent Events streaming endpoint with decoupled StreamEventBus, Last-Event-ID replay, and SQLite WAL persistence."""
     # 1. Detect Last-Event-ID for reconnection from either HTTP header or query param
     last_event_id: Optional[int] = None
@@ -184,7 +200,7 @@ async def stream_agents(
     prior_context = ""
     prior_sources = []
     if session_id:
-        history_list = database.get_session_history(session_id, limit=6)
+        history_list = database.get_session_history(session_id, limit=6, user_id=active_user_id)
         if history_list:
             last_t = history_list[-1]
             prior_context = last_t.get("research", "")
@@ -208,7 +224,7 @@ async def stream_agents(
     uploaded_text_parts = []
     if paper_ids:
         p_ids = [pid.strip() for pid in paper_ids.split(",") if pid.strip()]
-        papers_data = database.get_uploaded_paper_texts(p_ids)
+        papers_data = database.get_uploaded_paper_texts(p_ids, user_id=active_user_id)
         for p in papers_data:
             uploaded_text_parts.append(
                 f"=== UPLOADED PAPER: {p['filename']} ===\n"
@@ -287,7 +303,8 @@ async def stream_agents(
                         research=accumulated_research,
                         sources=accumulated_sources,
                         deliverables=deliverables_dict,
-                        plot_path=plot_path
+                        plot_path=plot_path,
+                        user_id=active_user_id
                     )
                     print(f"[SQLite WAL] Persisted turn {turn_uid} for session {session_id}")
                 except Exception as db_err:
@@ -351,9 +368,10 @@ async def cancel_stream_endpoint(request: Request):
 
 
 @app.post("/api/upload-paper")
-async def upload_paper(file: UploadFile = File(...)):
-    """Upload research paper (PDF), extract text with pdfplumber, and index persistently in SQLite."""
+async def upload_paper(request: Request, file: UploadFile = File(...)):
+    """Upload research paper (PDF), extract text with pdfplumber, and index persistently in user's isolated SQLite database."""
     try:
+        active_user_id = resolve_user_id(request)
         if not file.filename.lower().endswith(".pdf"):
             return JSONResponse(status_code=400, content={"success": False, "error": "Only PDF files are supported."})
 
@@ -380,7 +398,8 @@ async def upload_paper(file: UploadFile = File(...)):
             paper_id=paper_id,
             filename=file.filename,
             page_count=page_count,
-            text=full_text
+            text=full_text,
+            user_id=active_user_id
         )
 
         return {
@@ -391,55 +410,62 @@ async def upload_paper(file: UploadFile = File(...)):
                 "page_count": page_count,
                 "char_count": len(full_text),
                 "uploaded_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            }
+            },
+            "user_id": active_user_id
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
 @app.get("/api/papers")
-async def list_papers():
-    """List all uploaded reference research papers from persistent SQLite database."""
-    papers_summary = database.get_all_uploaded_papers()
-    return {"papers": papers_summary}
+async def list_papers(request: Request):
+    """List all uploaded reference research papers from user's isolated SQLite database."""
+    active_user_id = resolve_user_id(request)
+    papers_summary = database.get_all_uploaded_papers(user_id=active_user_id)
+    return {"papers": papers_summary, "user_id": active_user_id}
 
 
 @app.delete("/api/papers/{paper_id}")
-async def delete_paper(paper_id: str):
-    """Delete an uploaded reference paper."""
-    success = database.delete_uploaded_paper(paper_id)
+async def delete_paper(request: Request, paper_id: str):
+    """Delete an uploaded reference paper from user's isolated database."""
+    active_user_id = resolve_user_id(request)
+    success = database.delete_uploaded_paper(paper_id, user_id=active_user_id)
     if success:
         return {"success": True, "message": "Paper removed."}
     return JSONResponse(status_code=404, content={"success": False, "error": "Paper not found."})
 
 
 @app.get("/api/sessions")
-async def list_sessions():
-    """Retrieve all persistent research sessions from SQLite database."""
-    sessions_list = database.get_all_sessions(limit=25)
-    return {"sessions": sessions_list}
+async def list_sessions(request: Request):
+    """Retrieve persistent research sessions from user's isolated SQLite database."""
+    active_user_id = resolve_user_id(request)
+    sessions_list = database.get_all_sessions(limit=25, user_id=active_user_id)
+    return {"sessions": sessions_list, "user_id": active_user_id}
 
 
 @app.get("/api/session/{session_id}")
-async def get_session(session_id: str):
-    """Retrieve prior research history and all turns for the active session from SQLite."""
-    history = database.get_session_history(session_id, limit=30)
+async def get_session(request: Request, session_id: str):
+    """Retrieve prior research history and all turns for active session from user's isolated SQLite database."""
+    active_user_id = resolve_user_id(request)
+    history = database.get_session_history(session_id, limit=30, user_id=active_user_id)
     if not history:
-        return {"exists": False, "turns": [], "last_research": "", "history_count": 0}
+        return {"exists": False, "turns": [], "last_research": "", "history_count": 0, "user_id": active_user_id}
     last_t = history[-1]
     return {
         "exists": True,
         "turns": history,
         "last_research": last_t.get("research", ""),
-        "history_count": len(history)
+        "history_count": len(history),
+        "user_id": active_user_id
     }
 
 
 @app.delete("/api/session/{session_id}")
-async def reset_session(session_id: str):
-    """Reset the research session to start fresh from scratch."""
-    database.reset_session(session_id)
-    return {"success": True, "message": "Session research memory reset."}
+async def reset_session(request: Request, session_id: str):
+    """Reset research session memory in user's isolated SQLite database."""
+    active_user_id = resolve_user_id(request)
+    database.reset_session(session_id, user_id=active_user_id)
+    return {"success": True, "message": "Session research memory reset.", "user_id": active_user_id}
 
 
 # =====================================================================

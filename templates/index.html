@@ -1343,6 +1343,10 @@
     // =========================================================================
     let currentAuthUser = null;
 
+    function getActiveUserId() {
+      return (currentAuthUser && currentAuthUser.user_id) ? currentAuthUser.user_id : 'guest';
+    }
+
     function initAuthUser() {
       try {
         const stored = localStorage.getItem('antigravity_user');
@@ -1527,6 +1531,9 @@
 
         renderAuthUI();
         closeAuthModal();
+        resetToNewSearch();
+        loadRecentHistory();
+        loadUploadedPapers();
 
         // Clear input values
         if (passwordInput) passwordInput.value = '';
@@ -1575,6 +1582,9 @@
         localStorage.setItem('antigravity_user', JSON.stringify(currentAuthUser));
         renderAuthUI();
         closeAuthModal();
+        resetToNewSearch();
+        loadRecentHistory();
+        loadUploadedPapers();
       } catch (err) {
         showAuthError('Network error initiating demo auth.');
       }
@@ -1585,6 +1595,9 @@
       localStorage.removeItem('antigravity_user');
       renderAuthUI();
       closeAuthModal();
+      resetToNewSearch();
+      loadRecentHistory();
+      loadUploadedPapers();
     }
 
     // Theme Engine (Antigravity Light & Dark Mode)
@@ -2708,7 +2721,7 @@
       // Start Server-Sent Events stream
       const paperIdsParam = Array.from(selectedPaperIds).join(',');
       const keyToSend = activeEngineMode === 'free' ? 'free' : customGeminiKey;
-      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(modeToSend)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}&gemini_api_key=${encodeURIComponent(keyToSend)}`;
+      const url = `/api/stream?prompt=${encodeURIComponent(prompt)}&mode=${encodeURIComponent(modeToSend)}&engine=${encodeURIComponent(activeEngine)}&session_id=${encodeURIComponent(sessionId)}&paper_ids=${encodeURIComponent(paperIdsParam)}&gemini_api_key=${encodeURIComponent(keyToSend)}&user_id=${encodeURIComponent(getActiveUserId())}`;
       
       if (currentEventSource) {
         try { currentEventSource.close(); } catch (e) {}
@@ -3588,7 +3601,7 @@
     async function resetSessionMemory() {
       if (confirm('Start a fresh research thread and clear prior research context?')) {
         try {
-          await fetch(`/api/session/${sessionId}`, { method: 'DELETE' });
+          await fetch(`/api/session/${sessionId}`, { method: 'DELETE', headers: { 'X-User-Id': getActiveUserId() } });
         } catch (e) {}
         sessionId = 'session_' + Math.random().toString(36).substring(2, 10);
         localStorage.setItem('genai_session_id', sessionId);
@@ -3820,7 +3833,7 @@
     // =========================================================================
     async function loadUploadedPapers() {
       try {
-        const res = await fetch('/api/papers');
+        const res = await fetch('/api/papers', { headers: { 'X-User-Id': getActiveUserId() } });
         const data = await res.json();
         uploadedPapers = data.papers || [];
         uploadedPapers.forEach(p => selectedPaperIds.add(p.id));
@@ -3848,8 +3861,10 @@
       formData.append('file', file);
 
       try {
+        formData.append('user_id', getActiveUserId());
         const res = await fetch('/api/upload-paper', {
           method: 'POST',
+          headers: { 'X-User-Id': getActiveUserId() },
           body: formData
         });
         const data = await res.json();
@@ -3885,7 +3900,7 @@
 
     async function deletePaper(id) {
       try {
-        await fetch(`/api/papers/${id}`, { method: 'DELETE' });
+        await fetch(`/api/papers/${id}`, { method: 'DELETE', headers: { 'X-User-Id': getActiveUserId() } });
         uploadedPapers = uploadedPapers.filter(p => p.id !== id);
         selectedPaperIds.delete(id);
         renderUploadedPapersList();
@@ -3999,7 +4014,7 @@
       const container = document.getElementById('recentHistoryList');
       if (!container) return;
       try {
-        const res = await fetch('/api/sessions');
+        const res = await fetch('/api/sessions', { headers: { 'X-User-Id': getActiveUserId() } });
         const data = await res.json();
         const sessions = data.sessions || [];
         if (!sessions.length) {
@@ -4032,7 +4047,7 @@
     async function loadActiveSessionFromDb() {
       if (!sessionId) return;
       try {
-        const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}`);
+        const res = await fetch(`/api/session/${encodeURIComponent(sessionId)}`, { headers: { 'X-User-Id': getActiveUserId() } });
         const data = await res.json();
         if (data.exists && data.turns && data.turns.length > 0) {
           searchHeroSection.classList.add('hidden');
