@@ -15,6 +15,8 @@ import base64
 import re
 import subprocess
 import tempfile
+import asyncio
+import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from urllib.parse import quote
@@ -44,6 +46,8 @@ from config.settings import (
 from agents.crew_factory import run_pipeline
 from agents.failover import SafeHandAgentRunner, call_free_ai_api
 from agents.stream_orchestrator import stream_multi_agent_pipeline
+from agents.stream_bus import stream_bus
+from tools.secure_sandbox import SecureSandboxRunner
 import database
 
 PLOTS_DIR = Path(__file__).resolve().parent / "output" / "plots"
@@ -96,16 +100,87 @@ async def canvas_refine(req: CanvasRefineRequest):
 
 @app.get("/api/stream")
 async def stream_agents(
-    prompt: str,
+    request: Request,
+    prompt: str = "",
     client: Optional[str] = None,
     mode: str = "auto",
     engine: str = "gemini",
     session_id: Optional[str] = None,
+    stream_id: Optional[str] = None,
     paper_ids: Optional[str] = None,
     gemini_api_key: Optional[str] = None
 ):
-    """Server-Sent Events streaming endpoint with SQLite WAL session persistence & paper grounding."""
-    # 1. Retrieve prior session research context and sources from persistent SQLite DB
+    """Server-Sent Events streaming endpoint with decoupled StreamEventBus, Last-Event-ID replay, and SQLite WAL persistence."""
+    # 1. Detect Last-Event-ID for reconnection from either HTTP header or query param
+    last_event_id: Optional[int] = None
+    header_val = request.headers.get("last-event-id")
+    if header_val and header_val.strip().isdigit():
+        last_event_id = int(header_val.strip())
+    elif request.query_params.get("last_event_id") and request.query_params.get("last_event_id").strip().isdigit():
+        last_event_id = int(request.query_params.get("last_event_id").strip())
+
+    # 2. Reconnection check: if stream_id or session_id matches an existing channel
+    existing_channel = None
+    if stream_id:
+        existing_channel = stream_bus.get_channel(stream_id)
+    elif session_id and (last_event_id is not None or not prompt.strip()):
+        active_sid = stream_bus.get_active_stream_for_session(session_id)
+        if active_sid:
+            existing_channel = stream_bus.get_channel(active_sid)
+            if existing_channel:
+                stream_id = active_sid
+
+    # 2a. Handle reconnection without re-running agent computation
+    if existing_channel:
+        target_stream_id = existing_channel.stream_id
+
+        async def reconnect_stream_generator():
+            q = asyncio.Queue()
+            existing_channel.subscribe(q)
+            latest_seen = last_event_id if last_event_id is not None else 0
+            try:
+                # Replay any buffered events strictly greater than last_event_id
+                missed = existing_channel.get_events_since(latest_seen)
+                for ev in missed:
+                    if ev.event_id > latest_seen:
+                        latest_seen = ev.event_id
+                        yield ev.raw
+
+                # If already completed and caught up, terminate gracefully
+                if existing_channel.is_completed:
+                    return
+
+                # Otherwise stream incoming live events as agents produce them
+                while True:
+                    event_obj = await q.get()
+                    if event_obj is None:
+                        break
+                    if event_obj.event_id > latest_seen:
+                        latest_seen = event_obj.event_id
+                        yield event_obj.raw
+            finally:
+                existing_channel.unsubscribe(q)
+
+        return StreamingResponse(
+            reconnect_stream_generator(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+                "X-Stream-ID": target_stream_id,
+            }
+        )
+
+    # 3. New Stream Execution: Validate prompt
+    if not prompt.strip():
+        return JSONResponse(status_code=400, content={"error": "Prompt query parameter is required for a new research run."})
+
+    new_stream_id = stream_id or f"stream_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+    channel = stream_bus.create_channel(new_stream_id, session_id=session_id)
+    loop = asyncio.get_running_loop()
+
+    # Retrieve prior session research context and sources from persistent SQLite DB
     prior_context = ""
     prior_sources = []
     if session_id:
@@ -129,7 +204,7 @@ async def stream_agents(
                     last_t.get("research", "")
                 )
 
-    # 2. Retrieve text from selected uploaded reference papers via SQLite
+    # Retrieve text from selected uploaded reference papers via SQLite
     uploaded_text_parts = []
     if paper_ids:
         p_ids = [pid.strip() for pid in paper_ids.split(",") if pid.strip()]
@@ -141,89 +216,138 @@ async def stream_agents(
             )
     uploaded_papers_text = "\n\n".join(uploaded_text_parts)
 
-    def event_stream_wrapper():
+    # 4. Decoupled Background Agent Worker Thread
+    def run_pipeline_worker(target_id: str):
         accumulated_research = ""
         accumulated_sources = []
         plot_b64 = ""
         plot_path = ""
         deliverables_dict = {}
 
-        for sse_event in stream_multi_agent_pipeline(
-            user_prompt=prompt,
-            client_name=client,
-            mode=mode,
-            engine=engine,
-            prior_context=prior_context,
-            prior_sources=prior_sources,
-            uploaded_papers_text=uploaded_papers_text,
-            gemini_api_key=gemini_api_key
-        ):
-            if "pipeline_finished" in sse_event:
-                try:
-                    clean = sse_event.strip().replace("data: ", "", 1)
-                    parsed = json.loads(clean)
-                    if parsed.get("research"):
-                        accumulated_research = parsed["research"]
-                    if parsed.get("sources"):
-                        accumulated_sources = parsed["sources"]
-                    plot_b64 = parsed.get("plot_base64", "")
-                    plot_path = parsed.get("plot_path", "")
-                    deliverables_dict = {
-                        "email_subject": parsed.get("email_subject"),
-                        "email_body": parsed.get("email_body"),
-                        "calendar": parsed.get("calendar"),
-                        "peer_review": parsed.get("peer_review"),
-                        "draft_v1": parsed.get("draft_v1", ""),
-                        "draft_v2": parsed.get("draft_v2", "")
-                    }
-                    # Save immediately to persistent SQLite WAL database before yielding completion
-                    if session_id and accumulated_research:
-                        turn_uid = f"turn_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-                        try:
-                            database.save_turn(
-                                session_id=session_id,
-                                turn_id=turn_uid,
-                                prompt=prompt,
-                                research=accumulated_research,
-                                sources=accumulated_sources,
-                                deliverables=deliverables_dict,
-                                plot_path=plot_path
-                            )
-                            print(f"[SQLite WAL] Persisted turn {turn_uid} for session {session_id}")
-                        except Exception as db_err:
-                            print(f"[Database Save Error]: {db_err}")
-                except Exception as parse_err:
-                    print(f"[Pipeline Finished Parse Error]: {parse_err}")
-            elif "tool_call_result" in sse_event:
-                try:
-                    clean = sse_event.strip().replace("data: ", "", 1)
-                    parsed = json.loads(clean)
-                    if parsed.get("sources"):
-                        accumulated_sources = parsed["sources"]
-                except Exception:
-                    pass
-            yield sse_event
+        try:
+            for sse_event in stream_multi_agent_pipeline(
+                user_prompt=prompt,
+                client_name=client,
+                mode=mode,
+                engine=engine,
+                prior_context=prior_context,
+                prior_sources=prior_sources,
+                uploaded_papers_text=uploaded_papers_text,
+                gemini_api_key=gemini_api_key
+            ):
+                # Cooperative cancellation check
+                if not stream_bus.is_channel_running(target_id):
+                    print(f"[StreamBus] Worker halted for cancelled stream {target_id}")
+                    break
 
-        # Save to persistent SQLite database
-        if session_id and accumulated_research:
-            turn_uid = f"turn_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-            try:
-                database.save_turn(
-                    session_id=session_id,
-                    turn_id=turn_uid,
-                    prompt=prompt,
-                    research=accumulated_research,
-                    sources=accumulated_sources,
-                    deliverables=deliverables_dict,
-                    plot_path=plot_path
-                )
-            except Exception as db_err:
-                print(f"[Database Error]: {db_err}")
+                if "pipeline_finished" in sse_event:
+                    try:
+                        clean = sse_event.strip().replace("data: ", "", 1)
+                        parsed = json.loads(clean)
+                        if parsed.get("research"):
+                            accumulated_research = parsed["research"]
+                        if parsed.get("sources"):
+                            accumulated_sources = parsed["sources"]
+                        plot_b64 = parsed.get("plot_base64", "")
+                        plot_path = parsed.get("plot_path", "")
+                        deliverables_dict = {
+                            "email_subject": parsed.get("email_subject"),
+                            "email_body": parsed.get("email_body"),
+                            "calendar": parsed.get("calendar"),
+                            "peer_review": parsed.get("peer_review"),
+                            "draft_v1": parsed.get("draft_v1", ""),
+                            "draft_v2": parsed.get("draft_v2", "")
+                        }
+                    except Exception as parse_err:
+                        print(f"[Pipeline Finished Parse Error]: {parse_err}")
+                elif "tool_call_result" in sse_event:
+                    try:
+                        clean = sse_event.strip().replace("data: ", "", 1)
+                        parsed = json.loads(clean)
+                        if parsed.get("sources"):
+                            accumulated_sources = parsed["sources"]
+                    except Exception:
+                        pass
+
+                stream_bus.publish(target_id, sse_event, loop=loop)
+
+        except Exception as exc:
+            print(f"[Stream Worker Error]: {exc}")
+            err_event = f"data: {json.dumps({'type': 'pipeline_error', 'error': str(exc)})}\n\n"
+            stream_bus.publish(target_id, err_event, loop=loop)
+        finally:
+            # Persist state to SQLite WAL
+            if session_id and accumulated_research:
+                turn_uid = f"turn_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+                try:
+                    database.save_turn(
+                        session_id=session_id,
+                        turn_id=turn_uid,
+                        prompt=prompt,
+                        research=accumulated_research,
+                        sources=accumulated_sources,
+                        deliverables=deliverables_dict,
+                        plot_path=plot_path
+                    )
+                    print(f"[SQLite WAL] Persisted turn {turn_uid} for session {session_id}")
+                except Exception as db_err:
+                    print(f"[Database Save Error]: {db_err}")
+
+            stream_bus.finish_stream(target_id, loop=loop)
+
+    worker_thread = threading.Thread(target=run_pipeline_worker, args=(new_stream_id,), daemon=True)
+    worker_thread.start()
+
+    # 5. Async HTTP Streaming Generator
+    async def event_stream_wrapper():
+        q = asyncio.Queue()
+        channel.subscribe(q)
+        latest_seen = 0
+        try:
+            # Yield any events published immediately upon thread launch
+            missed = channel.get_events_since(0)
+            for ev in missed:
+                if ev.event_id > latest_seen:
+                    latest_seen = ev.event_id
+                    yield ev.raw
+
+            while True:
+                event_obj = await q.get()
+                if event_obj is None:
+                    break
+                if event_obj.event_id > latest_seen:
+                    latest_seen = event_obj.event_id
+                    yield event_obj.raw
+        finally:
+            channel.unsubscribe(q)
 
     return StreamingResponse(
         event_stream_wrapper(),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "X-Stream-ID": new_stream_id,
+        }
     )
+
+
+@app.post("/api/stream/cancel")
+async def cancel_stream_endpoint(request: Request):
+    """Cancel an active agent research stream."""
+    try:
+        data = await request.json()
+        target_sid = data.get("stream_id")
+        target_sess = data.get("session_id")
+        if not target_sid and target_sess:
+            target_sid = stream_bus.get_active_stream_for_session(target_sess)
+        if target_sid:
+            stream_bus.cancel_stream(target_sid)
+            return {"success": True, "message": f"Stream {target_sid} cancelled."}
+        return {"success": False, "message": "No active stream found."}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 
 
 @app.post("/api/upload-paper")
@@ -571,23 +695,12 @@ plt.tight_layout()
 plt.savefig(r"{str(plot_file)}", dpi=150, bbox_inches='tight', facecolor='#090c12')
 plt.close()
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as tmp:
-            tmp.write(script)
-            tmp_path = tmp.name
+        sandbox_res = SecureSandboxRunner.execute(script, plot_destination=plot_file)
 
-        try:
-            proc = subprocess.run(
-                [sys.executable, tmp_path],
-                capture_output=True,
-                text=True,
-                timeout=15,
-                cwd=tempfile.gettempdir()
-            )
-        finally:
-            try:
-                Path(tmp_path).unlink()
-            except Exception:
-                pass
+        if not sandbox_res["success"]:
+            err_msg = sandbox_res.get("error") or sandbox_res.get("stderr") or "Simulation execution failed."
+            status_code = 403 if sandbox_res.get("returncode") == 403 else 500
+            return JSONResponse(status_code=status_code, content={"success": False, "error": f"Sandbox security rejection: {err_msg}"})
 
         if plot_file.exists():
             img_bytes = plot_file.read_bytes()
@@ -606,7 +719,7 @@ plt.close()
                 ]
             }
         else:
-            return JSONResponse(status_code=500, content={"success": False, "error": f"Plot generation error: {proc.stderr}"})
+            return JSONResponse(status_code=500, content={"success": False, "error": f"Plot generation error: {sandbox_res.get('stderr')}"})
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "error": str(e)})
 

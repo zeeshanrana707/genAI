@@ -2838,6 +2838,13 @@
         try { currentEventSource.close(); } catch (e) {}
         currentEventSource = null;
       }
+      try {
+        fetch('/api/stream/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        }).catch(() => {});
+      } catch (e) {}
       if (activeTurnId) {
         cleanupTurnStoppedState(activeTurnId);
       }

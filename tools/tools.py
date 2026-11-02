@@ -273,37 +273,15 @@ def run_numerical_verification(equations_context: str, topic: str, api_key: Opti
         script_raw = re.sub(r'\n?```$', '', script_raw)
         result["script"] = script_raw
 
-        # Execution function with environment passing
-        def execute_code(code_str: str) -> subprocess.CompletedProcess:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as tmp:
-                tmp.write(code_str)
-                tmp_path = tmp.name
+        from tools.secure_sandbox import SecureSandboxRunner
 
-            env_vars = os.environ.copy()
-            env_vars["SIMULATION_PLOT_PATH"] = str(plot_dest)
-            try:
-                proc = subprocess.run(
-                    [sys.executable, tmp_path],
-                    capture_output=True,
-                    text=True,
-                    timeout=15,
-                    env=env_vars,
-                    cwd=tempfile.gettempdir()
-                )
-                return proc
-            finally:
-                try:
-                    Path(tmp_path).unlink()
-                except Exception:
-                    pass
-
-        # Attempt 1: Run initial code
-        proc = execute_code(script_raw)
-        stdout = proc.stdout.strip()
-        stderr = proc.stderr.strip()
+        # Attempt 1: Run initial code in hardened AST sandbox
+        sandbox_res = SecureSandboxRunner.execute(script_raw, plot_destination=plot_dest)
+        stdout = sandbox_res["stdout"].strip()
+        stderr = sandbox_res["stderr"].strip()
 
         # Self-Healing Loop: If error or non-zero exit, trigger automatic repair with traceback
-        if proc.returncode != 0 or ("Traceback" in stderr):
+        if not sandbox_res["success"] or ("Traceback" in stderr):
             print(f"[SelfHealingSandbox] Encountered execution error:\n{stderr[:300]}\nInitiating repair...")
             heal_prompt = (
                 f"The following Python simulation script failed with an execution error:\n\n"
@@ -322,14 +300,14 @@ def run_numerical_verification(equations_context: str, topic: str, api_key: Opti
                     healed_code = heal_res.text.strip()
                     healed_code = re.sub(r'^```python\n?', '', healed_code)
                     healed_code = re.sub(r'\n?```$', '', healed_code)
-                    proc2 = execute_code(healed_code)
-                    if proc2.returncode == 0:
+                    sandbox_res2 = SecureSandboxRunner.execute(healed_code, plot_destination=plot_dest)
+                    if sandbox_res2["success"]:
                         script_raw = healed_code
-                        stdout = proc2.stdout.strip()
-                        stderr = proc2.stderr.strip()
+                        stdout = sandbox_res2["stdout"].strip()
+                        stderr = sandbox_res2["stderr"].strip()
                         result["script"] = healed_code
                         result["healed"] = True
-                        print("[SelfHealingSandbox] Code successfully healed and executed cleanly!")
+                        print("[SelfHealingSandbox] Code successfully healed and executed cleanly in sandbox!")
             except Exception as heal_err:
                 print(f"[SelfHealingSandbox] Repair attempt notice: {heal_err}")
 
