@@ -160,6 +160,74 @@ class DeterministicRuleBasedVerifier:
         return sanitized_text, stats
 
     @classmethod
+    def audit_and_sanitize_latex_and_chemistry(cls, text: str) -> Tuple[str, List[str]]:
+        """Sanitizes chemical formulas, fixes broken LaTeX math subscripts and delimiters,
+        and eliminates accidental adjacent duplicated formula tokens.
+        
+        Returns:
+            Tuple of (sanitized_text, list_of_fixes_applied)
+        """
+        if not text:
+            return text, []
+
+        fixes: List[str] = []
+
+        # 1. Eliminate accidental duplicated formula names like LGPS(),LGPS(...) or andLPS(),andLPS(...)
+        def dedupe_func(m):
+            fixes.append(f"Deduplicated token: {m.group(1)}")
+            return f"{m.group(1)}("
+
+        text = re.sub(r'\b([A-Za-z0-9_-]+)\(\),\s*\1\(', dedupe_func, text)
+
+        def dedupe_and(m):
+            fixes.append(f"Deduplicated conjunction: {m.group(1)}")
+            return f"and {m.group(1)}("
+
+        text = re.sub(r'\band\s*([A-Za-z0-9_-]+)\(\),\s*and\s*\1\(', dedupe_and, text)
+
+        # 2. Fix chemical formula subscript issues in LaTeX:
+        # e.g. \text{Element}{Number} -> \text{Element}_{Number}
+        # e.g. \text{PS}5 -> \text{PS}_{5}
+        def fix_chem_braces(m):
+            fixes.append(f"Added subscript underscore: {m.group(1)}_{{{m.group(2)}}}")
+            return f"{m.group(1)}_{{{m.group(2)}}}"
+
+        text = re.sub(r'(\\text\{[A-Za-z]+\})\{(\d+)\}', fix_chem_braces, text)
+
+        def fix_chem_sub(m):
+            fixes.append(f"Added subscript underscore: {m.group(1)}_{{{m.group(2)}}}")
+            return f"{m.group(1)}_{{{m.group(2)}}}"
+
+        text = re.sub(r'(\\text\{[A-Za-z]+\})(\d+)', fix_chem_sub, text)
+
+        # 3. Fix unclosed / missing unit brackets like (E≈15−25,GPa) -> ($E \approx 15\text{--}25\text{ GPa}$)
+        def fix_modulus_unit(m):
+            var_name = m.group(1)
+            lower = m.group(2)
+            upper = m.group(3)
+            unit = m.group(4)
+            fixes.append(f"Formatted modulus unit: {var_name} approx {lower}--{upper} {unit}")
+            return f"(${var_name} \\approx {lower}\\text{{--}}{upper}\\text{{ {unit}}}$)"
+
+        text = re.sub(r'\(([E|G])\s*[≈~=]\s*(\d+)[−–-](\d+)\s*,\s*([A-Za-z/]+)\)', fix_modulus_unit, text)
+
+        # 4. Fix missing percentage signs: e.g. yields >95 (where next word is not %)
+        def fix_missing_pct(m):
+            fixes.append("Added missing % to yield metric")
+            return f"{m.group(1)}%"
+
+        text = re.sub(r'\b(yields?\s*>\s*\d+)(?!\s*%)', fix_missing_pct, text)
+
+        # 5. Fix missing opening dollar before cost expressions like <100/\text{kWh}$
+        def fix_cost_math(m):
+            fixes.append("Fixed missing opening dollar in cost formula")
+            return f"<${m.group(1)}/\\text{{kWh}}"
+
+        text = re.sub(r'(?<!\$)<(\d+)/\\text\{kWh\}\$', fix_cost_math, text)
+
+        return text, fixes
+
+    @classmethod
     def verify_grounding(cls, draft: str, search_context: str) -> Dict[str, Any]:
         """Extract and check quantitative claims and absolute hyperbole against retrieved text."""
         context_lower = search_context.lower()

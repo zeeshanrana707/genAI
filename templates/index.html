@@ -1242,6 +1242,15 @@
         }
       }
 
+      reset() {
+        this.queue = [];
+        this.displayedTokens = [];
+        this.isFinished = false;
+        if (this.onUpdate) {
+          this.onUpdate('', false);
+        }
+      }
+
       stop() {
         if (this.timer) {
           clearInterval(this.timer);
@@ -1916,6 +1925,12 @@
 
           if (ev.type === 'draft_v2') {
             if (turnsData[turnId]) turnsData[turnId].draftV2 = ev.markdown;
+          }
+
+          if (ev.type === 'stream_reset') {
+            if (turnsData[turnId] && turnsData[turnId].streamer) {
+              turnsData[turnId].streamer.reset();
+            }
           }
 
           if (ev.type === 'content_chunk') {

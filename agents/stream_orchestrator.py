@@ -182,6 +182,14 @@ def stream_multi_agent_pipeline(
             system_instruction=chat_system_instruction,
             engine=engine
         ):
+            if chunk_text == "__STREAM_RESET__":
+                accumulated_content = ""
+                yield emit("stream_reset", {
+                    "action": "failover_reset",
+                    "message": "Stream failover reset to secondary model; restarting clean draft."
+                })
+                continue
+
             accumulated_content += chunk_text
             final_provider = stream_prov
             yield emit("content_chunk", {
@@ -501,6 +509,9 @@ def stream_multi_agent_pipeline(
         "Epistemic Grounding: Strictly bind all factual assertions to cited sources [1], [2] from the catalog.",
         "Anti-Hallucination & Hardware Specs: Do NOT assert speculative GPU cluster requirements (e.g. '8x H100') or unverified latency multipliers unless documented in official technical reports. If undisclosed, explicitly state that vendor specifications are proprietary.",
         "Metric & Denominator Precision: Any percentage (e.g. '10–15% success rate') or timeline assertion (e.g. '1–2 years acceleration') MUST specify the denominator, cohort, or evaluation benchmark. Never state raw metrics without their study baseline.",
+        "Chemical & LaTeX Formula Integrity: All chemical formulas MUST use correct subscript syntax (e.g. `\\text{Li}_6\\text{PS}_5\\text{Cl}`, `\\text{Li}_{10}\\text{GeP}_2\\text{S}_{12}`, `\\text{Li}_3\\text{PS}_4`, `\\text{H}_2\\text{S}`) with balanced dollar delimiters and explicit units (`$E \\approx 15\\text{--}25\\text{ GPa}$`, `>95%`). Never concatenate broken strings or omit subscript braces.",
+        "Company & Chemistry Grounding: Verify all company-to-chemistry mappings against primary empirical literature (e.g. Solid Power produces sulfide argyrodites with BMW/Ford; QuantumScape develops proprietary ceramic/oxide garnet separators in an anode-less architecture with VW/PowerCo; ProLogium specializes in oxide/ceramic hybrids with silicon-dominant anodes). Do NOT invert vendor chemistries.",
+        "Electrochemical & Interface Physics: Never assert the Monroe-Newman shear modulus condition without clarifying that in practice, dendrites penetrate high-modulus ceramics (LLZO $>55\\text{ GPa}$) along grain boundaries and via electronic leakage. Note that sulfides require continuous operating stack pressure ($1\\text{--}5+\\text{ MPa}$) to prevent void formation, and react with moisture to release toxic $\\text{H}_2\\text{S}$ gas.",
         "Epistemic Uncertainty Disclosure: For any capability or metric that cannot be directly substantiated by the retrieved sources, provide an explicit '> ⚠️ Epistemic Note:' rather than asserting it as fact.",
         "Architectural Objectivity: Reframe absolute consistency claims as observed empirical benchmark strengths rather than architectural guarantees.",
         "System Boundaries: Clearly distinguish open-weight models from proprietary commercial endpoints."
@@ -682,7 +693,9 @@ def stream_multi_agent_pipeline(
         "   > ⚠️ Epistemic Note: [Specify what remains unverified or where empirical evidence is currently lacking.]\n"
         "9. NO ARCHITECTURAL ABSOLUTES: Do NOT claim an architecture is 'the only one capable of...' or that it 'guarantees' consistency. Frame capabilities as empirical strengths observed in published evaluations.\n"
         "10. CLOSED-SOURCE VS OPEN TRANSPARENCY: Do NOT assert internal tokenization details for closed commercial APIs (Runway, Kling, Sora) unless an official technical report is cited. Focus on observable capabilities and published evaluations.\n"
-        "11. MANDATORY BIBLIOGRAPHY: You MUST conclude your response with a dedicated section:\n"
+        "11. CHEMICAL & LATEX FORMULA SYNTAX: All chemical formulas MUST be properly formatted with LaTeX subscripts (e.g. `\\text{Li}_6\\text{PS}_5\\text{Cl}`, `\\text{Li}_{10}\\text{GeP}_2\\text{S}_{12}`, `\\text{Li}_3\\text{PS}_4`, `\\text{H}_2\\text{S}`). Use curly braces for multi-character subscripts (`\\text{Li}_{10}`). Never concatenate malformed tokens or leave unclosed math delimiters.\n"
+        "12. INDUSTRY & PHYSICS ACCURACY: Verify company chemistries against cited sources (e.g. Solid Power = sulfide argyrodite with BMW/Ford, QuantumScape = ceramic/oxide garnet separator with VW/PowerCo, ProLogium = oxide/silicon hybrid). In dendrite analyses, do not rely solely on the Monroe-Newman shear modulus model; acknowledge grain boundary propagation in LLZO and required stack pressure ($1\\text{--}5+\\text{ MPa}$) in sulfides.\n"
+        "13. MANDATORY BIBLIOGRAPHY: You MUST conclude your response with a dedicated section:\n"
         "   ### 📚 Sources & References\n"
         "   listing each cited [1], [2] with its Title and URL/Domain verbatim from the catalog."
     )
@@ -736,6 +749,14 @@ def stream_multi_agent_pipeline(
         search_context=search_raw,
         engine=engine
     ):
+        if chunk_text == "__STREAM_RESET__":
+            accumulated_content = ""
+            yield emit("stream_reset", {
+                "action": "failover_reset",
+                "message": "Stream failover reset to secondary model; restarting clean draft."
+            })
+            continue
+
         accumulated_content += chunk_text
         final_provider = stream_prov
         yield emit("content_chunk", {
@@ -750,6 +771,14 @@ def stream_multi_agent_pipeline(
         accumulated_content,
         valid_source_count=len(sources_payload)
     )
+
+    # Step 1b: Chemical Formula & LaTeX Formatting Sanitizer
+    sanitized_content, chem_fixes = DeterministicRuleBasedVerifier.audit_and_sanitize_latex_and_chemistry(
+        sanitized_content
+    )
+    if chem_fixes:
+        print(f"[Chemistry/LaTeX Sanitizer] Applied {len(chem_fixes)} formula corrections: {chem_fixes[:3]}")
+
     if sanitized_content != accumulated_content:
         accumulated_content = sanitized_content
         yield emit("content_chunk", {

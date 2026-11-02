@@ -247,6 +247,7 @@ class SafeHandAgentRunner:
                 client = genai.Client(api_key=active_key)
 
             for model_name in candidate_models:
+                streamed_this_model = False
                 try:
                     response_stream = client.models.generate_content_stream(
                         model=model_name,
@@ -257,14 +258,18 @@ class SafeHandAgentRunner:
 
                     for chunk in response_stream:
                         if chunk and chunk.text:
+                            streamed_this_model = True
                             streamed_any = True
                             yield chunk.text, self.active_provider
 
-                    if streamed_any:
+                    if streamed_this_model:
                         return
                 except Exception as e:
                     err_msg = str(e)
                     self.log(f"[Safe-Hand Stream] Gemini on {model_name} noticed ({err_msg[:60]}), trying next...")
+                    if streamed_this_model:
+                        self.log(f"[Safe-Hand Stream] Partial stream interrupted on {model_name}; emitting __STREAM_RESET__")
+                        yield "__STREAM_RESET__", self.active_provider
                     continue
 
             self.failover_triggered = True
@@ -278,6 +283,10 @@ class SafeHandAgentRunner:
             engine=engine
         )
         if fallback_text:
+            if streamed_any:
+                self.log("[Safe-Hand Stream] Resetting previous partial stream for clean fallback delivery")
+                yield "__STREAM_RESET__", provider
+
             words = fallback_text.split(" ")
             batch = []
             for i, w in enumerate(words):
