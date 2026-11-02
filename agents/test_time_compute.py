@@ -290,6 +290,35 @@ class DeterministicRuleBasedVerifier:
             flags=re.IGNORECASE
         )
 
+        # 12. Lithium Shear Modulus vs Bulk Modulus Sanitizer:
+        # G_Li is 3.4 GPa (not 4.2 GPa, which is bulk/elastic modulus K_Li)
+        def fix_li_shear_modulus(m):
+            fixes.append("Corrected lithium shear modulus value (G_Li approx 3.4 GPa vs bulk modulus 4.2 GPa)")
+            return r"G_{\text{Li}} \approx 3.4\text{ GPa}"
+
+        text = re.sub(
+            r'G_\{?(?:Li|\\text\{Li\})\}?\s*[≈~=]\s*4\.[0-5]\s*(?:\\text\{\s*)?GPa\}?',
+            fix_li_shear_modulus,
+            text,
+            flags=re.IGNORECASE
+        )
+        text = re.sub(
+            r'shear\s+modulus\s+of\s+lithium\s+metal\s*\([^)]*4\.[0-5]\s*GPa[^)]*\)',
+            r"shear modulus of lithium metal ($G_{\\text{Li}} \\approx 3.4\\text{ GPa}$, noting $4.2\\text{ GPa}$ is the bulk modulus $K_{\\text{Li}}$)",
+            text,
+            flags=re.IGNORECASE
+        )
+
+        # 13. LLZO Surface Passivation & ASR Nuance:
+        if re.search(r'\bLLZO\b', text, re.IGNORECASE) and re.search(r'stable\s+vs\.?\s+Li-?metal', text, re.IGNORECASE) and not re.search(r'Li_2CO_3', text, re.IGNORECASE):
+            fixes.append("Added LLZO surface Li2CO3 passivation and ASR nuance")
+            text = re.sub(
+                r'(\bLLZO[^\n|]*?\|\s*)([^\n|]*?stable\s+vs\.?\s+Li-?metal[^\n|]*)',
+                r'\1Thermodynamically stable vs Li, but forms insulating Li2CO3/LiOH air-passivation layer spiking ASR',
+                text,
+                flags=re.IGNORECASE
+            )
+
         return text, fixes
 
     @classmethod
@@ -351,7 +380,7 @@ class DeterministicRuleBasedVerifier:
             return r"\text{Li}_6\text{PS}_5\text{Cl} + 6\text{H}_2\text{O} \longrightarrow \text{Li}_3\text{PO}_4 + 2\text{LiOH} + \text{LiCl} + 5\text{H}_2\text{S}\uparrow"
 
         text = re.sub(
-            r'\\text\{Li\}_?6\\text\{PS\}_?5\\text\{Cl\}\s*\+\s*\d*\\text\{H\}_?2\\text\{O\}\s*(?:\\longrightarrow|->|→)\s*.*?\\text\{H\}_?2\\text\{S\}[\^\\uparrow]*',
+            r'(\\?text\{Li\}_?6\\?text\{PS\}_?5\\?text\{Cl\}|Li6PS5Cl)\s*\+\s*\d*\\?(?:text\{H\}_?2\\?text\{O\}|H2O)\s*(?:\\longrightarrow|->|→|\\rightarrow)\s*[^\n$]+',
             balance_hydrolysis,
             text
         )
